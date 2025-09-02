@@ -1,0 +1,9 @@
+{
+  "query": "healthy breakfast ideas",
+  "aiOverview": { "show": false, "text": "" },
+  "results": [
+    { "title": "25 Healthy Breakfasts", "url": "https://food.example/25-healthy-breakfasts", "snippet": "Quick and nutritious recipes.", "ad": false },
+    { "title": "Order Smoothies Online", "url": "https://smoothieshop.example/", "snippet": "Fresh blends delivered to your door.", "ad": true },
+    { "title": "Protein-Packed Morning Meals", "url": "https://nutrition.example/protein-breakfast", "snippet": "Stay satiated until lunch.", "ad": false }
+  ]
+}

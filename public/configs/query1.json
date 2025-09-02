@@ -1,0 +1,19 @@
+{
+  "query": "best hiking boots",
+  "aiOverview": {
+    "show": true,
+    "text": "AI summary about hiking boots: Consider terrain, ankle support, waterproofing, and fit. Popular picks balance comfort with durability."
+  },
+  "results": [
+    { "title": "Top 10 Hiking Boots 2025", "url": "https://example.com/hikingboots", "snippet": "Discover the best hiking boots tested by outdoor experts.", "ad": false },
+    { "title": "Shop Hiking Boots Online", "url": "https://onlinestore.com/boots", "snippet": "Huge range of hiking boots with free shipping.", "ad": true },
+    { "title": "How to Choose Hiking Boots", "url": "https://outdoorskills.com/choose-boots", "snippet": "Guide to selecting the right boots for your hikes.", "ad": false },
+    { "title": "Boot Care 101", "url": "https://gearcare.org/boots", "snippet": "Extend the life of your hiking boots with proper care.", "ad": false },
+    { "title": "Lightweight vs. Midweight Boots", "url": "https://trailtalk.net/boots-weight", "snippet": "Pros and cons of different boot weights.", "ad": false },
+    { "title": "Waterproofing Explained", "url": "https://dryfeet.io/waterproofing", "snippet": "Gore-Tex vs. eVent vs. leather treatment.", "ad": false },
+    { "title": "Hiking Socks Matter", "url": "https://sockscience.co/hiking", "snippet": "Why socks can make or break your hike.", "ad": false },
+    { "title": "Retailer Sale: Boots", "url": "https://retailer.example/boots-sale", "snippet": "Seasonal discounts on popular models.", "ad": true },
+    { "title": "Trail Tested: Editor's Choice", "url": "https://magazine.example/editors-choice-boots", "snippet": "Our editors' top picks after 500 miles.", "ad": false },
+    { "title": "Best for Wide Feet", "url": "https://fitguide.example/wide-feet-boots", "snippet": "Models that fit wide feet comfortably.", "ad": false }
+  ]
+}

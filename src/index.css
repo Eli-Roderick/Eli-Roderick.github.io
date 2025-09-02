@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mimic Google-y feel (dark theme) without copyrighted assets */
+@layer base {
+  html { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+  body { background: #202124; color: #e8eaed; }
+  a { color: #8ab4f8; }
+  a:hover { text-decoration: underline; }
+}
+
+/* Result card */
+.result-card { @apply max-w-3xl; }
+.result-title { @apply text-[18px] leading-5 font-normal hover:underline; }
+.result-url { color: #9aa0a6; font-size: 13px; }
+.result-snippet { color: #bdc1c6; font-size: 14px; line-height: 1.6; }
+
+/* Ad styling (dark) */
+.ad-badge { @apply inline-flex items-center px-1.5 py-0.5 rounded border text-xs font-medium bg-neutral-900 border-neutral-700 text-gray-300; }
+
+/* AI overview (dark) */
+.ai-card { background: #202124; border: 1px solid #3c4043; border-radius: 0.75rem; box-shadow: 0 1px 2px rgb(0 0 0 / 0.1); max-width: 48rem; }
+.ai-header { padding: 0.75rem 1rem 0.5rem; font-size: 0.875rem; font-weight: 500; color: #bdc1c6; }
+.ai-body { padding: 0 1rem 1rem; font-size: 15px; line-height: 1.6; color: #e8eaed; }
+
+/* Header */
+.search-header { width: 100%; border-bottom: 1px solid #3c4043; background: #202124; }
+.search-bar { display: flex; align-items: center; width: 100%; max-width: 40rem; border-radius: 9999px; border: 1px solid #5f6368; background: #303134; padding: 0.5rem 1rem; }
+.search-bar input { background: transparent; color: #e8eaed; }
+
+/* Tabs (dark) */
+.tabs button { padding-bottom: 0.5rem; margin-bottom: -1px; border-bottom: 2px solid transparent; transition: color 0.15s ease; }
+.tabs .active { border-bottom-color: #1a73e8; color: #8ab4f8; }
+.tabs .inactive { border-bottom-color: transparent; color: #9aa0a6; }
+.tabs .inactive:hover { color: #e8eaed; }
+.tabs-divider { border-bottom: 1px solid #3c4043; }
