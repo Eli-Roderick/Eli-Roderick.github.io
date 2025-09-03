@@ -13,7 +13,7 @@ export default function AdResult({ title, url, snippet, query, onClick }) {
       <div className="flex items-center gap-2 mb-1">
         <span className="ad-badge">Ad</span>
         <span className="result-url flex items-center gap-2">
-          <img className="favicon" src={favicon} alt="" width={16} height={16} loading="lazy" />
+          <img className="favicon" src={favicon} alt="" width={32} height={32} loading="lazy" />
           <span>{displayUrl}</span>
         </span>
       </div>

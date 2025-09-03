@@ -11,7 +11,7 @@ export default function SearchResult({ title, url, snippet, query, onClick }) {
   return (
     <div className="result-card">
       <div className="result-url mb-1 flex items-center gap-2">
-        <img className="favicon" src={favicon} alt="" width={16} height={16} loading="lazy" />
+        <img className="favicon" src={favicon} alt="" width={32} height={32} loading="lazy" />
         <span>{displayUrl}</span>
       </div>
       <h3 className="result-title mb-1">
