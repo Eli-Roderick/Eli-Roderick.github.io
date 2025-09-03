@@ -159,7 +159,7 @@
 /* Light mode tweaks: black AI text and subtle search bar outline */
 @media (prefers-color-scheme: light) {
   .ai-body { color: #000000; }
-  .search-bar { border: 1px solid #dadce0; }
+  .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.05); }
 }
 body.light .ai-body { color: #000000; }
-body.light .search-bar { border: 1px solid #dadce0; }
+body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.05); }
