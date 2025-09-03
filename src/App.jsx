@@ -27,6 +27,22 @@ export default function App() {
   const [showPasteModal, setShowPasteModal] = useState(false)
   const [draftAIText, setDraftAIText] = useState('')
 
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (showPasteModal) {
+      document.body.classList.add('modal-open')
+      // Fallback in case class is overridden
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.classList.remove('modal-open')
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.classList.remove('modal-open')
+      document.body.style.overflow = ''
+    }
+  }, [showPasteModal])
+
   useEffect(() => {
     (async () => {
       try {
