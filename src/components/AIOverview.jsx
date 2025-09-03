@@ -33,8 +33,8 @@ export default function AIOverview({ text }) {
           <div className="ai-footer">
             <div className="text-[11px]">AI responses may include mistakes</div>
             <div className="ai-actions">
-              <span className="material-symbols-outlined text-blue-600 cursor-pointer" title="Thumbs up" aria-label="Thumbs up">thumb_up</span>
-              <span className="material-symbols-outlined text-blue-600 cursor-pointer" title="Thumbs down" aria-label="Thumbs down">thumb_down</span>
+              <span className="material-symbols-outlined text-blue-400 text-[18px] cursor-pointer" title="Thumbs up" aria-label="Thumbs up">thumb_up</span>
+              <span className="material-symbols-outlined text-blue-400 text-[18px] cursor-pointer" title="Thumbs down" aria-label="Thumbs down">thumb_down</span>
             </div>
           </div>
           {expanded && wasTruncated && (
