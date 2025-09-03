@@ -84,18 +84,18 @@ export default function App() {
               <input className="flex-1 outline-none text-[16px]" value={query} readOnly />
               <div className="search-affordances">
                 {/* Clear button (non-functional) */}
-                <button className="icon-btn" aria-label="Clear" title="Clear">
+                <button className="icon-btn-gray" aria-label="Clear" title="Clear">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                     <path d="M12 10.586 6.343 4.93 4.93 6.343 10.586 12l-5.657 5.657 1.414 1.414L12 13.414l5.657 5.657 1.414-1.414L13.414 12l5.657-5.657-1.414-1.414L12 10.586z"/>
                   </svg>
                 </button>
                 <span className="separator" />
                 {/* Search icon */}
-                <div className="search-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                <button className="icon-btn-gray" aria-label="Search" title="Search">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                     <path d="M21.53 20.47l-4.808-4.808A7.5 7.5 0 1016.5 17l4.808 4.808 0.222-0.222zM10.5 16a5.5 5.5 0 110-11 5.5 5.5 0 010 11z"/>
                   </svg>
-                </div>
+                </button>
               </div>
             </div>
           </div>
@@ -116,7 +116,7 @@ export default function App() {
         </div>
 
         {/* Tabs row */}
-        <div className="pl-48 pr-6 mt-3">
+        <div className="pl-52 pr-6 mt-4">
           <nav className="tabs flex gap-6 text-sm">
             {['All','Images','Videos','Shopping','News','More'].map((tab) => (
               <button
@@ -133,7 +133,7 @@ export default function App() {
       </header>
 
       {/* Content */}
-      <main className="pl-48 pr-6 py-6">
+      <main className="pl-52 pr-6 py-6">
         {loading && <div>Loading…</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && config && (
