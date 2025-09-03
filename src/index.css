@@ -68,9 +68,9 @@
 
 /* Header */
 .search-header { width: 100%; border-bottom: 1px solid var(--border); background: var(--bg); }
-.search-bar { display: flex; align-items: center; width: 100%; max-width: 40rem; border-radius: 9999px; border: none; background: var(--search-border); padding: 0.55rem 1.0rem; gap: 0.5rem; }
+.search-bar { display: flex; align-items: center; width: 100%; max-width: 40rem; border-radius: 9999px; border: none; background: var(--search-border); padding: 0.73rem 1.0rem; gap: 0.5rem; }
 .search-bar input { background: transparent; color: var(--text); }
-.separator { width: 1px; height: 22px; background: var(--search-border); opacity: 0.7; margin: 0 6px; }
+.separator { width: 1px; height: 29px; background: var(--search-border); opacity: 0.7; margin: 0 6px; }
 .search-icon { color: var(--search-icon); }
 .search-affordances { display: inline-flex; align-items: center; gap: 0.25rem; }
 
