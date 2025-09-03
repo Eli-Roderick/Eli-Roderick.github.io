@@ -108,7 +108,7 @@ export default function App() {
         </div>
 
         {/* Tabs row */}
-        <div className="pl-52 pr-6 mt-4">
+        <div className="pl-52 pr-6 mt-2">
           <nav className="tabs flex gap-6 text-sm">
             {['All','Images','Videos','Shopping','News','More'].map((tab) => (
               <button
