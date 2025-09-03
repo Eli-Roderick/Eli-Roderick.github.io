@@ -76,20 +76,20 @@
   content: '';
   position: absolute;
   left: 0; right: 0; bottom: 0;
-  height: 2.25rem;
+  height: 1.25rem;
   /* subtle fade to page background, simulating a soft blur/fade */
   background: linear-gradient(to bottom, color-mix(in hsl, var(--bg), transparent 0%), var(--bg) 90%);
   pointer-events: none;
-  backdrop-filter: blur(1px);
+  backdrop-filter: blur(2px);
 }
-.ai-showmore { margin-top: 8px; }
+.ai-showmore { margin-top: 0; }
 .ai-showmore-btn {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.55rem 1rem;
   background: var(--bg);
   border: 1px solid color-mix(in hsl, var(--bg), white 25%);
   color: var(--text);
-  border-radius: 0.5rem;
+  border-radius: 9999px; /* pill-shaped, same as search bar */
   font-weight: 500;
 }
 .ai-showmore-btn:hover { background: color-mix(in hsl, var(--bg), white 6%); }
