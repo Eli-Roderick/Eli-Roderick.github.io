@@ -70,6 +70,9 @@
 .link-with-sep { display: inline-block; }
 .link-sep { height: 1px; background: var(--border-subtle); margin-top: 2px; }
 
+/* Divider between results */
+.result-divider { height: 1px; background: var(--border-subtle); margin: 14px 0; }
+
 /* Ad styling (dark) */
 .ad-badge { @apply inline-flex items-center px-1.5 py-0.5 rounded border text-xs font-semibold; }
 .ad-badge { background: color-mix(in hsl, var(--card-bg), black 6%); border-color: var(--border); color: var(--text); opacity: 0.8; }
@@ -103,6 +106,12 @@
 }
 .ai-showmore-btn:hover { background: color-mix(in hsl, var(--bg), white 6%); }
 
+/* Blue outline around Show more in light mode (matches AI icon #1a73e8) */
+@media (prefers-color-scheme: light) {
+  .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.12); }
+}
+body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.12); }
+
 /* AI Overview rich text formatting */
 .ai-body p { margin: 0.25rem 0; }
 .ai-body p + p { margin-top: 0.5rem; }
@@ -112,6 +121,9 @@
 .ai-body a { color: #1a73e8; text-decoration: underline; }
 .ai-body strong, .ai-body b { font-weight: 600; }
 .ai-body em, .ai-body i { font-style: italic; }
+
+/* Separator under AI Overview (content width), same blue as icon */
+.ai-separator { height: 1px; background: #1a73e8; opacity: 0.5; margin: 10px 0 14px; max-width: 48rem; }
 
 /* Header */
 .search-header { width: 100%; border-bottom: 1px solid var(--border); background: var(--bg); }

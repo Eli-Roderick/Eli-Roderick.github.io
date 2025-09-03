@@ -15,18 +15,22 @@ export default function SearchPage({ config, onResultClick }) {
           {aiOverview?.show && (
             <div className="mt-4 mb-4">
               <AIOverview text={aiOverview.text} />
+              <div className="ai-separator" />
             </div>
           )}
 
           {/* Results */}
           <div className="mt-2">
-            {results.slice(0, 10).map((r, idx) =>
-              r.ad ? (
-                <AdResult key={idx} {...r} query={query} onClick={onResultClick} />
-              ) : (
-                <SearchResult key={idx} {...r} query={query} onClick={onResultClick} />
-              )
-            )}
+            {results.slice(0, 10).map((r, idx, arr) => (
+              <React.Fragment key={idx}>
+                {r.ad ? (
+                  <AdResult {...r} query={query} onClick={onResultClick} />
+                ) : (
+                  <SearchResult {...r} query={query} onClick={onResultClick} />
+                )}
+                {idx < arr.length - 1 && <div className="result-divider" />}
+              </React.Fragment>
+            ))}
           </div>
         </div>
       </div>
