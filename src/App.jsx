@@ -78,10 +78,25 @@ export default function App() {
       {/* Header */}
       <header className="search-header">
         {/* Top row: search bar + controls */}
-        <div className="pl-32 pr-4 py-3 flex items-center gap-4">
+        <div className="pl-36 pr-6 py-3 flex items-center gap-4">
           <div className="flex-1">
             <div className="search-bar">
               <input className="flex-1 outline-none text-[16px]" value={query} readOnly />
+              <div className="search-affordances">
+                {/* Clear button (non-functional) */}
+                <button className="icon-btn" aria-label="Clear" title="Clear">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                    <path d="M12 10.586 6.343 4.93 4.93 6.343 10.586 12l-5.657 5.657 1.414 1.414L12 13.414l5.657 5.657 1.414-1.414L13.414 12l5.657-5.657-1.414-1.414L12 10.586z"/>
+                  </svg>
+                </button>
+                <span className="separator" />
+                {/* Search icon */}
+                <div className="search-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M21.53 20.47l-4.808-4.808A7.5 7.5 0 1016.5 17l4.808 4.808 0.222-0.222zM10.5 16a5.5 5.5 0 110-11 5.5 5.5 0 010 11z"/>
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
 
