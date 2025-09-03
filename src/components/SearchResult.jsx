@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function SearchResult({ title, url, snippet, query, onClick }) {
+export default function SearchResult({ title, url, snippet, company, query, onClick }) {
   const handleClick = () => {
     onClick?.({ query, url })
     window.open(url, '_blank', 'noopener,noreferrer')
@@ -10,9 +10,12 @@ export default function SearchResult({ title, url, snippet, query, onClick }) {
   const favicon = `https://icons.duckduckgo.com/ip3/${domain}.ico`
   return (
     <div className="result-card">
-      <div className="result-url mb-1 flex items-center gap-2">
+      <div className="result-url mb-1 flex items-start gap-2">
         <img className="favicon" src={favicon} alt="" width={32} height={32} loading="lazy" />
-        <span>{displayUrl}</span>
+        <div className="min-w-0">
+          {company && <div className="company-name">{company}</div>}
+          <div className="truncate">{displayUrl}</div>
+        </div>
       </div>
       <h3 className="result-title mb-1">
         {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}

@@ -65,6 +65,7 @@
 .result-card { @apply max-w-3xl; }
 .result-title { @apply text-[18px] leading-5 font-normal hover:underline; }
 .result-url { color: var(--search-icon); font-size: 13px; }
+.company-name { color: var(--text); font-size: 13px; font-weight: 600; line-height: 1.1; margin-bottom: 2px; }
 .result-snippet { color: var(--muted); font-size: 14px; line-height: 1.6; }
 /* Link-length separator */
 .link-with-sep { display: inline-block; }

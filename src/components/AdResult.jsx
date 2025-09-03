@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function AdResult({ title, url, snippet, query, onClick }) {
+export default function AdResult({ title, url, snippet, company, query, onClick }) {
   const handleClick = () => {
     onClick?.({ query, url })
     window.open(url, '_blank', 'noopener,noreferrer')
@@ -10,11 +10,14 @@ export default function AdResult({ title, url, snippet, query, onClick }) {
   const favicon = `https://icons.duckduckgo.com/ip3/${domain}.ico`
   return (
     <div className="result-card">
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-start gap-2 mb-1">
         <span className="ad-badge">Ad</span>
-        <span className="result-url flex items-center gap-2">
+        <span className="result-url flex items-start gap-2">
           <img className="favicon" src={favicon} alt="" width={32} height={32} loading="lazy" />
-          <span>{displayUrl}</span>
+          <span className="min-w-0">
+            {company && <div className="company-name">{company}</div>}
+            <div className="truncate">{displayUrl}</div>
+          </span>
         </span>
       </div>
       <h3 className="result-title mb-1">
