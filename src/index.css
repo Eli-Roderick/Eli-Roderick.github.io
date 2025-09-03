@@ -22,15 +22,15 @@
   @media (prefers-color-scheme: dark) {
     :root {
       /* Darker but not fully black */
-      --bg: #1d1f22;
+      --bg: #202124;
       --text: #e8eaed;
       --link: #8ab4f8;
       --visited: #c58af9;
       --muted: #bdc1c6;
-      --card-bg: #1d1f22;
+      --card-bg: #202124;
       --border: #3c4043;
       --border-subtle: #2b2f33;
-      --search-bg: #34363a;
+      --search-bg: #2a2c2f;
       --search-border: #5f6368;
       --search-icon: #9aa0a6;
       --tab-inactive: #9aa0a6;
@@ -42,6 +42,23 @@
   a { color: var(--link); }
   a:visited { color: var(--visited); }
   a:hover { text-decoration: underline; }
+}
+
+/* Explicit theme classes */
+/* Direct background override (as requested) */
+.light { background-color: #ffffff; }
+.dark  { background-color: #202124; }
+
+/* Variable overrides when applying theme class to root/body */
+:root.light, body.light {
+  --bg: #ffffff;
+  --card-bg: #ffffff;
+  --text: #202124;
+}
+:root.dark, body.dark {
+  --bg: #202124;
+  --card-bg: #202124;
+  --text: #e8eaed;
 }
 
 /* Result card */
@@ -138,3 +155,11 @@
 /* Rich text input (contenteditable) */
 .rich-input { width: 100%; min-height: 10rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.375rem; background: transparent; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
 .rich-input:focus { outline: none; box-shadow: 0 0 0 2px color-mix(in hsl, var(--tab-active), transparent 82%); border-color: var(--tab-active); }
+
+/* Light mode tweaks: black AI text and subtle search bar outline */
+@media (prefers-color-scheme: light) {
+  .ai-body { color: #000000; }
+  .search-bar { border: 1px solid #dadce0; }
+}
+body.light .ai-body { color: #000000; }
+body.light .search-bar { border: 1px solid #dadce0; }
