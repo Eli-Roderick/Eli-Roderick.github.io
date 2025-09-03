@@ -78,7 +78,7 @@ export default function App() {
       {/* Header */}
       <header className="search-header">
         {/* Top row: search bar + controls */}
-        <div className="pl-36 pr-6 py-3 flex items-center gap-4">
+        <div className="pl-56 pr-6 pt-10 pb-3 flex items-center gap-4">
           <div className="flex-1">
             <div className="search-bar">
               <input className="flex-1 outline-none text-[16px]" value={query} readOnly />
@@ -116,7 +116,7 @@ export default function App() {
         </div>
 
         {/* Tabs row */}
-        <div className="pl-32 pr-4">
+        <div className="pl-56 pr-6">
           <nav className="tabs flex gap-6 text-sm">
             {['All','Images','Videos','Shopping','News','More'].map((tab) => (
               <button
@@ -133,7 +133,7 @@ export default function App() {
       </header>
 
       {/* Content */}
-      <main className="pl-32 pr-4 py-4">
+      <main className="pl-56 pr-6 py-6">
         {loading && <div>Loading…</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && config && (
