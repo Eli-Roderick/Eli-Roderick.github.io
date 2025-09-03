@@ -12,7 +12,7 @@ export default function AIOverview({ text }) {
   return (
     <section className="ai-card">
       <div className="ai-header">
-        <span className="material-symbols-outlined text-[#1a73e8]" aria-hidden>diamond</span>
+        <span className="material-symbols-outlined text-blue-600" aria-hidden>sparkles</span>
         <span>AI Overview</span>
       </div>
       <div className="ai-body whitespace-pre-wrap">{expanded ? text : display}</div>
