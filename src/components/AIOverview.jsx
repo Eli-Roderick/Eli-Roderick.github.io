@@ -19,16 +19,20 @@ export default function AIOverview({ text }) {
           <h2 className="text-sm font-medium">AI Overview</h2>
         </div>
       </div>
-      <div className="ai-body whitespace-pre-wrap">{expanded ? text : display}</div>
+      <div className={`ai-body whitespace-pre-wrap ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}>
+        {expanded ? text : display}
+      </div>
 
-      {/* Show more / less control */}
+      {/* Show more control (full-width button at bottom) */}
       {(!expanded && wasTruncated) ? (
-        <button
-          className="text-blue-600 hover:underline text-sm"
-          onClick={() => setExpanded(true)}
-        >
-          Show more
-        </button>
+        <div className="ai-showmore">
+          <button
+            className="ai-showmore-btn"
+            onClick={() => setExpanded(true)}
+          >
+            Show more
+          </button>
+        </div>
       ) : null}
 
       {/* Footer: show immediately if not truncated; otherwise only when expanded */}
@@ -41,14 +45,6 @@ export default function AIOverview({ text }) {
               <span className="material-symbols-outlined text-blue-400 text-[18px] cursor-pointer" title="Thumbs down" aria-label="Thumbs down">thumb_down</span>
             </div>
           </div>
-          {expanded && wasTruncated && (
-            <button
-              className="text-blue-600 hover:underline text-sm"
-              onClick={() => setExpanded(false)}
-            >
-              Show less
-            </button>
-          )}
         </>
       )}
     </section>
