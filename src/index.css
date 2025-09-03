@@ -93,9 +93,14 @@
 .icon-plain { color: var(--search-icon); font-size: 20px; line-height: 1; background: transparent; border: none; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .icon-plain:hover { color: var(--text); }
 
-/* Tabs (dark) */
-.tabs button { padding-bottom: 0.5rem; margin-bottom: -1px; border-bottom: 2px solid transparent; transition: color 0.15s ease; }
-.tabs .active { border-bottom-color: var(--tab-active); color: var(--tab-active); }
-.tabs .inactive { border-bottom-color: transparent; color: var(--tab-inactive); }
-.tabs .inactive:hover { color: var(--text); }
-.tabs-divider { border-bottom: 1px solid var(--border-subtle); }
+/* Tabs */
+.tabs button { padding: 0.25rem 0; color: var(--muted); border-bottom: 2px solid transparent; }
+.tabs button.active { color: var(--tab-active); border-color: var(--tab-active); }
+.tabs-divider { height: 1px; background: var(--border); margin-top: 6px; }
+
+/* Modal */
+.modal-backdrop { position: fixed; inset: 0; background: color-mix(in hsl, black, transparent 35%); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 50; }
+.modal { width: 100%; max-width: 32rem; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); border-radius: 0.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+.modal-body { padding: 0.75rem 1rem; }
+.modal-footer { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 0.75rem 1rem; border-top: 1px solid var(--border); }

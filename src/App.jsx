@@ -24,6 +24,8 @@ export default function App() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('All')
   const [userAIText, setUserAIText] = useState('')
+  const [showPasteModal, setShowPasteModal] = useState(false)
+  const [draftAIText, setDraftAIText] = useState('')
 
   useEffect(() => {
     (async () => {
@@ -37,6 +39,14 @@ export default function App() {
         setLoading(false)
       }
     })()
+  }, [])
+
+  // Load persisted AI text on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ai_overview_text')
+      if (saved) setUserAIText(saved)
+    } catch {}
   }, [])
 
   useEffect(() => {
@@ -88,7 +98,25 @@ export default function App() {
     if (text) {
       e.preventDefault()
       setUserAIText(text)
+      try { localStorage.setItem('ai_overview_text', text) } catch {}
     }
+  }
+
+  const openPasteModal = () => {
+    setDraftAIText(userAIText)
+    setShowPasteModal(true)
+  }
+
+  const savePasteModal = () => {
+    setUserAIText(draftAIText)
+    try { localStorage.setItem('ai_overview_text', draftAIText) } catch {}
+    setShowPasteModal(false)
+  }
+
+  const clearAIOverview = () => {
+    setUserAIText('')
+    try { localStorage.removeItem('ai_overview_text') } catch {}
+    setShowPasteModal(false)
   }
 
   return (
@@ -124,6 +152,14 @@ export default function App() {
                 <option key={item.path} value={idx}>{item.label}</option>
               ))}
             </select>
+            <button
+              className="border rounded px-2 py-1 text-sm"
+              onClick={openPasteModal}
+              title="Set AI Overview text"
+            >
+              <span className="material-symbols-outlined align-middle mr-1">edit</span>
+              Set AI Text
+            </button>
           </div>
         </div>
 
@@ -143,6 +179,31 @@ export default function App() {
           <div className="tabs-divider" />
         </div>
       </header>
+
+      {/* Paste modal */}
+      {showPasteModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal-header">
+              <h3 className="text-base font-medium">Set AI Overview Text</h3>
+              <button className="material-symbols-outlined icon-plain" onClick={() => setShowPasteModal(false)} aria-label="Close">close</button>
+            </div>
+            <div className="modal-body">
+              <textarea
+                className="w-full h-40 p-2 border rounded bg-transparent"
+                placeholder="Paste or type text here..."
+                value={draftAIText}
+                onChange={(e) => setDraftAIText(e.target.value)}
+              />
+            </div>
+            <div className="modal-footer">
+              <button className="border rounded px-3 py-1" onClick={clearAIOverview}>Clear</button>
+              <button className="border rounded px-3 py-1" onClick={() => setShowPasteModal(false)}>Cancel</button>
+              <button className="border rounded px-3 py-1 bg-blue-600 text-white" onClick={savePasteModal}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <main className="pl-52 pr-6 py-6">
