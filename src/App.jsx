@@ -107,9 +107,46 @@ export default function App() {
     setShowPasteModal(true)
   }
 
+  const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','UL','OL','LI','A'])
+  const ALLOWED_ATTRS = { 'A': new Set(['href']) }
+  const sanitizeHTML = (html) => {
+    try {
+      const container = document.createElement('div')
+      container.innerHTML = html || ''
+      const walk = (node) => {
+        const children = Array.from(node.childNodes)
+        for (const child of children) {
+          if (child.nodeType === 1) { // ELEMENT_NODE
+            const tag = child.tagName
+            if (!ALLOWED_TAGS.has(tag)) {
+              // Replace disallowed element with its text content/children
+              const fragment = document.createDocumentFragment()
+              while (child.firstChild) fragment.appendChild(child.firstChild)
+              node.replaceChild(fragment, child)
+              continue
+            }
+            // strip attributes except allowed ones
+            const allowed = ALLOWED_ATTRS[tag] || new Set()
+            Array.from(child.attributes).forEach(attr => {
+              if (!allowed.has(attr.name.toLowerCase())) child.removeAttribute(attr.name)
+            })
+            walk(child)
+          } else if (child.nodeType === 8) { // COMMENT_NODE
+            node.removeChild(child)
+          }
+        }
+      }
+      walk(container)
+      return container.innerHTML
+    } catch {
+      return (html || '').toString()
+    }
+  }
+
   const savePasteModal = () => {
-    setUserAIText(draftAIText)
-    try { localStorage.setItem('ai_overview_text', draftAIText) } catch {}
+    const cleaned = sanitizeHTML(draftAIText)
+    setUserAIText(cleaned)
+    try { localStorage.setItem('ai_overview_text', cleaned) } catch {}
     setShowPasteModal(false)
   }
 
@@ -189,11 +226,14 @@ export default function App() {
               <button className="material-symbols-outlined icon-plain" onClick={() => setShowPasteModal(false)} aria-label="Close">close</button>
             </div>
             <div className="modal-body">
-              <textarea
-                className="w-full h-40 p-2 border rounded bg-transparent"
+              <div
+                className="rich-input"
+                contentEditable
+                role="textbox"
+                aria-multiline="true"
                 placeholder="Paste or type text here..."
-                value={draftAIText}
-                onChange={(e) => setDraftAIText(e.target.value)}
+                onInput={(e) => setDraftAIText(e.currentTarget.innerHTML)}
+                dangerouslySetInnerHTML={{ __html: draftAIText || '' }}
               />
             </div>
             <div className="modal-footer">

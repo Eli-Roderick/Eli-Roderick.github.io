@@ -2,14 +2,22 @@ import React, { useMemo, useState } from 'react'
 import Icon from '@mdi/react'
 import { mdiStarFourPoints } from '@mdi/js'
 
+function stripTags(html) {
+  if (!html) return ''
+  const tmp = document.createElement('div')
+  tmp.innerHTML = html
+  return tmp.textContent || tmp.innerText || ''
+}
+
 export default function AIOverview({ text }) {
   if (!text) return null
   const [expanded, setExpanded] = useState(false)
   const limit = 220
   const { display, wasTruncated } = useMemo(() => {
-    if (!text) return { display: '', wasTruncated: false }
-    if (text.length <= limit) return { display: text, wasTruncated: false }
-    return { display: text.slice(0, limit).trimEnd() + '…', wasTruncated: true }
+    const plain = stripTags(text)
+    if (!plain) return { display: '', wasTruncated: false }
+    if (plain.length <= limit) return { display: plain, wasTruncated: false }
+    return { display: plain.slice(0, limit).trimEnd() + '…', wasTruncated: true }
   }, [text])
   return (
     <section className="ai-card">
@@ -19,9 +27,16 @@ export default function AIOverview({ text }) {
           <h2 className="text-sm font-medium">AI Overview</h2>
         </div>
       </div>
-      <div className={`ai-body whitespace-pre-wrap ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}>
-        {expanded ? text : display}
-      </div>
+      {expanded ? (
+        <div
+          className={`ai-body whitespace-pre-wrap`}
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      ) : (
+        <div className={`ai-body whitespace-pre-wrap ${wasTruncated ? 'ai-body--truncated' : ''}`}>
+          {display}
+        </div>
+      )}
 
       {/* Show more control (full-width button at bottom) */}
       {(!expanded && wasTruncated) ? (
