@@ -27,8 +27,8 @@ export default function AIOverview({ text }) {
         </button>
       ) : null}
 
-      {/* Footer shows only when expanded */}
-      {expanded && (
+      {/* Footer: show immediately if not truncated; otherwise only when expanded */}
+      {(expanded || !wasTruncated) && (
         <>
           <div className="ai-footer">
             <div className="text-[11px]">AI responses may include mistakes</div>
@@ -37,7 +37,7 @@ export default function AIOverview({ text }) {
               <span className="material-symbols-outlined text-blue-600 cursor-pointer" title="Thumbs down" aria-label="Thumbs down">thumb_down</span>
             </div>
           </div>
-          {wasTruncated && (
+          {expanded && wasTruncated && (
             <button
               className="text-blue-600 hover:underline text-sm"
               onClick={() => setExpanded(false)}
