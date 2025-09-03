@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react'
+import Icon from '@mdi/react'
+import { mdiStarFourPoints } from '@mdi/js'
 
 export default function AIOverview({ text }) {
   if (!text) return null
@@ -12,8 +14,10 @@ export default function AIOverview({ text }) {
   return (
     <section className="ai-card">
       <div className="ai-header">
-        <span className="material-symbols-outlined text-blue-600" aria-hidden>sparkles</span>
-        <span>AI Overview</span>
+        <div className="flex items-center gap-2">
+          <Icon path={mdiStarFourPoints} size={1.25} color="#1a73e8" aria-label="AI Overview" />
+          <h2 className="text-lg font-semibold">AI Overview</h2>
+        </div>
       </div>
       <div className="ai-body whitespace-pre-wrap">{expanded ? text : display}</div>
 

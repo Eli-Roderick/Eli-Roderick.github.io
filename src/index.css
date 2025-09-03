@@ -68,7 +68,7 @@
 
 /* Header */
 .search-header { width: 100%; border-bottom: 1px solid var(--border); background: var(--bg); }
-.search-bar { display: flex; align-items: center; width: 100%; max-width: 48rem; border-radius: 9999px; border: 1px solid var(--search-border); background: var(--search-bg); padding: 0.60rem 1.0rem; gap: 0.5rem; }
+.search-bar { display: flex; align-items: center; width: 100%; max-width: 48rem; border-radius: 9999px; border: none; background: var(--search-bg); padding: 0.60rem 1.0rem; gap: 0.5rem; }
 .search-bar input { background: transparent; color: var(--text); }
 .separator { width: 1px; height: 27px; background: var(--search-icon); opacity: 1; margin: 0 6px; }
 .search-icon { color: var(--search-icon); }
