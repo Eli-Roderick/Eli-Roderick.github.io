@@ -13,11 +13,9 @@ export default function AIOverview({ text }) {
   if (!text) return null
   const [expanded, setExpanded] = useState(false)
   const limit = 220
-  const { display, wasTruncated } = useMemo(() => {
+  const wasTruncated = useMemo(() => {
     const plain = stripTags(text)
-    if (!plain) return { display: '', wasTruncated: false }
-    if (plain.length <= limit) return { display: plain, wasTruncated: false }
-    return { display: plain.slice(0, limit).trimEnd() + '…', wasTruncated: true }
+    return plain.length > limit
   }, [text])
   return (
     <section className="ai-card">
@@ -27,16 +25,10 @@ export default function AIOverview({ text }) {
           <h2 className="text-sm font-medium">AI Overview</h2>
         </div>
       </div>
-      {expanded ? (
-        <div
-          className={`ai-body whitespace-pre-wrap`}
-          dangerouslySetInnerHTML={{ __html: text }}
-        />
-      ) : (
-        <div className={`ai-body whitespace-pre-wrap ${wasTruncated ? 'ai-body--truncated' : ''}`}>
-          {display}
-        </div>
-      )}
+      <div
+        className={`ai-body whitespace-pre-wrap ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
+        dangerouslySetInnerHTML={{ __html: text }}
+      />
 
       {/* Show more control (full-width button at bottom) */}
       {(!expanded && wasTruncated) ? (

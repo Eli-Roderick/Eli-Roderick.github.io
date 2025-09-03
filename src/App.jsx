@@ -94,11 +94,14 @@ export default function App() {
   }, [config, userAIText])
 
   const handlePaste = (e) => {
-    const text = e.clipboardData?.getData('text') || ''
-    if (text) {
+    const clipboard = e.clipboardData
+    const html = clipboard?.getData('text/html') || ''
+    const text = clipboard?.getData('text') || ''
+    if (html || text) {
       e.preventDefault()
-      setUserAIText(text)
-      try { localStorage.setItem('ai_overview_text', text) } catch {}
+      const content = html ? sanitizeHTML(html) : (text.replace(/\n/g, '<br>'))
+      setUserAIText(content)
+      try { localStorage.setItem('ai_overview_text', content) } catch {}
     }
   }
 
@@ -113,6 +116,22 @@ export default function App() {
     try {
       const container = document.createElement('div')
       container.innerHTML = html || ''
+
+      // Convert styled spans to semantic tags before filtering
+      container.querySelectorAll('span').forEach((el) => {
+        const fw = (el.style && el.style.fontWeight) || ''
+        const fs = (el.style && el.style.fontStyle) || ''
+        let replacement = null
+        if (fw && (fw === 'bold' || parseInt(fw, 10) >= 600)) {
+          replacement = document.createElement('strong')
+        } else if (fs && fs === 'italic') {
+          replacement = document.createElement('em')
+        }
+        if (replacement) {
+          replacement.innerHTML = el.innerHTML
+          el.replaceWith(replacement)
+        }
+      })
       const walk = (node) => {
         const children = Array.from(node.childNodes)
         for (const child of children) {
