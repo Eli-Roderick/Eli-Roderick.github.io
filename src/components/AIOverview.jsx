@@ -15,8 +15,8 @@ export default function AIOverview({ text }) {
     <section className="ai-card">
       <div className="ai-header">
         <div className="flex items-center gap-2">
-          <Icon path={mdiStarFourPoints} size={1.25} color="#1a73e8" aria-label="AI Overview" />
-          <h2 className="text-lg font-semibold">AI Overview</h2>
+          <Icon path={mdiStarFourPoints} size={1.0} color="#1a73e8" aria-label="AI Overview" />
+          <h2 className="text-sm font-medium">AI Overview</h2>
         </div>
       </div>
       <div className="ai-body whitespace-pre-wrap">{expanded ? text : display}</div>
