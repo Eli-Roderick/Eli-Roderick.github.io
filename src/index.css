@@ -73,6 +73,9 @@
 /* Divider between results */
 .result-divider { height: 1px; background: var(--border-subtle); margin: 14px 0; }
 
+/* Circular favicons styled like profile chips */
+img.favicon { display: inline-block; width: 16px; height: 16px; border-radius: 9999px; background: var(--card-bg); border: 1px solid var(--border); object-fit: cover; }
+
 /* Ad styling (dark) */
 .ad-badge { @apply inline-flex items-center px-1.5 py-0.5 rounded border text-xs font-semibold; }
 .ad-badge { background: color-mix(in hsl, var(--card-bg), black 6%); border-color: var(--border); color: var(--text); opacity: 0.8; }
