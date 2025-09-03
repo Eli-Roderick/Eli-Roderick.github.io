@@ -78,6 +78,10 @@
 .icon-btn-gray { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9999px; border: 1px solid var(--search-border); background: var(--search-bg); color: var(--search-icon); cursor: pointer; }
 .icon-btn-gray:hover { background: color-mix(in hsl, var(--search-bg), var(--border-subtle) 50%); }
 
+/* Primary select styling for header dropdown */
+.select-primary { border: 1px solid var(--border); background: color-mix(in hsl, var(--card-bg), white 5%); color: var(--text); padding: 0.25rem 0.5rem; border-radius: 0.375rem; }
+.select-primary:focus { outline: none; box-shadow: 0 0 0 2px color-mix(in hsl, var(--tab-active), transparent 80%); border-color: var(--tab-active); }
+
 /* Material Symbols setup */
 .material-symbols-outlined {
   font-variation-settings:

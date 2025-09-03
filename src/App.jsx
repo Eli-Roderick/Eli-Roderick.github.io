@@ -23,6 +23,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('All')
+  const [userAIText, setUserAIText] = useState('')
 
   useEffect(() => {
     (async () => {
@@ -73,6 +74,23 @@ export default function App() {
   const next = () => setCurrent((c) => Math.min(c + 1, order.length - 1))
   const prev = () => setCurrent((c) => Math.max(c - 1, 0))
 
+  const effectiveConfig = useMemo(() => {
+    if (!config) return null
+    if (!userAIText) return config
+    return {
+      ...config,
+      aiOverview: { ...(config.aiOverview || {}), show: true, text: userAIText },
+    }
+  }, [config, userAIText])
+
+  const handlePaste = (e) => {
+    const text = e.clipboardData?.getData('text') || ''
+    if (text) {
+      e.preventDefault()
+      setUserAIText(text)
+    }
+  }
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -81,7 +99,14 @@ export default function App() {
         <div className="pl-48 pr-6 pt-6 pb-3 flex items-center gap-4">
           <div className="flex-1">
             <div className="search-bar">
-              <input className="flex-1 outline-none text-[16px]" value={query} readOnly />
+              <input
+                className="flex-1 outline-none text-[16px]"
+                value={query}
+                readOnly
+                onPaste={handlePaste}
+                placeholder="Paste text here to set AI Overview"
+                title={userAIText ? 'AI Overview text overridden by pasted content' : 'Paste to override AI Overview'}
+              />
               <div className="search-affordances">
                 {/* Clear button (non-functional) */}
                 <button className="material-symbols-outlined icon-plain" aria-label="Clear" title="Clear">close</button>
@@ -94,16 +119,11 @@ export default function App() {
 
           {/* Experimenter controls */}
           <div className="flex items-center gap-2">
-            <select className="border rounded px-2 py-1" value={current} onChange={handleSelectChange}>
+            <select className="select-primary" value={current} onChange={handleSelectChange}>
               {order.map((item, idx) => (
                 <option key={item.path} value={idx}>{item.label}</option>
               ))}
             </select>
-            <button className="border rounded px-2 py-1" onClick={prev} disabled={current===0}>Prev</button>
-            <button className="border rounded px-2 py-1" onClick={next} disabled={current===order.length-1}>Next</button>
-            <button className="border rounded px-2 py-1" onClick={startRandomized}>Randomize</button>
-            <button className="border rounded px-2 py-1" onClick={startSequential}>Sequential</button>
-            <button className="border rounded px-2 py-1" onClick={handleDownload}>Download CSV ({logger.getCount()})</button>
           </div>
         </div>
 
@@ -128,8 +148,8 @@ export default function App() {
       <main className="pl-52 pr-6 py-6">
         {loading && <div>Loading…</div>}
         {error && <div className="text-red-600">{error}</div>}
-        {!loading && !error && config && (
-          <SearchPage config={config} onResultClick={handleResultClick} />
+        {!loading && !error && effectiveConfig && (
+          <SearchPage config={effectiveConfig} onResultClick={handleResultClick} />
         )}
       </main>
 
