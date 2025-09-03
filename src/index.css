@@ -48,6 +48,9 @@
 .result-title { @apply text-[18px] leading-5 font-normal hover:underline; }
 .result-url { color: var(--search-icon); font-size: 13px; }
 .result-snippet { color: var(--muted); font-size: 14px; line-height: 1.6; }
+/* Link-length separator */
+.link-with-sep { display: inline-block; }
+.link-sep { height: 1px; background: var(--border-subtle); margin-top: 2px; }
 
 /* Ad styling (dark) */
 .ad-badge { @apply inline-flex items-center px-1.5 py-0.5 rounded border text-xs font-semibold; }

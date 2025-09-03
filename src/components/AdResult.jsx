@@ -12,8 +12,11 @@ export default function AdResult({ title, url, snippet, query, onClick }) {
         <span className="result-url">{url.replace(/^https?:\/\//, '')}</span>
       </div>
       <h3 className="result-title mb-1">
-        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-        <a href="#" onClick={handleClick}>{title}</a>
+        <span className="link-with-sep">
+          {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+          <a href="#" onClick={handleClick}>{title}</a>
+          <div className="link-sep" />
+        </span>
       </h3>
       <div className="result-snippet mb-6">{snippet}</div>
     </div>
