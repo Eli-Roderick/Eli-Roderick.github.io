@@ -129,7 +129,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 .ai-body strong, .ai-body b { font-weight: 600; }
 .ai-body em, .ai-body i { font-style: italic; }
 .ai-body img { 
-  max-width: 100%; 
+  max-width: 300px; 
   height: auto; 
   margin: 0.75rem 0; 
   border-radius: 0.5rem; 
