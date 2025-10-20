@@ -146,6 +146,136 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   display: block;
 }
 
+/* Result with images layout - Desktop only */
+@media (min-width: 768px) {
+  .result-content-wrapper {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .result-text-content {
+    flex: 1;
+    min-width: 0; /* Allow text to shrink */
+  }
+  
+  .result-images {
+    flex-shrink: 0;
+    width: 200px; /* Fixed width for image area */
+  }
+  
+  /* Single image layout */
+  .result-image-single {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  
+  /* Stacked layout (2 images) */
+  .result-images-stacked {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .result-image-stacked-top,
+  .result-image-stacked-bottom {
+    width: 100%;
+    height: 58px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  
+  /* Grid layout (3 images) */
+  .result-images-grid {
+    display: flex;
+    gap: 4px;
+    height: 120px;
+  }
+  
+  .result-image-grid-main {
+    width: 60%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  
+  .result-images-grid-side {
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .result-image-grid-small {
+    width: 100%;
+    height: 58px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+}
+
+/* Mobile: Stack images below text */
+@media (max-width: 767px) {
+  .result-content-wrapper {
+    display: block;
+  }
+  
+  .result-images {
+    margin-top: 1rem;
+  }
+  
+  /* Mobile layouts - simplified */
+  .result-image-single {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  
+  .result-images-stacked {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .result-image-stacked-top,
+  .result-image-stacked-bottom {
+    flex: 1;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  
+  .result-images-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    height: 120px;
+  }
+  
+  .result-image-grid-main {
+    grid-row: span 2;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  
+  .result-image-grid-small {
+    height: 58px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+}
+
 /* Scrollable image rows - FORCE HORIZONTAL */
 .ai-body .image-row {
   display: flex !important;
