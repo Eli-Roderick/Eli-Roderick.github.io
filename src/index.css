@@ -62,17 +62,17 @@
 }
 
 /* Result card */
-.result-card { @apply max-w-3xl; }
-.result-title { @apply text-[18px] leading-5 font-normal hover:underline; }
-.result-url { color: var(--search-icon); font-size: 13px; }
-.company-name { color: var(--text); font-size: 13px; font-weight: 600; line-height: 1.1; margin-bottom: 2px; }
-.result-snippet { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.result-card { @apply max-w-3xl; padding: 1.25rem 0; }
+.result-title { @apply text-[20px] leading-6 font-normal hover:underline; margin-bottom: 0.5rem; }
+.result-url { color: var(--search-icon); font-size: 14px; margin-bottom: 0.5rem; }
+.company-name { color: var(--text); font-size: 14px; font-weight: 600; line-height: 1.1; margin-bottom: 3px; }
+.result-snippet { color: var(--muted); font-size: 15px; line-height: 1.7; }
 /* Link-length separator */
 .link-with-sep { display: inline-block; }
 .link-sep { height: 1px; background: var(--border-subtle); margin-top: 2px; }
 
 /* Divider between results */
-.result-divider { height: 1px; background: var(--border-subtle); margin: 14px 0; }
+.result-divider { height: 1px; background: var(--border-subtle); margin: 20px 0; }
 
 /* Circular favicons styled like profile chips */
 img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9999px; background: var(--card-bg); border: 1px solid var(--border); object-fit: cover; }
@@ -82,9 +82,9 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
 .ad-badge { background: color-mix(in hsl, var(--card-bg), black 6%); border-color: var(--border); color: var(--text); opacity: 0.8; }
 
 /* AI overview */
-.ai-card { background: transparent; border: none; border-radius: 0; box-shadow: none; max-width: 48rem; }
-.ai-header { padding: 0.25rem 0; font-size: 0.875rem; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.ai-body { padding: 0.25rem 0; font-size: 15px; line-height: 1.6; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+.ai-card { background: transparent; border: none; border-radius: 0; box-shadow: none; max-width: 48rem; padding: 1rem 0; }
+.ai-header { padding: 0.5rem 0; font-size: 0.9rem; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.ai-body { padding: 0.75rem 0; font-size: 16px; line-height: 1.7; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
 .ai-footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.25rem 0; color: var(--muted); font-size: 12px; }
 .ai-actions { display: flex; gap: 0.5rem; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9999px; border: 1px solid var(--border); background: var(--card-bg); color: #1a73e8; cursor: pointer; }
@@ -160,9 +160,9 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 .icon-plain:hover { color: var(--text); }
 
 /* Tabs */
-.tabs button { padding: 0.25rem 0; color: var(--muted); border-bottom: 2px solid transparent; }
+.tabs button { padding: 0.5rem 0; color: var(--muted); border-bottom: 2px solid transparent; font-size: 15px; }
 .tabs button.active { color: var(--tab-active); border-color: var(--tab-active); }
-.tabs-divider { height: 1px; background: var(--border); margin-top: 6px; }
+.tabs-divider { height: 1px; background: var(--border); margin-top: 8px; }
 
 /* Modal */
 .modal-backdrop { position: fixed; inset: 0; background: color-mix(in hsl, black, transparent 35%); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 50; overscroll-behavior: contain; }
