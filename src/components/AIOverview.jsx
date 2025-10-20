@@ -25,11 +25,55 @@ export default function AIOverview({ text }) {
   if (!text) return null
   const [expanded, setExpanded] = useState(false)
   const limit = 220
+  
   const processedText = useMemo(() => processContent(text), [text])
+  
+  // Check if text (excluding images) needs truncation
   const wasTruncated = useMemo(() => {
-    const plain = stripTags(text)
-    return plain.length > limit
+    // Remove image URLs from text before checking length
+    const textWithoutImages = text.replace(/(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi, '')
+    const plain = stripTags(textWithoutImages)
+    return plain.trim().length > limit
   }, [text])
+  
+  // Create truncated version that preserves images but limits text
+  const truncatedContent = useMemo(() => {
+    if (!wasTruncated || expanded) return processedText
+    
+    // Split content by image URLs to handle text and images separately
+    const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
+    const parts = text.split(imageUrlRegex)
+    
+    let textCharCount = 0
+    let result = ''
+    
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      
+      // Check if this part is an image URL
+      if (imageUrlRegex.test(part)) {
+        imageUrlRegex.lastIndex = 0 // Reset regex
+        result += part // Always include images
+      } else {
+        // This is text content
+        const remainingChars = limit - textCharCount
+        if (remainingChars > 0) {
+          if (part.length <= remainingChars) {
+            result += part
+            textCharCount += stripTags(part).length
+          } else {
+            // Truncate this text part
+            const truncated = part.substring(0, remainingChars)
+            result += truncated
+            textCharCount = limit
+            break
+          }
+        }
+      }
+    }
+    
+    return processContent(result)
+  }, [text, processedText, wasTruncated, expanded, limit])
   return (
     <section className="ai-card">
       <div className="ai-header">
@@ -40,7 +84,7 @@ export default function AIOverview({ text }) {
       </div>
       <div
         className={`ai-body whitespace-pre-wrap ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
-        dangerouslySetInnerHTML={{ __html: processedText }}
+        dangerouslySetInnerHTML={{ __html: expanded ? processedText : truncatedContent }}
       />
 
       {/* Show more control (full-width button at bottom) */}
