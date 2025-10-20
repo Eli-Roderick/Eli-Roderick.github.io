@@ -196,11 +196,11 @@ export default function App() {
       {/* Header */}
       <header className="search-header">
         {/* Top row: search bar + controls */}
-        <div className="pl-4 md:pl-48 pr-4 md:pr-6 pt-6 pb-2 md:pb-3 flex items-center gap-4 relative">
+        <div className="pl-4 md:pl-48 pr-4 md:pr-6 pt-4 md:pt-6 pb-1 md:pb-3 flex items-center gap-4 relative">
           {/* Profile icon - mobile only */}
-          <button className="md:hidden absolute top-2 right-4 material-symbols-outlined icon-plain text-2xl" aria-label="Profile" title="Profile">
-            account_circle
-          </button>
+          <div className="md:hidden absolute top-2 right-4 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer" title="Profile">
+            <span className="text-white text-sm font-medium">E</span>
+          </div>
 
           <div className="flex-1">
             {/* Desktop search bar */}
@@ -223,7 +223,7 @@ export default function App() {
             </div>
 
             {/* Mobile search bar */}
-            <div className="search-bar flex md:hidden">
+            <div className="search-bar md:hidden flex">
               {/* Search icon on left for mobile */}
               <button className="material-symbols-outlined icon-plain mr-2" aria-label="Search" title="Search">search</button>
               <input
@@ -264,7 +264,7 @@ export default function App() {
         </div>
 
         {/* Tabs row */}
-        <div className="pl-4 md:pl-52 pr-4 md:pr-6 mt-2">
+        <div className="pl-4 md:pl-52 pr-4 md:pr-6 mt-1 md:mt-2">
           <nav className="tabs flex gap-3 md:gap-6 text-sm overflow-x-auto">
             {['All','Images','Videos','Shopping','News','More'].map((tab) => (
               <button
@@ -309,7 +309,7 @@ export default function App() {
       )}
 
       {/* Content */}
-      <main className="pl-4 md:pl-52 pr-4 md:pr-6 py-3 md:py-6">
+      <main className="pl-4 md:pl-52 pr-4 md:pr-6 py-2 md:py-6">
         {loading && <div>Loading…</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && effectiveConfig && (

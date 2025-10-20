@@ -235,7 +235,12 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
   
   /* Mobile search bar adjustments */
   .search-bar {
-    padding: 0.5rem 0.8rem; /* Slightly less padding on mobile */
+    padding: 0.4rem 0.7rem; /* Reduced padding on mobile */
+  }
+  
+  /* Ensure only one search bar shows */
+  .search-bar.hidden {
+    display: none !important;
   }
   
   /* Profile icon positioning */
@@ -246,5 +251,10 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
   /* Ensure mobile search icon alignment */
   .search-bar .icon-plain {
     flex-shrink: 0;
+  }
+  
+  /* Tighter mobile spacing */
+  .search-header {
+    padding-bottom: 0;
   }
 }
