@@ -314,7 +314,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   flex-direction: row !important;
   gap: 0.5rem !important;
   overflow-x: auto !important;
-  margin: 0.75rem 0 !important;
+  margin: 0.25rem 0 0.75rem 0 !important;
   padding: 0.25rem 0 !important;
   width: 100% !important;
   position: relative !important;
@@ -358,20 +358,16 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   cursor: pointer !important;
   z-index: 10 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-  opacity: 0 !important;
+  opacity: 1 !important;
   transition: opacity 0.2s ease !important;
 }
 
-.image-row-container:hover .scroll-indicator {
-  opacity: 1 !important;
-}
-
 .scroll-indicator-left {
-  left: -15px !important;
+  left: -35px !important;
 }
 
 .scroll-indicator-right {
-  right: -15px !important;
+  right: -35px !important;
 }
 
 .scroll-indicator:hover {
@@ -381,21 +377,19 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 
 .scroll-indicator::before {
   content: '' !important;
-  width: 12px !important;
-  height: 12px !important;
-  border-top: 2px solid #fff !important;
-  border-right: 2px solid #fff !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-top: 3px solid #fff !important;
+  border-right: 3px solid #fff !important;
   transform-origin: center !important;
 }
 
 .scroll-indicator-left::before {
   transform: rotate(-135deg) !important;
-  margin-right: 2px !important;
 }
 
 .scroll-indicator-right::before {
   transform: rotate(45deg) !important;
-  margin-left: 2px !important;
 }
 
 /* Fallback - target any div with multiple images */
