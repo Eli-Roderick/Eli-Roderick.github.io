@@ -159,15 +159,19 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
     min-width: 0; /* Allow text to shrink */
   }
   
-  .result-images {
+  .result-images-desktop {
     flex-shrink: 0;
     width: 200px; /* Fixed width for image area */
   }
   
-  /* Single image layout - smaller */
+  .result-images-mobile {
+    display: none; /* Hide mobile images on desktop */
+  }
+  
+  /* Single image layout - square */
   .result-image-single {
-    width: 100%;
-    height: 80px;
+    width: 120px;
+    height: 120px;
     object-fit: cover;
     border-radius: 8px;
     border: 1px solid var(--border);
@@ -220,23 +224,28 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   }
 }
 
-/* Mobile: Stack images below text */
+/* Mobile: Images between title and snippet */
 @media (max-width: 767px) {
   .result-content-wrapper {
     display: block;
   }
   
-  .result-images {
-    margin-top: 1rem;
+  .result-images-desktop {
+    display: none; /* Hide desktop images on mobile */
+  }
+  
+  .result-images-mobile {
+    margin: 0.75rem 0; /* Space above and below images */
   }
   
   /* Mobile layouts - simplified */
   .result-image-single {
-    width: 100%;
-    height: 120px;
+    width: 140px;
+    height: 140px;
     object-fit: cover;
     border-radius: 8px;
     border: 1px solid var(--border);
+    margin: 0 auto; /* Center the square image on mobile */
   }
   
   .result-images-row {
@@ -358,7 +367,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 /* Tabs */
 .tabs button { padding: 0.5rem 0; color: var(--muted); border-bottom: 2px solid transparent; font-size: 16px; }
 .tabs button.active { color: var(--tab-active); border-color: var(--tab-active); }
-.tabs-divider { height: 1px; background: var(--border); margin-top: 8px; }
+.tabs-divider { display: none; }
 
 /* Modal - Simplified and bulletproof */
 .modal-backdrop { 
@@ -490,10 +499,6 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
     display: block !important;
   }
   
-  /* Hide double line under tabs on mobile */
-  .tabs-divider {
-    display: none;
-  }
 }
 
 @media (max-width: 768px) {

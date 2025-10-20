@@ -71,12 +71,69 @@ export default function SearchResult({
             {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
             <a href="#" onClick={handleClick}>{title}</a>
           </h3>
+          
+          {/* Images - Mobile: between title and snippet, Desktop: on the right */}
+          {resultImages.length > 0 && (
+            <div className={`result-images-mobile result-images-${layout}`}>
+              {layout === 'single' && (
+                <img 
+                  src={resultImages[0]} 
+                  alt="Result image" 
+                  className="result-image-single"
+                  loading="lazy"
+                />
+              )}
+              
+              {layout === 'row' && (
+                <div className="result-images-row">
+                  <img 
+                    src={resultImages[0]} 
+                    alt="Result image 1" 
+                    className="result-image-row-left"
+                    loading="lazy"
+                  />
+                  <img 
+                    src={resultImages[1]} 
+                    alt="Result image 2" 
+                    className="result-image-row-right"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              
+              {layout === 'grid' && (
+                <div className="result-images-grid">
+                  <img 
+                    src={resultImages[0]} 
+                    alt="Result image 1" 
+                    className="result-image-grid-main"
+                    loading="lazy"
+                  />
+                  <div className="result-images-grid-side">
+                    <img 
+                      src={resultImages[1]} 
+                      alt="Result image 2" 
+                      className="result-image-grid-small"
+                      loading="lazy"
+                    />
+                    <img 
+                      src={resultImages[2]} 
+                      alt="Result image 3" 
+                      className="result-image-grid-small"
+                      loading="lazy"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="result-snippet mb-6">{snippet150}</div>
         </div>
         
-        {/* Right side - Images */}
+        {/* Right side - Images (Desktop only) */}
         {resultImages.length > 0 && (
-          <div className={`result-images result-images-${layout}`}>
+          <div className={`result-images-desktop result-images-${layout}`}>
             {layout === 'single' && (
               <img 
                 src={resultImages[0]} 
