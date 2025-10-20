@@ -47,7 +47,7 @@ export default function SearchResult({
   const getImageLayout = (count) => {
     switch (count) {
       case 1: return 'single'
-      case 2: return 'stacked' // 2 images vertically stacked
+      case 2: return 'row' // 2 images horizontally in a row
       case 3: return 'grid' // 2x2 grid with one spanning
       default: return 'none'
     }
@@ -86,18 +86,18 @@ export default function SearchResult({
               />
             )}
             
-            {layout === 'stacked' && (
-              <div className="result-images-stacked">
+            {layout === 'row' && (
+              <div className="result-images-row">
                 <img 
                   src={resultImages[0]} 
                   alt="Result image 1" 
-                  className="result-image-stacked-top"
+                  className="result-image-row-left"
                   loading="lazy"
                 />
                 <img 
                   src={resultImages[1]} 
                   alt="Result image 2" 
-                  className="result-image-stacked-bottom"
+                  className="result-image-row-right"
                   loading="lazy"
                 />
               </div>

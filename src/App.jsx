@@ -29,7 +29,14 @@ export default function App() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showImageManager, setShowImageManager] = useState(false)
   const [selectedResultForImages, setSelectedResultForImages] = useState(null)
-  const [resultImages, setResultImages] = useState({})
+  const [resultImages, setResultImages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('result_images')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
 
   // Prevent background scroll when modal is open and handle escape key
   useEffect(() => {
@@ -140,15 +147,38 @@ export default function App() {
   }
 
   const handleImagesUpdate = (resultUrl, images) => {
-    setResultImages(prev => ({
-      ...prev,
+    const newResultImages = {
+      ...resultImages,
       [resultUrl]: images
-    }))
+    }
+    
+    // Remove empty arrays to keep localStorage clean
+    if (images.length === 0) {
+      delete newResultImages[resultUrl]
+    }
+    
+    setResultImages(newResultImages)
+    
+    // Save to localStorage
+    try {
+      localStorage.setItem('result_images', JSON.stringify(newResultImages))
+    } catch (error) {
+      console.warn('Failed to save images to localStorage:', error)
+    }
   }
 
   const openImageEditorForResult = (result) => {
     setSelectedResultForImages(result)
     setShowImageManager(false)
+  }
+
+  const clearAllImages = () => {
+    setResultImages({})
+    try {
+      localStorage.removeItem('result_images')
+    } catch (error) {
+      console.warn('Failed to clear images from localStorage:', error)
+    }
   }
 
   const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','UL','OL','LI','A'])
@@ -514,9 +544,32 @@ export default function App() {
               maxHeight: '60vh',
               overflow: 'auto'
             }}>
-              <p style={{ margin: '0 0 1rem 0', color: 'var(--muted)', fontSize: '14px' }}>
-                Select a search result to add or edit images:
-              </p>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '1rem'
+              }}>
+                <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
+                  Select a search result to add or edit images:
+                </p>
+                {Object.keys(resultImages).length > 0 && (
+                  <button
+                    onClick={clearAllImages}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      border: '1px solid #dc3545',
+                      borderRadius: '4px',
+                      backgroundColor: 'transparent',
+                      color: '#dc3545',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
               
               {effectiveConfig?.results?.slice(0, 10).map((result, idx) => (
                 !result.ad && (
