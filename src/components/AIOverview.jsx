@@ -40,49 +40,65 @@ export default function AIOverview({ text }) {
   const truncatedContent = useMemo(() => {
     if (!wasTruncated || expanded) return processedText
     
-    // Simple approach: replace image URLs with placeholders, truncate text, then restore images
+    // Strategy: Split content into parts, track text character count, include all images
     const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
-    const images = []
-    let textOnly = text.replace(imageUrlRegex, (match) => {
-      images.push(match)
-      return `__IMAGE_${images.length - 1}__`
-    })
     
-    // Truncate the text-only version
-    const plainText = stripTags(textOnly)
-    if (plainText.length > limit) {
-      // Find where to cut off in the original text
-      let charCount = 0
-      let cutIndex = 0
+    // Split content by images to get alternating text and image parts
+    const parts = text.split(imageUrlRegex)
+    let textCharCount = 0
+    let result = ''
+    
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
       
-      for (let i = 0; i < textOnly.length; i++) {
-        const char = textOnly[i]
-        if (char === '<') {
-          // Skip HTML tags
-          const tagEnd = textOnly.indexOf('>', i)
-          if (tagEnd !== -1) {
-            i = tagEnd
-            continue
-          }
-        }
+      // Reset regex for testing
+      imageUrlRegex.lastIndex = 0
+      
+      if (imageUrlRegex.test(part)) {
+        // This is an image URL - always include it
+        result += part
+      } else {
+        // This is text content - check if we should include it
+        const plainTextInPart = stripTags(part)
         
-        if (stripTags(char).length > 0) {
-          charCount++
-          if (charCount >= limit) {
-            cutIndex = i + 1
-            break
+        if (textCharCount + plainTextInPart.length <= limit) {
+          // Include the whole part
+          result += part
+          textCharCount += plainTextInPart.length
+        } else {
+          // Truncate this text part
+          const remainingChars = limit - textCharCount
+          if (remainingChars > 0) {
+            // Find where to cut in this part
+            let partCharCount = 0
+            let cutIndex = 0
+            
+            for (let j = 0; j < part.length; j++) {
+              const char = part[j]
+              if (char === '<') {
+                // Skip HTML tags
+                const tagEnd = part.indexOf('>', j)
+                if (tagEnd !== -1) {
+                  j = tagEnd
+                  continue
+                }
+              }
+              
+              if (stripTags(char).length > 0) {
+                partCharCount++
+                if (partCharCount >= remainingChars) {
+                  cutIndex = j + 1
+                  break
+                }
+              }
+            }
+            
+            result += part.substring(0, cutIndex)
           }
+          break // Stop processing after truncation
         }
       }
-      
-      textOnly = textOnly.substring(0, cutIndex)
     }
-    
-    // Restore images
-    let result = textOnly
-    images.forEach((imageUrl, index) => {
-      result = result.replace(`__IMAGE_${index}__`, imageUrl)
-    })
     
     return processContent(result)
   }, [text, processedText, wasTruncated, expanded, limit])
