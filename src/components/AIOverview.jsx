@@ -46,11 +46,9 @@ export default function AIOverview({ text }) {
     
     let textCharCount = 0
     let result = ''
-    let hasEnoughText = false
-    
-    // First pass: ensure we have at least some text (minimum 50 chars)
     const minTextChars = 50
     
+    // First pass: include everything up to the limit, but ensure minimum text
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i]
       
@@ -59,10 +57,8 @@ export default function AIOverview({ text }) {
       
       // Check if this part is an image URL
       if (imageUrlRegex.test(part)) {
-        // Always include images, but only after we have some text
-        if (textCharCount >= minTextChars || hasEnoughText) {
-          result += part
-        }
+        // Always include images - they don't count toward text limit
+        result += part
       } else {
         // This is text content
         const plainText = stripTags(part).trim()
@@ -73,28 +69,46 @@ export default function AIOverview({ text }) {
             if (plainText.length <= remainingChars) {
               result += part
               textCharCount += plainText.length
-              if (textCharCount >= minTextChars) hasEnoughText = true
             } else {
-              // Truncate this text part but ensure we have minimum text
-              const targetChars = Math.max(remainingChars, minTextChars - textCharCount)
-              const truncated = part.substring(0, Math.min(targetChars, part.length))
+              // Truncate this text part
+              const truncated = part.substring(0, remainingChars)
               result += truncated
               textCharCount += stripTags(truncated).trim().length
-              hasEnoughText = true
               break
             }
-          } else if (!hasEnoughText && textCharCount < minTextChars) {
-            // Force include more text if we don't have enough yet
-            const needed = minTextChars - textCharCount
-            const truncated = part.substring(0, needed)
-            result += truncated
-            textCharCount += stripTags(truncated).trim().length
-            hasEnoughText = true
+          } else {
+            // We've hit the text limit, stop adding text
             break
           }
         } else {
           // Include non-text content (like HTML tags, whitespace)
           result += part
+        }
+      }
+    }
+    
+    // If we don't have enough text, force include more
+    if (textCharCount < minTextChars) {
+      // Find more text content to include
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i]
+        imageUrlRegex.lastIndex = 0
+        
+        if (!imageUrlRegex.test(part)) {
+          const plainText = stripTags(part).trim()
+          if (plainText.length > 0 && !result.includes(part)) {
+            const needed = minTextChars - textCharCount
+            if (plainText.length <= needed) {
+              result += part
+              textCharCount += plainText.length
+            } else {
+              const truncated = part.substring(0, needed)
+              result += truncated
+              textCharCount += stripTags(truncated).trim().length
+            }
+            
+            if (textCharCount >= minTextChars) break
+          }
         }
       }
     }
