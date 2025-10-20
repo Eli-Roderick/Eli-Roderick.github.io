@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 
-export default function SearchResult({ title, url, snippet, company, images, query, onClick }) {
+export default function SearchResult({ title, url, snippet, company, images, query, onClick, onImagesUpdate }) {
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [imageUrls, setImageUrls] = useState(images ? images.join('\n') : '')
+  
   const handleClick = () => {
     onClick?.({ query, url })
     window.open(url, '_blank', 'noopener,noreferrer')
@@ -13,6 +16,22 @@ export default function SearchResult({ title, url, snippet, company, images, que
   
   // Process images (limit to 3)
   const resultImages = images ? images.slice(0, 3) : []
+  
+  const handleSaveImages = () => {
+    const urls = imageUrls
+      .split('\n')
+      .map(url => url.trim())
+      .filter(url => url && /^https?:\/\//.test(url))
+      .slice(0, 3) // Limit to 3 images
+    
+    onImagesUpdate?.(url, urls)
+    setShowImageModal(false)
+  }
+  
+  const handleOpenImageModal = () => {
+    setImageUrls(images ? images.join('\n') : '')
+    setShowImageModal(true)
+  }
   
   // Determine layout based on number of images
   const getImageLayout = (count) => {
@@ -43,6 +62,26 @@ export default function SearchResult({ title, url, snippet, company, images, que
             <a href="#" onClick={handleClick}>{title}</a>
           </h3>
           <div className="result-snippet mb-6">{snippet150}</div>
+          
+          {/* Add Images Button */}
+          <button 
+            onClick={handleOpenImageModal}
+            style={{
+              padding: '4px 8px',
+              fontSize: '12px',
+              border: '1px solid var(--border)',
+              borderRadius: '4px',
+              backgroundColor: 'var(--card-bg)',
+              color: 'var(--muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <span style={{ fontSize: '14px' }}>🖼️</span>
+            {resultImages.length > 0 ? `Edit Images (${resultImages.length})` : 'Add Images'}
+          </button>
         </div>
         
         {/* Right side - Images */}
@@ -101,6 +140,127 @@ export default function SearchResult({ title, url, snippet, company, images, que
           </div>
         )}
       </div>
+      
+      {/* Image Modal */}
+      {showImageModal && (
+        <div style={{
+          position: 'fixed',
+          top: '0px',
+          left: '0px',
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 999999,
+          pointerEvents: 'all'
+        }} onClick={() => setShowImageModal(false)}>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: '400px',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            zIndex: 1000000,
+            pointerEvents: 'all',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            {/* Header */}
+            <div style={{ 
+              padding: '1rem', 
+              borderBottom: '1px solid var(--border)', 
+              backgroundColor: 'var(--card-bg)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{ margin: 0, color: 'var(--text)', fontSize: '16px', fontWeight: '600' }}>Add Images</h3>
+              <button 
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  fontSize: '18px', 
+                  cursor: 'pointer',
+                  color: 'var(--muted)'
+                }} 
+                onClick={() => setShowImageModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '1rem', backgroundColor: 'var(--card-bg)' }}>
+              <div style={{ marginBottom: '1rem', color: 'var(--muted)', fontSize: '14px' }}>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Instructions:</strong></p>
+                <p style={{ margin: '0 0 4px 0' }}>• Enter up to 3 image URLs (one per line)</p>
+                <p style={{ margin: '0 0 4px 0' }}>• URLs must start with http:// or https://</p>
+                <p style={{ margin: '0' }}>• Images will appear to the right of this result</p>
+              </div>
+              <textarea
+                value={imageUrls}
+                onChange={(e) => setImageUrls(e.target.value)}
+                placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg&#10;https://example.com/image3.jpg"
+                style={{
+                  width: '100%',
+                  height: '120px',
+                  border: '1px solid var(--border)',
+                  borderRadius: '4px',
+                  padding: '8px',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
+                  fontSize: '14px',
+                  fontFamily: 'monospace',
+                  resize: 'vertical',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Footer */}
+            <div style={{ 
+              padding: '1rem', 
+              borderTop: '1px solid var(--border)', 
+              backgroundColor: 'var(--card-bg)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '8px'
+            }}>
+              <button 
+                style={{ 
+                  padding: '6px 12px', 
+                  border: '1px solid var(--border)',
+                  borderRadius: '4px',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }} 
+                onClick={() => setShowImageModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                style={{ 
+                  padding: '6px 12px', 
+                  border: 'none',
+                  borderRadius: '4px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }} 
+                onClick={handleSaveImages}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

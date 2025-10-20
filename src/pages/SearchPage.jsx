@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import AIOverview from '../components/AIOverview'
 import SearchResult from '../components/SearchResult'
 import AdResult from '../components/AdResult'
@@ -6,6 +6,16 @@ import AdResult from '../components/AdResult'
 export default function SearchPage({ config, onResultClick }) {
   if (!config) return null
   const { query, aiOverview, results } = config
+  
+  // State to manage images for each result
+  const [resultImages, setResultImages] = useState({})
+  
+  const handleImagesUpdate = (resultUrl, images) => {
+    setResultImages(prev => ({
+      ...prev,
+      [resultUrl]: images
+    }))
+  }
 
   return (
     <div className="w-full">
@@ -26,7 +36,13 @@ export default function SearchPage({ config, onResultClick }) {
                 {r.ad ? (
                   <AdResult {...r} query={query} onClick={onResultClick} />
                 ) : (
-                  <SearchResult {...r} query={query} onClick={onResultClick} />
+                  <SearchResult 
+                    {...r} 
+                    query={query} 
+                    onClick={onResultClick}
+                    images={resultImages[r.url] || r.images || []}
+                    onImagesUpdate={handleImagesUpdate}
+                  />
                 )}
                 {idx < arr.length - 1 && <div className="result-divider" />}
               </React.Fragment>
