@@ -28,17 +28,26 @@ export default function App() {
   const [draftAIText, setDraftAIText] = useState('')
   const [showProfileMenu, setShowProfileMenu] = useState(false)
 
-  // Prevent background scroll when modal is open
+  // Prevent background scroll when modal is open and handle escape key
   useEffect(() => {
     if (showPasteModal) {
       document.body.classList.add('modal-open')
-      // Fallback in case class is overridden
       document.body.style.overflow = 'hidden'
+      
+      // Add escape key handler
+      const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+          setShowPasteModal(false)
+        }
+      }
+      document.addEventListener('keydown', handleEscape)
+      
+      return () => {
+        document.removeEventListener('keydown', handleEscape)
+        document.body.classList.remove('modal-open')
+        document.body.style.overflow = ''
+      }
     } else {
-      document.body.classList.remove('modal-open')
-      document.body.style.overflow = ''
-    }
-    return () => {
       document.body.classList.remove('modal-open')
       document.body.style.overflow = ''
     }

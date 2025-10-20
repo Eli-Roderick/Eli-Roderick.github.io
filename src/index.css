@@ -232,7 +232,20 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 
 /* Modal */
 .modal-backdrop { position: fixed; inset: 0; background: color-mix(in hsl, black, transparent 35%); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 9999; overscroll-behavior: contain; }
-.modal { width: 100%; max-width: 32rem; max-height: 85vh; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); border-radius: 0.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
+.modal { 
+  width: 100% !important; 
+  max-width: 32rem !important; 
+  max-height: 85vh !important; 
+  background: var(--card-bg) !important; 
+  color: var(--text) !important; 
+  border: 1px solid var(--border) !important; 
+  border-radius: 0.5rem !important; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important; 
+  display: flex !important; 
+  flex-direction: column !important;
+  position: relative !important;
+  z-index: 10001 !important;
+}
 .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); flex: 0 0 auto; }
 .modal-body { padding: 0.75rem 1rem; flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .modal-footer { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 0.75rem 1rem; border-top: 1px solid var(--border); flex: 0 0 auto; }
