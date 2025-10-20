@@ -13,7 +13,7 @@ export default function SearchPage({ config, onResultClick }) {
         <div className="w-full max-w-[652px] px-0">
           {/* AI Overview */}
           {aiOverview?.show && (
-            <div className="mt-2 md:mt-4 mb-4">
+            <div className="mt-0 md:mt-4 mb-4">
               <AIOverview text={aiOverview.text} />
               <div className="ai-separator" />
             </div>

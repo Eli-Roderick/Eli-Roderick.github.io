@@ -235,7 +235,7 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
   
   /* Mobile search bar adjustments */
   .search-bar {
-    padding: 0.4rem 0.7rem; /* Reduced padding on mobile */
+    padding: 0.7rem 0.8rem; /* Thicker search bar on mobile */
   }
   
   /* Ensure only one search bar shows */
@@ -256,5 +256,42 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
   /* Tighter mobile spacing */
   .search-header {
     padding-bottom: 0;
+  }
+  
+  /* Fix mobile overflow */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Hide double line under tabs on mobile */
+  .tabs-divider {
+    display: none;
+  }
+  
+  /* Mobile content styling - grey background with black separators */
+  .ai-card {
+    background: #f8f9fa;
+    padding: 1rem;
+    margin-bottom: 0;
+  }
+  
+  .ai-separator {
+    height: 2px;
+    background: #000;
+    margin: 0 0 1rem 0;
+    opacity: 1;
+  }
+  
+  .result-card {
+    background: #f8f9fa;
+    padding: 1rem;
+    margin-bottom: 0;
+  }
+  
+  .result-divider {
+    height: 2px;
+    background: #000;
+    margin: 0;
+    opacity: 1;
   }
 }

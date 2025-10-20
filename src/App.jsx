@@ -196,14 +196,14 @@ export default function App() {
       {/* Header */}
       <header className="search-header">
         {/* Profile row - mobile only */}
-        <div className="md:hidden flex justify-end pr-4 pt-3 pb-2">
+        <div className="md:hidden flex justify-end px-4 pt-3 pb-2">
           <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer" title="Profile">
             <span className="text-white text-base font-medium">E</span>
           </div>
         </div>
         
         {/* Top row: search bar + controls */}
-        <div className="pl-4 md:pl-48 pr-4 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-4">
+        <div className="px-4 md:pl-48 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-2 md:gap-4">
 
           <div className="flex-1">
             {/* Desktop search bar */}
@@ -267,7 +267,7 @@ export default function App() {
         </div>
 
         {/* Tabs row */}
-        <div className="pl-4 md:pl-52 pr-4 md:pr-6 mt-1 md:mt-2">
+        <div className="px-4 md:pl-52 md:pr-6 mt-0 md:mt-2">
           <nav className="tabs flex gap-3 md:gap-6 text-sm overflow-x-auto">
             {['All','Images','Videos','Shopping','News','More'].map((tab) => (
               <button
@@ -312,7 +312,7 @@ export default function App() {
       )}
 
       {/* Content */}
-      <main className="pl-4 md:pl-52 pr-4 md:pr-6 py-2 md:py-6">
+      <main className="px-4 md:pl-52 md:pr-6 py-1 md:py-6">
         {loading && <div>Loading…</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && effectiveConfig && (
