@@ -241,6 +241,16 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 .rich-input { width: 100%; min-height: 10rem; max-height: 60vh; overflow: auto; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.375rem; background: transparent; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; overscroll-behavior: contain; }
 .rich-input:focus { outline: none; box-shadow: 0 0 0 2px color-mix(in hsl, var(--tab-active), transparent 82%); border-color: var(--tab-active); }
 
+/* Ensure buttons are clickable */
+button {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
 /* Light mode tweaks: black AI text and subtle search bar outline */
 @media (prefers-color-scheme: light) {
   .ai-body { color: #000000; }
