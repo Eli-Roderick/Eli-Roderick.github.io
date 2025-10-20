@@ -17,7 +17,7 @@ function processContent(html) {
   const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
   
   return html.replace(imageUrlRegex, (url) => {
-    return `<img src="${url}" alt="User provided image" style="max-width: 100%; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+    return `<img src="${url}" alt="User provided image" style="max-width: 300px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
   })
 }
 
