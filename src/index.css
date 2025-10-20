@@ -374,6 +374,18 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 /* Tabs */
 .tabs button { padding: 0.5rem 0; color: var(--muted); border-bottom: 2px solid transparent; font-size: 16px; }
 .tabs button.active { color: var(--tab-active); border-color: var(--tab-active); }
+
+/* Desktop tabs - smaller font and tighter spacing */
+@media (min-width: 768px) {
+  .tabs button { 
+    font-size: 14px; 
+    padding: 0.5rem 0;
+  }
+  
+  .tabs {
+    gap: 1rem !important; /* Override the gap-6 md:gap-8 from Tailwind */
+  }
+}
 .tabs-divider { display: none; }
 
 /* Modal - Simplified and bulletproof */
