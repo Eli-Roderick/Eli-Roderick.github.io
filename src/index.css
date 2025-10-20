@@ -290,47 +290,32 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
     display: none;
   }
   
-  /* Mobile content styling - grey background with black separators */
-  .ai-card {
-    background: #f8f9fa !important;
-    padding: 1rem;
-    margin: 0 -1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+  /* Mobile background and separators */
+  body {
+    background: #f5f5f5; /* Slightly lighter grey background */
   }
   
+  /* Black horizontal bars between content sections */
   .ai-separator {
-    height: 4px !important;
+    height: 3px !important;
     background: #000 !important;
-    margin: 0 -1rem 0 -1rem !important;
+    margin: 1rem 0 !important;
     opacity: 1 !important;
     width: 100vw;
     position: relative;
     left: 50%;
-    right: 50%;
     margin-left: -50vw;
-    margin-right: -50vw;
-  }
-  
-  .result-card {
-    background: #f8f9fa !important;
-    padding: 1rem;
-    margin: 0 -1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
   }
   
   .result-divider {
-    height: 4px !important;
+    height: 3px !important;
     background: #000 !important;
-    margin: 0 !important;
+    margin: 1rem 0 !important;
     opacity: 1 !important;
     width: 100vw;
     position: relative;
     left: 50%;
-    right: 50%;
-    margin-left: -50vw !important;
-    margin-right: -50vw !important;
+    margin-left: -50vw;
   }
   
   /* Profile menu */
