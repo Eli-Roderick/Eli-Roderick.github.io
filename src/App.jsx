@@ -208,7 +208,7 @@ export default function App() {
         </div>
         
         {/* Top row: search bar + controls */}
-        <div className="px-3 md:pl-48 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-2 md:gap-4">
+        <div className="px-4 md:pl-48 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-2 md:gap-4">
 
           <div className="flex-1">
             {/* Desktop search bar */}
