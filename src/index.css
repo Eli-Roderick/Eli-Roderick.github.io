@@ -344,8 +344,6 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
   /* Prevent body scroll when modal is open on mobile */
   body.modal-open {
     overflow: hidden;
-    position: fixed;
-    width: 100%;
   }
   
   /* Adjust select dropdown for mobile */
