@@ -77,19 +77,28 @@
 /* Circular favicons styled like profile chips */
 img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9999px; background: var(--card-bg); border: 1px solid var(--border); object-fit: cover; }
 
-/* Ad styling (dark) */
 .ad-badge { @apply inline-flex items-center px-1.5 py-0.5 rounded border text-xs font-semibold; }
 .ad-badge { background: color-mix(in hsl, var(--card-bg), black 6%); border-color: var(--border); color: var(--text); opacity: 0.8; }
 
 /* AI overview */
 .ai-card { background: transparent; border: none; border-radius: 0; box-shadow: none; max-width: 48rem; }
-.ai-header { padding: 0.25rem 0; font-size: 0.9rem; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.ai-header { display: flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 14px; margin-bottom: 0.5rem; }
 .ai-body { padding: 0.25rem 0; font-size: 16px; line-height: 1.7; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+
+/* AI overview links - dotted underline instead of blue */
+.ai-body a {
+  color: inherit; /* Use the same color as surrounding text */
+  text-decoration: none;
+  border-bottom: 1px dotted var(--text);
+}
+
+.ai-body a:hover {
+  border-bottom: 1px solid var(--text);
+}
 .ai-footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.25rem 0; color: var(--muted); font-size: 12px; }
 .ai-actions { display: flex; gap: 0.5rem; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9999px; border: 1px solid var(--border); background: var(--card-bg); color: #1a73e8; cursor: pointer; }
 .icon-btn:hover { background: color-mix(in hsl, var(--card-bg), black 4%); }
-
 /* AI Overview: truncated fade and show more button */
 .ai-body--truncated {
   max-height: 30rem; /* approx 20 lines - even more content */

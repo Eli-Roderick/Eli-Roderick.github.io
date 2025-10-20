@@ -17,7 +17,7 @@ export default function SearchPage({
   return (
     <div className="w-full">
       <div className="w-full">
-        <div className="w-full max-w-[870px] px-0">
+        <div className="w-full max-w-[580px] px-0">
           {/* AI Overview */}
           {aiOverview?.show && (
             <div className="mt-0 md:mt-4 mb-4">
