@@ -38,7 +38,7 @@ export default function AIOverview({ text }) {
             onClick={() => setExpanded(true)}
           >
             <span>Show more</span>
-            <span className="material-symbols-outlined text-blue-500 text-sm ml-2" aria-hidden="true">keyboard_arrow_down</span>
+            <span className="material-symbols-outlined text-blue-500 text-lg ml-2" aria-hidden="true">keyboard_arrow_down</span>
           </button>
         </div>
       ) : null}

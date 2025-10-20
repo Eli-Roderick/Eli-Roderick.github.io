@@ -272,7 +272,7 @@ export default function App() {
 
         {/* Tabs row */}
         <div className="px-4 md:pl-52 md:pr-6 mt-0 md:mt-2">
-          <nav className="tabs flex gap-3 md:gap-6 text-sm overflow-x-auto">
+          <nav className="tabs flex gap-6 md:gap-8 text-sm overflow-x-auto">
             {['All','Images','Videos','Shopping','News','More'].map((tab) => (
               <button
                 key={tab}

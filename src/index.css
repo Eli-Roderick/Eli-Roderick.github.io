@@ -160,7 +160,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 .icon-plain:hover { color: var(--text); }
 
 /* Tabs */
-.tabs button { padding: 0.5rem 0; color: var(--muted); border-bottom: 2px solid transparent; font-size: 15px; }
+.tabs button { padding: 0.5rem 0; color: var(--muted); border-bottom: 2px solid transparent; font-size: 16px; }
 .tabs button.active { color: var(--tab-active); border-color: var(--tab-active); }
 .tabs-divider { height: 1px; background: var(--border); margin-top: 8px; }
 
