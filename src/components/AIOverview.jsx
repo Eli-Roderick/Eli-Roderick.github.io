@@ -17,14 +17,14 @@ function processContent(html) {
   const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
   
   return html.replace(imageUrlRegex, (url) => {
-    return `<img src="${url}" alt="User provided image" style="max-width: 300px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+    return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
   })
 }
 
 export default function AIOverview({ text }) {
   if (!text) return null
   const [expanded, setExpanded] = useState(false)
-  const limit = 220
+  const limit = 550
   
   const processedText = useMemo(() => processContent(text), [text])
   
