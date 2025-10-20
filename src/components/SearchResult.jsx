@@ -1,8 +1,23 @@
 import React, { useState } from 'react'
 
-export default function SearchResult({ title, url, snippet, company, images, query, onClick, onImagesUpdate }) {
-  const [showImageModal, setShowImageModal] = useState(false)
+export default function SearchResult({ 
+  title, 
+  url, 
+  snippet, 
+  company, 
+  images, 
+  query, 
+  onClick, 
+  onImagesUpdate, 
+  selectedForImageEdit, 
+  onCloseImageEditor 
+}) {
   const [imageUrls, setImageUrls] = useState(images ? images.join('\n') : '')
+  
+  // Update imageUrls when images prop changes
+  React.useEffect(() => {
+    setImageUrls(images ? images.join('\n') : '')
+  }, [images])
   
   const handleClick = () => {
     onClick?.({ query, url })
@@ -25,12 +40,7 @@ export default function SearchResult({ title, url, snippet, company, images, que
       .slice(0, 3) // Limit to 3 images
     
     onImagesUpdate?.(url, urls)
-    setShowImageModal(false)
-  }
-  
-  const handleOpenImageModal = () => {
-    setImageUrls(images ? images.join('\n') : '')
-    setShowImageModal(true)
+    onCloseImageEditor?.()
   }
   
   // Determine layout based on number of images
@@ -62,26 +72,6 @@ export default function SearchResult({ title, url, snippet, company, images, que
             <a href="#" onClick={handleClick}>{title}</a>
           </h3>
           <div className="result-snippet mb-6">{snippet150}</div>
-          
-          {/* Add Images Button */}
-          <button 
-            onClick={handleOpenImageModal}
-            style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              border: '1px solid var(--border)',
-              borderRadius: '4px',
-              backgroundColor: 'var(--card-bg)',
-              color: 'var(--muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            <span style={{ fontSize: '14px' }}>🖼️</span>
-            {resultImages.length > 0 ? `Edit Images (${resultImages.length})` : 'Add Images'}
-          </button>
         </div>
         
         {/* Right side - Images */}
@@ -142,7 +132,7 @@ export default function SearchResult({ title, url, snippet, company, images, que
       </div>
       
       {/* Image Modal */}
-      {showImageModal && (
+      {selectedForImageEdit && (
         <div style={{
           position: 'fixed',
           top: '0px',
@@ -152,7 +142,7 @@ export default function SearchResult({ title, url, snippet, company, images, que
           backgroundColor: 'rgba(0,0,0,0.5)',
           zIndex: 999999,
           pointerEvents: 'all'
-        }} onClick={() => setShowImageModal(false)}>
+        }} onClick={() => onCloseImageEditor?.()}>
           <div style={{
             position: 'absolute',
             top: '50%',
@@ -186,7 +176,7 @@ export default function SearchResult({ title, url, snippet, company, images, que
                   cursor: 'pointer',
                   color: 'var(--muted)'
                 }} 
-                onClick={() => setShowImageModal(false)}
+                onClick={() => onCloseImageEditor?.()}
               >
                 ✕
               </button>
@@ -239,7 +229,7 @@ export default function SearchResult({ title, url, snippet, company, images, que
                   cursor: 'pointer',
                   fontSize: '14px'
                 }} 
-                onClick={() => setShowImageModal(false)}
+                onClick={() => onCloseImageEditor?.()}
               >
                 Cancel
               </button>

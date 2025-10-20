@@ -27,6 +27,9 @@ export default function App() {
   const [showPasteModal, setShowPasteModal] = useState(false)
   const [draftAIText, setDraftAIText] = useState('')
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showImageManager, setShowImageManager] = useState(false)
+  const [selectedResultForImages, setSelectedResultForImages] = useState(null)
+  const [resultImages, setResultImages] = useState({})
 
   // Prevent background scroll when modal is open and handle escape key
   useEffect(() => {
@@ -134,6 +137,18 @@ export default function App() {
   const openPasteModal = () => {
     setDraftAIText(userAIText)
     setShowPasteModal(true)
+  }
+
+  const handleImagesUpdate = (resultUrl, images) => {
+    setResultImages(prev => ({
+      ...prev,
+      [resultUrl]: images
+    }))
+  }
+
+  const openImageEditorForResult = (result) => {
+    setSelectedResultForImages(result)
+    setShowImageManager(false)
   }
 
   const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','UL','OL','LI','A'])
@@ -275,6 +290,14 @@ export default function App() {
             >
               <span className="material-symbols-outlined align-middle mr-1">edit</span>
               Set AI Text
+            </button>
+            <button
+              className="border rounded px-2 py-1 text-sm whitespace-nowrap"
+              onClick={() => setShowImageManager(true)}
+              title="Manage images for search results"
+            >
+              <span className="material-symbols-outlined align-middle mr-1">image</span>
+              Manage Images
             </button>
           </div>
         </div>
@@ -431,6 +454,145 @@ export default function App() {
         </div>
       )}
 
+      {/* Image Manager Modal */}
+      {showImageManager && (
+        <div style={{
+          position: 'fixed',
+          top: '0px',
+          left: '0px',
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 999999,
+          pointerEvents: 'all'
+        }} onClick={() => setShowImageManager(false)}>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: '600px',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            zIndex: 1000000,
+            pointerEvents: 'all',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            maxHeight: '80vh',
+            overflow: 'hidden'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            {/* Header */}
+            <div style={{ 
+              padding: '1rem', 
+              borderBottom: '1px solid var(--border)', 
+              backgroundColor: 'var(--card-bg)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: '18px', fontWeight: '600' }}>Manage Images</h2>
+              <button 
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  fontSize: '20px', 
+                  cursor: 'pointer',
+                  color: 'var(--muted)'
+                }} 
+                onClick={() => setShowImageManager(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ 
+              padding: '1rem', 
+              backgroundColor: 'var(--card-bg)',
+              maxHeight: '60vh',
+              overflow: 'auto'
+            }}>
+              <p style={{ margin: '0 0 1rem 0', color: 'var(--muted)', fontSize: '14px' }}>
+                Select a search result to add or edit images:
+              </p>
+              
+              {effectiveConfig?.results?.slice(0, 10).map((result, idx) => (
+                !result.ad && (
+                  <div 
+                    key={idx}
+                    style={{
+                      padding: '12px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      marginBottom: '8px',
+                      cursor: 'pointer',
+                      backgroundColor: 'var(--card-bg)',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onClick={() => openImageEditorForResult(result)}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--border-subtle)'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--card-bg)'}
+                  >
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'flex-start',
+                      gap: '12px'
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h4 style={{ 
+                          margin: '0 0 4px 0', 
+                          color: 'var(--text)', 
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {result.title}
+                        </h4>
+                        <p style={{ 
+                          margin: '0', 
+                          color: 'var(--muted)', 
+                          fontSize: '12px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {result.url.replace(/^https?:\/\//, '')}
+                        </p>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        flexShrink: 0
+                      }}>
+                        {resultImages[result.url]?.length > 0 && (
+                          <span style={{
+                            backgroundColor: '#007bff',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: '500'
+                          }}>
+                            {resultImages[result.url].length} image{resultImages[result.url].length !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        <span style={{ color: 'var(--muted)', fontSize: '12px' }}>→</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Profile menu - mobile only */}
       {showProfileMenu && (
         <div className="profile-menu md:hidden" onClick={() => setShowProfileMenu(false)}>
@@ -462,7 +624,7 @@ export default function App() {
               
               <div>
                 <button
-                  className="w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white"
+                  className="w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white mb-2"
                   onClick={() => {
                     setShowProfileMenu(false)
                     openPasteModal()
@@ -470,6 +632,17 @@ export default function App() {
                 >
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">edit</span>
                   Set AI Overview Text
+                </button>
+                
+                <button
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  onClick={() => {
+                    setShowProfileMenu(false)
+                    setShowImageManager(true)
+                  }}
+                >
+                  <span className="material-symbols-outlined align-middle mr-2 text-sm">image</span>
+                  Manage Images
                 </button>
               </div>
             </div>
@@ -482,7 +655,14 @@ export default function App() {
         {loading && <div>Loading…</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && effectiveConfig && (
-          <SearchPage config={effectiveConfig} onResultClick={handleResultClick} />
+          <SearchPage 
+            config={effectiveConfig} 
+            onResultClick={handleResultClick}
+            resultImages={resultImages}
+            onImagesUpdate={handleImagesUpdate}
+            selectedResultForImages={selectedResultForImages}
+            onCloseImageEditor={() => setSelectedResultForImages(null)}
+          />
         )}
       </main>
 

@@ -3,19 +3,16 @@ import AIOverview from '../components/AIOverview'
 import SearchResult from '../components/SearchResult'
 import AdResult from '../components/AdResult'
 
-export default function SearchPage({ config, onResultClick }) {
+export default function SearchPage({ 
+  config, 
+  onResultClick, 
+  resultImages, 
+  onImagesUpdate, 
+  selectedResultForImages, 
+  onCloseImageEditor 
+}) {
   if (!config) return null
   const { query, aiOverview, results } = config
-  
-  // State to manage images for each result
-  const [resultImages, setResultImages] = useState({})
-  
-  const handleImagesUpdate = (resultUrl, images) => {
-    setResultImages(prev => ({
-      ...prev,
-      [resultUrl]: images
-    }))
-  }
 
   return (
     <div className="w-full">
@@ -41,7 +38,9 @@ export default function SearchPage({ config, onResultClick }) {
                     query={query} 
                     onClick={onResultClick}
                     images={resultImages[r.url] || r.images || []}
-                    onImagesUpdate={handleImagesUpdate}
+                    onImagesUpdate={onImagesUpdate}
+                    selectedForImageEdit={selectedResultForImages?.url === r.url}
+                    onCloseImageEditor={onCloseImageEditor}
                   />
                 )}
                 {idx < arr.length - 1 && <div className="result-divider" />}
