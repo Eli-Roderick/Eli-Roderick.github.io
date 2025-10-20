@@ -35,40 +35,58 @@ export default function AIOverview({ text }) {
     return plain.trim().length > limit
   }, [text])
   
-  // Create truncated version that ALWAYS shows at least 220 chars of text + all images
+  // Create truncated version that ALWAYS shows at least 220 chars of text + all images in original positions
   const truncatedContent = useMemo(() => {
     if (!wasTruncated || expanded) return processedText
     
-    // Extract all images first
+    // Strategy: Go through original text, include all images, ensure we get 220 chars of text
     const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
-    const images = text.match(imageUrlRegex) || []
     
-    // Get just the text content
-    const textOnly = text.replace(imageUrlRegex, ' ')
-    const plainText = stripTags(textOnly)
+    // Count text characters in original content (excluding images)
+    const textWithoutImages = text.replace(imageUrlRegex, '')
+    const totalTextChars = stripTags(textWithoutImages).length
     
-    // Take exactly 220 characters of text
-    const truncatedPlainText = plainText.substring(0, limit)
-    
-    // Find where this ends in the original text
-    let charCount = 0
-    let cutIndex = 0
-    for (let i = 0; i < textOnly.length; i++) {
-      const char = textOnly[i]
-      if (stripTags(char).length > 0) {
-        charCount++
-        if (charCount >= limit) {
-          cutIndex = i + 1
-          break
-        }
-      }
+    if (totalTextChars <= limit) {
+      // If total text is under limit, show everything
+      return processedText
     }
     
-    // Get the truncated text with HTML
-    const truncatedTextWithHTML = textOnly.substring(0, cutIndex)
+    // Need to truncate: go through original text and collect 220 chars of text + all images
+    let result = ''
+    let textCharCount = 0
+    let i = 0
     
-    // Combine truncated text with all images at the end
-    const result = truncatedTextWithHTML + '\n\n' + images.join('\n\n')
+    while (i < text.length && textCharCount < limit) {
+      // Check if we're at the start of an image URL
+      const remainingText = text.substring(i)
+      const imageMatch = remainingText.match(/^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/i)
+      
+      if (imageMatch) {
+        // This is an image URL - include it completely
+        result += imageMatch[0]
+        i += imageMatch[0].length
+      } else {
+        // This is regular content - check if it adds to text count
+        const char = text[i]
+        result += char
+        
+        // Only count actual text characters (not HTML tags)
+        if (char !== '<') {
+          const plainChar = stripTags(char)
+          if (plainChar.length > 0) {
+            textCharCount++
+          }
+        } else {
+          // Skip HTML tag
+          const tagEnd = text.indexOf('>', i)
+          if (tagEnd !== -1) {
+            result += text.substring(i + 1, tagEnd + 1)
+            i = tagEnd
+          }
+        }
+        i++
+      }
+    }
     
     return processContent(result)
   }, [text, processedText, wasTruncated, expanded, limit])
