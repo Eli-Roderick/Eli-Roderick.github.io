@@ -292,16 +292,29 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
   
   /* Mobile background and separators */
   body {
-    background: #f5f5f5; /* Slightly lighter grey background */
+    background: #f5f5f5 !important; /* Slightly lighter grey background */
   }
   
-  /* Remove white backgrounds from content */
-  .ai-card {
-    background: transparent !important;
+  /* Override CSS variables that cause white backgrounds */
+  :root {
+    --card-bg: transparent !important;
+    --bg: #f5f5f5 !important;
   }
   
-  .result-card {
+  /* Remove ALL white backgrounds from content */
+  .ai-card,
+  .result-card,
+  .search-result,
+  .ad-result,
+  div[class*="card"],
+  div[class*="result"] {
     background: transparent !important;
+    background-color: transparent !important;
+  }
+  
+  /* Override any card backgrounds */
+  * {
+    --card-bg: transparent !important;
   }
   
   /* Black horizontal bars between content sections */
