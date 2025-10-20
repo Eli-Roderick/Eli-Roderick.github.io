@@ -196,7 +196,7 @@ export default function App() {
       {/* Header */}
       <header className="search-header">
         {/* Top row: search bar + controls */}
-        <div className="pl-48 pr-6 pt-6 pb-3 flex items-center gap-4">
+        <div className="pl-4 md:pl-48 pr-4 md:pr-6 pt-6 pb-3 flex items-center gap-4">
           <div className="flex-1">
             <div className="search-bar">
               <input
@@ -218,26 +218,27 @@ export default function App() {
           </div>
 
           {/* Experimenter controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <select className="select-primary" value={current} onChange={handleSelectChange}>
               {order.map((item, idx) => (
                 <option key={item.path} value={idx}>{item.label}</option>
               ))}
             </select>
             <button
-              className="border rounded px-2 py-1 text-sm"
+              className="border rounded px-2 py-1 text-sm whitespace-nowrap"
               onClick={openPasteModal}
               title="Set AI Overview text"
             >
               <span className="material-symbols-outlined align-middle mr-1">edit</span>
-              Set AI Text
+              <span className="hidden sm:inline">Set AI Text</span>
+              <span className="sm:hidden">AI</span>
             </button>
           </div>
         </div>
 
         {/* Tabs row */}
-        <div className="pl-52 pr-6 mt-2">
-          <nav className="tabs flex gap-6 text-sm">
+        <div className="pl-4 md:pl-52 pr-4 md:pr-6 mt-2">
+          <nav className="tabs flex gap-3 md:gap-6 text-sm overflow-x-auto">
             {['All','Images','Videos','Shopping','News','More'].map((tab) => (
               <button
                 key={tab}
@@ -255,7 +256,7 @@ export default function App() {
       {/* Paste modal */}
       {showPasteModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="modal">
+          <div className="modal mx-4">
             <div className="modal-header">
               <h3 className="text-base font-medium">Set AI Overview Text</h3>
               <button className="material-symbols-outlined icon-plain" onClick={() => setShowPasteModal(false)} aria-label="Close">close</button>
@@ -281,7 +282,7 @@ export default function App() {
       )}
 
       {/* Content */}
-      <main className="pl-52 pr-6 py-6">
+      <main className="pl-4 md:pl-52 pr-4 md:pr-6 py-6">
         {loading && <div>Loading…</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && effectiveConfig && (

@@ -179,3 +179,57 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 }
 body.light .ai-body { color: #000000; }
 body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.05); }
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  /* Prevent horizontal scroll on tabs */
+  .tabs {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Ensure tabs don't wrap */
+  .tabs button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  
+  /* Adjust search bar for mobile */
+  .search-bar {
+    min-width: 0;
+  }
+  
+  /* Modal adjustments for mobile */
+  .modal {
+    margin: 1rem;
+    max-height: 90vh;
+  }
+  
+  /* Prevent body scroll when modal is open on mobile */
+  body.modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+  
+  /* Adjust select dropdown for mobile */
+  .select-primary {
+    min-width: 0;
+    max-width: 120px;
+  }
+  
+  /* Ensure result cards don't overflow */
+  .result-card {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Adjust AI overview for mobile */
+  .ai-card {
+    max-width: 100%;
+  }
+}
