@@ -37,11 +37,11 @@ function processContent(html) {
       
       if (matches.length > 1) {
         // Multiple images on the same line - create horizontal row immediately
-        let row = '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
+        let row = '<div class="image-row">'
         matches.forEach(match => {
           const index = parseInt(match.match(/__BRACKETED_IMAGE_(\d+)__/)[1])
           const url = bracketedImages[index]
-          row += `<img src="${url}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
+          row += `<img src="${url}" alt="User provided image" />`
         })
         row += '</div>'
         result.push(row)
