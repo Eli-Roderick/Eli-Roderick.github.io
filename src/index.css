@@ -295,26 +295,26 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
     background: #f5f5f5 !important; /* Slightly lighter grey background */
   }
   
-  /* Override CSS variables that cause white backgrounds */
+  /* Override CSS variables to grey */
   :root {
-    --card-bg: transparent !important;
+    --card-bg: #f5f5f5 !important;
     --bg: #f5f5f5 !important;
   }
   
-  /* Remove ALL white backgrounds from content */
+  /* Set ALL backgrounds to grey */
   .ai-card,
   .result-card,
   .search-result,
   .ad-result,
   div[class*="card"],
   div[class*="result"] {
-    background: transparent !important;
-    background-color: transparent !important;
+    background: #f5f5f5 !important;
+    background-color: #f5f5f5 !important;
   }
   
-  /* Override any card backgrounds */
+  /* Override any card backgrounds to grey */
   * {
-    --card-bg: transparent !important;
+    --card-bg: #f5f5f5 !important;
   }
   
   /* Black horizontal bars between content sections */
