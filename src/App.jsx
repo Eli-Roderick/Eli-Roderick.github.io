@@ -292,18 +292,20 @@ export default function App() {
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="modal mx-4">
             <div className="modal-header">
-              <h3 className="text-base font-medium">Set AI Overview Text</h3>
-              <button className="material-symbols-outlined icon-plain" onClick={() => setShowPasteModal(false)} aria-label="Close">close</button>
+              <h2 className="text-lg font-semibold">Set AI Overview Text</h2>
+              <button className="material-symbols-outlined icon-plain text-xl" onClick={() => setShowPasteModal(false)} aria-label="Close">close</button>
             </div>
             <div className="modal-body">
+              <div className="mb-3 text-sm text-gray-600">
+                <p><strong>Tip:</strong> You can include images by pasting image URLs (jpg, png, gif, webp, svg, bmp).</p>
+                <p>Example: https://example.com/image.jpg</p>
+              </div>
               <div
                 className="rich-input"
                 contentEditable
-                role="textbox"
-                aria-multiline="true"
-                placeholder="Paste or type text here..."
-                onInput={(e) => setDraftAIText(e.currentTarget.innerHTML)}
-                dangerouslySetInnerHTML={{ __html: draftAIText || '' }}
+                suppressContentEditableWarning={true}
+                onInput={(e) => setDraftAIText(e.target.innerHTML)}
+                dangerouslySetInnerHTML={{ __html: draftAIText }}
               />
             </div>
             <div className="modal-footer">

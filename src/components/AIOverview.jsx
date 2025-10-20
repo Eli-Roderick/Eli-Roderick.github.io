@@ -9,10 +9,23 @@ function stripTags(html) {
   return tmp.textContent || tmp.innerText || ''
 }
 
+function processContent(html) {
+  if (!html) return html
+  
+  // Convert image URLs to img tags
+  // Look for URLs that end with image extensions
+  const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
+  
+  return html.replace(imageUrlRegex, (url) => {
+    return `<img src="${url}" alt="User provided image" style="max-width: 100%; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+  })
+}
+
 export default function AIOverview({ text }) {
   if (!text) return null
   const [expanded, setExpanded] = useState(false)
   const limit = 220
+  const processedText = useMemo(() => processContent(text), [text])
   const wasTruncated = useMemo(() => {
     const plain = stripTags(text)
     return plain.length > limit
@@ -27,7 +40,7 @@ export default function AIOverview({ text }) {
       </div>
       <div
         className={`ai-body whitespace-pre-wrap ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
-        dangerouslySetInnerHTML={{ __html: text }}
+        dangerouslySetInnerHTML={{ __html: processedText }}
       />
 
       {/* Show more control (full-width button at bottom) */}
