@@ -83,6 +83,13 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
 /* AI overview */
 .ai-card { background: transparent; border: none; border-radius: 0; box-shadow: none; max-width: 48rem; }
 .ai-header { display: flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 14px; margin-bottom: 0.5rem; }
+
+/* Reduce AI header spacing on mobile */
+@media (max-width: 768px) {
+  .ai-header { 
+    margin-bottom: 0.25rem; 
+  }
+}
 .ai-body { padding: 0.25rem 0; font-size: 16px; line-height: 1.7; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
 
 /* AI overview links - dotted underline instead of blue */
@@ -340,10 +347,10 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   position: absolute !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
-  width: 32px !important;
-  height: 32px !important;
+  width: 48px !important;
+  height: 48px !important;
   border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(128, 128, 128, 0.7) !important;
   border: 1px solid rgba(0, 0, 0, 0.1) !important;
   display: flex !important;
   align-items: center !important;
@@ -360,15 +367,15 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 }
 
 .scroll-indicator-left {
-  left: -16px !important;
+  left: -24px !important;
 }
 
 .scroll-indicator-right {
-  right: -16px !important;
+  right: -24px !important;
 }
 
 .scroll-indicator:hover {
-  background: rgba(255, 255, 255, 1) !important;
+  background: rgba(128, 128, 128, 0.9) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 }
 
@@ -380,14 +387,14 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 }
 
 .scroll-indicator-left::before {
-  border-width: 6px 8px 6px 0 !important;
-  border-color: transparent #666 transparent transparent !important;
+  border-width: 8px 10px 8px 0 !important;
+  border-color: transparent #fff transparent transparent !important;
   margin-left: -2px !important;
 }
 
 .scroll-indicator-right::before {
-  border-width: 6px 0 6px 8px !important;
-  border-color: transparent transparent transparent #666 !important;
+  border-width: 8px 0 8px 10px !important;
+  border-color: transparent transparent transparent #fff !important;
   margin-right: -2px !important;
 }
 
@@ -585,11 +592,12 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
 }
 
 @media (max-width: 768px) {
-  /* Prevent horizontal scroll on tabs */
+  /* Add space under tabs */
   .tabs {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    margin-bottom: 1rem;
   }
   .tabs::-webkit-scrollbar {
     display: none;
