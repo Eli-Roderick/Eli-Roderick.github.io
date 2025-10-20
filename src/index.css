@@ -348,7 +348,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   top: 50% !important;
   transform: translateY(-50%) !important;
   width: 60px !important;
-  height: 75px !important;
+  height: 68px !important;
   border-radius: 50% !important;
   background: rgba(30, 30, 30, 0.75) !important;
   border: none !important;
@@ -365,13 +365,13 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 .scroll-indicator-left {
   left: -32px !important;
   justify-content: flex-end !important;
-  padding-right: 14px !important;
+  padding-right: 8px !important;
 }
 
 .scroll-indicator-right {
   right: -32px !important;
   justify-content: flex-start !important;
-  padding-left: 14px !important;
+  padding-left: 8px !important;
 }
 
 .scroll-indicator:hover {
