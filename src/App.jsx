@@ -195,12 +195,15 @@ export default function App() {
     <div className="min-h-screen">
       {/* Header */}
       <header className="search-header">
-        {/* Top row: search bar + controls */}
-        <div className="pl-4 md:pl-48 pr-4 md:pr-6 pt-4 md:pt-6 pb-1 md:pb-3 flex items-center gap-4 relative">
-          {/* Profile icon - mobile only */}
-          <div className="md:hidden absolute top-2 right-4 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer" title="Profile">
-            <span className="text-white text-sm font-medium">E</span>
+        {/* Profile row - mobile only */}
+        <div className="md:hidden flex justify-end pr-4 pt-3 pb-2">
+          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer" title="Profile">
+            <span className="text-white text-base font-medium">E</span>
           </div>
+        </div>
+        
+        {/* Top row: search bar + controls */}
+        <div className="pl-4 md:pl-48 pr-4 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-4">
 
           <div className="flex-1">
             {/* Desktop search bar */}
