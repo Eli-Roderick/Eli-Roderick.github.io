@@ -289,8 +289,8 @@ export default function App() {
 
       {/* Paste modal */}
       {showPasteModal && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="modal mx-4">
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setShowPasteModal(false)}>
+          <div className="modal mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="text-lg font-semibold">Set AI Overview Text</h2>
               <button className="material-symbols-outlined icon-plain text-xl" onClick={() => setShowPasteModal(false)} aria-label="Close">close</button>
