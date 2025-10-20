@@ -299,9 +299,9 @@ export default function App() {
               <div className="mb-3 text-sm text-gray-600">
                 <p><strong>Tip:</strong> You can include images by pasting image URLs (jpg, png, gif, webp, svg, bmp).</p>
                 <p><strong>Examples:</strong></p>
-                <p>• Direct URL: https://example.com/image.jpg</p>
-                <p>• In brackets: [https://example.com/image.jpg]</p>
-                <p>• Multiple URLs on separate lines create a scrollable row</p>
+                <p>• Single image: [https://example.com/image.jpg]</p>
+                <p>• Horizontal row: {[image1.jpg][image2.jpg][image3.jpg]}</p>
+                <p>• Use curly braces {} to group images into scrollable rows</p>
               </div>
               <div
                 className="rich-input"
