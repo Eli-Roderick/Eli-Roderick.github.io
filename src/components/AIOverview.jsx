@@ -36,72 +36,14 @@ export default function AIOverview({ text }) {
     return plain.trim().length > limit
   }, [text])
   
-  // Create truncated version - always show images, truncate only text
+  // Create truncated version - show full content but with CSS truncation
   const truncatedContent = useMemo(() => {
     if (!wasTruncated || expanded) return processedText
     
-    // Strategy: Split content into parts, track text character count, include all images
-    const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
-    
-    // Split content by images to get alternating text and image parts
-    const parts = text.split(imageUrlRegex)
-    let textCharCount = 0
-    let result = ''
-    
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i]
-      
-      // Reset regex for testing
-      imageUrlRegex.lastIndex = 0
-      
-      if (imageUrlRegex.test(part)) {
-        // This is an image URL - always include it
-        result += part
-      } else {
-        // This is text content - check if we should include it
-        const plainTextInPart = stripTags(part)
-        
-        if (textCharCount + plainTextInPart.length <= limit) {
-          // Include the whole part
-          result += part
-          textCharCount += plainTextInPart.length
-        } else {
-          // Truncate this text part
-          const remainingChars = limit - textCharCount
-          if (remainingChars > 0) {
-            // Find where to cut in this part
-            let partCharCount = 0
-            let cutIndex = 0
-            
-            for (let j = 0; j < part.length; j++) {
-              const char = part[j]
-              if (char === '<') {
-                // Skip HTML tags
-                const tagEnd = part.indexOf('>', j)
-                if (tagEnd !== -1) {
-                  j = tagEnd
-                  continue
-                }
-              }
-              
-              if (stripTags(char).length > 0) {
-                partCharCount++
-                if (partCharCount >= remainingChars) {
-                  cutIndex = j + 1
-                  break
-                }
-              }
-            }
-            
-            result += part.substring(0, cutIndex)
-          }
-          break // Stop processing after truncation
-        }
-      }
-    }
-    
-    return processContent(result)
-  }, [text, processedText, wasTruncated, expanded, limit])
+    // For truncated view, just return the processed text
+    // The CSS will handle the visual truncation with the fade effect
+    return processedText
+  }, [processedText, wasTruncated, expanded])
   return (
     <section className="ai-card">
       <div className="ai-header">
