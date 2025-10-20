@@ -36,82 +36,53 @@ export default function AIOverview({ text }) {
     return plain.trim().length > limit
   }, [text])
   
-  // Create truncated version that preserves images but limits text
+  // Create truncated version - always show images, truncate only text
   const truncatedContent = useMemo(() => {
     if (!wasTruncated || expanded) return processedText
     
-    // Split content by image URLs to handle text and images separately
+    // Simple approach: replace image URLs with placeholders, truncate text, then restore images
     const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
-    const parts = text.split(imageUrlRegex)
+    const images = []
+    let textOnly = text.replace(imageUrlRegex, (match) => {
+      images.push(match)
+      return `__IMAGE_${images.length - 1}__`
+    })
     
-    let textCharCount = 0
-    let result = ''
-    const minTextChars = 50
-    
-    // First pass: include everything up to the limit, but ensure minimum text
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i]
+    // Truncate the text-only version
+    const plainText = stripTags(textOnly)
+    if (plainText.length > limit) {
+      // Find where to cut off in the original text
+      let charCount = 0
+      let cutIndex = 0
       
-      // Reset regex for each test
-      imageUrlRegex.lastIndex = 0
-      
-      // Check if this part is an image URL
-      if (imageUrlRegex.test(part)) {
-        // Always include images - they don't count toward text limit
-        result += part
-      } else {
-        // This is text content
-        const plainText = stripTags(part).trim()
-        if (plainText.length > 0) {
-          const remainingChars = limit - textCharCount
-          
-          if (remainingChars > 0) {
-            if (plainText.length <= remainingChars) {
-              result += part
-              textCharCount += plainText.length
-            } else {
-              // Truncate this text part
-              const truncated = part.substring(0, remainingChars)
-              result += truncated
-              textCharCount += stripTags(truncated).trim().length
-              break
-            }
-          } else {
-            // We've hit the text limit, stop adding text
+      for (let i = 0; i < textOnly.length; i++) {
+        const char = textOnly[i]
+        if (char === '<') {
+          // Skip HTML tags
+          const tagEnd = textOnly.indexOf('>', i)
+          if (tagEnd !== -1) {
+            i = tagEnd
+            continue
+          }
+        }
+        
+        if (stripTags(char).length > 0) {
+          charCount++
+          if (charCount >= limit) {
+            cutIndex = i + 1
             break
           }
-        } else {
-          // Include non-text content (like HTML tags, whitespace)
-          result += part
         }
       }
+      
+      textOnly = textOnly.substring(0, cutIndex)
     }
     
-    // If we don't have enough text, force include more
-    if (textCharCount < minTextChars) {
-      // Find more text content to include
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i]
-        imageUrlRegex.lastIndex = 0
-        
-        if (!imageUrlRegex.test(part)) {
-          const plainText = stripTags(part).trim()
-          if (plainText.length > 0 && !result.includes(part)) {
-            const needed = minTextChars - textCharCount
-            if (plainText.length <= needed) {
-              result += part
-              textCharCount += plainText.length
-            } else {
-              const truncated = part.substring(0, needed)
-              result += truncated
-              textCharCount += stripTags(truncated).trim().length
-            }
-            
-            if (textCharCount >= minTextChars) break
-          }
-        }
-      }
-    }
+    // Restore images
+    let result = textOnly
+    images.forEach((imageUrl, index) => {
+      result = result.replace(`__IMAGE_${index}__`, imageUrl)
+    })
     
     return processContent(result)
   }, [text, processedText, wasTruncated, expanded, limit])
