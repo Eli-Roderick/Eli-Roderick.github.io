@@ -12,72 +12,11 @@ function stripTags(html) {
 function processContent(html) {
   if (!html) return html
   
-  // Step 1: Find all image URLs in the content
-  const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
-  const allImages = html.match(imageUrlRegex) || []
-  
-  if (allImages.length === 0) {
-    return html // No images to process
-  }
-  
-  // Step 2: Check for consecutive images (simple line-by-line approach)
-  const lines = html.split('\n')
-  let result = []
-  let consecutiveImages = []
-  
-  for (let line of lines) {
-    const trimmedLine = line.trim()
-    
-    // Check if this line is just an image URL
-    if (imageUrlRegex.test(trimmedLine) && trimmedLine.match(imageUrlRegex)?.[0] === trimmedLine) {
-      // This line contains only an image URL
-      consecutiveImages.push(trimmedLine)
-    } else {
-      // This line has text or is not just an image
-      // First, process any accumulated consecutive images
-      if (consecutiveImages.length > 0) {
-        if (consecutiveImages.length === 1) {
-          // Single image
-          result.push(`<img src="${consecutiveImages[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`)
-        } else {
-          // Multiple consecutive images - horizontal row
-          let row = '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
-          consecutiveImages.forEach(url => {
-            row += `<img src="${url}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
-          })
-          row += '</div>'
-          result.push(row)
-        }
-        consecutiveImages = []
-      }
-      
-      // Process the current line (replace any inline images)
-      if (trimmedLine.length > 0) {
-        const processedLine = line.replace(imageUrlRegex, (url) => {
-          return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
-        })
-        result.push(processedLine)
-      } else {
-        result.push(line) // Keep empty lines
-      }
-    }
-  }
-  
-  // Handle any remaining consecutive images at the end
-  if (consecutiveImages.length > 0) {
-    if (consecutiveImages.length === 1) {
-      result.push(`<img src="${consecutiveImages[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`)
-    } else {
-      let row = '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
-      consecutiveImages.forEach(url => {
-        row += `<img src="${url}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
-      })
-      row += '</div>'
-      result.push(row)
-    }
-  }
-  
-  return result.join('\n')
+  // Simple fallback: just convert all image URLs to img tags for now
+  // We can add the horizontal row feature later once basic images work
+  return html.replace(/(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi, (url) => {
+    return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+  })
 }
 
 export default function AIOverview({ text }) {
