@@ -298,7 +298,10 @@ export default function App() {
             <div className="modal-body">
               <div className="mb-3 text-sm text-gray-600">
                 <p><strong>Tip:</strong> You can include images by pasting image URLs (jpg, png, gif, webp, svg, bmp).</p>
-                <p>Example: https://example.com/image.jpg</p>
+                <p><strong>Examples:</strong></p>
+                <p>• Direct URL: https://example.com/image.jpg</p>
+                <p>• In brackets: [https://example.com/image.jpg]</p>
+                <p>• Multiple URLs on separate lines create a scrollable row</p>
               </div>
               <div
                 className="rich-input"

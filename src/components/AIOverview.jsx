@@ -12,20 +12,63 @@ function stripTags(html) {
 function processContent(html) {
   if (!html) return html
   
-  // Much simpler approach - look for any URL that might be an image
-  // Split by whitespace and check each "word"
-  const words = html.split(/(\s+)/)
+  // Step 1: Handle bracketed images [https://example.com/image.jpg]
+  let processed = html.replace(/\[(https?:\/\/[^\]]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\]]*)?)\]/gi, (match, url) => {
+    return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+  })
   
-  return words.map(word => {
-    const trimmed = word.trim()
+  // Step 2: Handle consecutive images on separate lines
+  const lines = processed.split('\n')
+  let result = []
+  let consecutiveImages = []
+  
+  for (let line of lines) {
+    const trimmed = line.trim()
     
-    // Check if this looks like an image URL (starts with http and has image extension)
-    if (trimmed.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(trimmed)) {
-      return `<img src="${trimmed}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+    // Check if this line is just an image URL
+    if (trimmed.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(trimmed) && !trimmed.includes(' ')) {
+      consecutiveImages.push(trimmed)
+    } else {
+      // Process any accumulated consecutive images
+      if (consecutiveImages.length > 0) {
+        if (consecutiveImages.length === 1) {
+          // Single image
+          result.push(`<img src="${consecutiveImages[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`)
+        } else {
+          // Multiple consecutive images - horizontal row
+          let row = '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
+          consecutiveImages.forEach(url => {
+            row += `<img src="${url}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
+          })
+          row += '</div>'
+          result.push(row)
+        }
+        consecutiveImages = []
+      }
+      
+      // Process the current line for inline images
+      const processedLine = line.replace(/(?<!\[)(https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?\S*)?)/gi, (url) => {
+        return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+      })
+      result.push(processedLine)
     }
-    
-    return word // Return original word (including whitespace)
-  }).join('')
+  }
+  
+  // Handle any remaining consecutive images at the end
+  if (consecutiveImages.length > 0) {
+    if (consecutiveImages.length === 1) {
+      result.push(`<img src="${consecutiveImages[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`)
+    } else {
+      let row = '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
+      consecutiveImages.forEach(url => {
+        row += `<img src="${url}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
+      })
+      row += '</div>'
+      result.push(row)
+    }
+  }
+  
+  return result.join('\n')
 }
 
 export default function AIOverview({ text }) {
