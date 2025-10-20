@@ -315,8 +315,8 @@ export default function App() {
             transform: 'translate(-50%, -50%)',
             width: '90%',
             maxWidth: '500px',
-            backgroundColor: 'white',
-            border: '1px solid #ccc',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
             borderRadius: '8px',
             zIndex: 1000000,
             pointerEvents: 'all',
@@ -326,20 +326,20 @@ export default function App() {
             {/* Header */}
             <div style={{ 
               padding: '1rem', 
-              borderBottom: '1px solid #ccc', 
-              backgroundColor: '#f8f9fa',
+              borderBottom: '1px solid var(--border)', 
+              backgroundColor: 'var(--card-bg)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <h2 style={{ margin: 0, color: 'black', fontSize: '18px', fontWeight: '600' }}>Set AI Overview Text</h2>
+              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: '18px', fontWeight: '600' }}>Set AI Overview Text</h2>
               <button 
                 style={{ 
                   background: 'none', 
                   border: 'none', 
                   fontSize: '20px', 
                   cursor: 'pointer',
-                  color: '#666'
+                  color: 'var(--muted)'
                 }} 
                 onClick={() => setShowPasteModal(false)}
               >
@@ -348,8 +348,8 @@ export default function App() {
             </div>
 
             {/* Body */}
-            <div style={{ padding: '1rem', backgroundColor: 'white' }}>
-              <div style={{ marginBottom: '1rem', color: '#666', fontSize: '14px' }}>
+            <div style={{ padding: '1rem', backgroundColor: 'var(--card-bg)' }}>
+              <div style={{ marginBottom: '1rem', color: 'var(--muted)', fontSize: '14px' }}>
                 <p style={{ margin: '0 0 8px 0' }}><strong>Tip:</strong> You can include images by pasting image URLs (jpg, png, gif, webp, svg, bmp).</p>
                 <p style={{ margin: '0 0 4px 0' }}><strong>Examples:</strong></p>
                 <p style={{ margin: '0 0 4px 0' }}>• Single image: [https://example.com/image.jpg]</p>
@@ -361,11 +361,11 @@ export default function App() {
                   width: '100%',
                   minHeight: '200px',
                   maxHeight: '300px',
-                  border: '1px solid #ccc',
+                  border: '1px solid var(--border)',
                   borderRadius: '4px',
                   padding: '12px',
-                  backgroundColor: 'white',
-                  color: 'black',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
                   fontSize: '14px',
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
                   overflow: 'auto',
@@ -381,8 +381,8 @@ export default function App() {
             {/* Footer */}
             <div style={{ 
               padding: '1rem', 
-              borderTop: '1px solid #ccc', 
-              backgroundColor: '#f8f9fa',
+              borderTop: '1px solid var(--border)', 
+              backgroundColor: 'var(--card-bg)',
               display: 'flex',
               justifyContent: 'flex-end',
               gap: '8px'
@@ -390,10 +390,10 @@ export default function App() {
               <button 
                 style={{ 
                   padding: '8px 16px', 
-                  border: '1px solid #ccc',
+                  border: '1px solid var(--border)',
                   borderRadius: '4px',
-                  backgroundColor: 'white',
-                  color: 'black',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
                   cursor: 'pointer'
                 }} 
                 onClick={clearAIOverview}
@@ -403,10 +403,10 @@ export default function App() {
               <button 
                 style={{ 
                   padding: '8px 16px', 
-                  border: '1px solid #ccc',
+                  border: '1px solid var(--border)',
                   borderRadius: '4px',
-                  backgroundColor: 'white',
-                  color: 'black',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
                   cursor: 'pointer'
                 }} 
                 onClick={() => setShowPasteModal(false)}
