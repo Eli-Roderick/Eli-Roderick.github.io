@@ -146,6 +146,29 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   display: block;
 }
 
+/* Scrollable image rows */
+.image-row {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.2) transparent;
+}
+
+.image-row::-webkit-scrollbar {
+  height: 6px;
+}
+
+.image-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.image-row::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
+}
+
+.image-row::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.3);
+}
+
 /* Separator under AI Overview (content width), same blue as icon */
 .ai-separator { height: 1px; background: #1a73e8; opacity: 0.5; margin: 10px 0 14px; max-width: 48rem; }
 

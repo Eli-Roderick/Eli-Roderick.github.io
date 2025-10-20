@@ -12,13 +12,62 @@ function stripTags(html) {
 function processContent(html) {
   if (!html) return html
   
-  // Convert image URLs to img tags
-  // Look for URLs that end with image extensions
+  // First, find and group consecutive images
   const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
   
-  return html.replace(imageUrlRegex, (url) => {
-    return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
-  })
+  // Split by images to get alternating text and image parts
+  const parts = html.split(imageUrlRegex)
+  let result = ''
+  let consecutiveImages = []
+  
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i]
+    
+    // Reset regex for testing
+    imageUrlRegex.lastIndex = 0
+    
+    if (imageUrlRegex.test(part)) {
+      // This is an image URL
+      consecutiveImages.push(part)
+    } else {
+      // This is text content
+      // First, process any accumulated consecutive images
+      if (consecutiveImages.length > 0) {
+        if (consecutiveImages.length === 1) {
+          // Single image - display normally
+          result += `<img src="${consecutiveImages[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+        } else {
+          // Multiple consecutive images - create scrollable row
+          result += '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
+          consecutiveImages.forEach(imageUrl => {
+            result += `<img src="${imageUrl}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
+          })
+          result += '</div>'
+        }
+        consecutiveImages = []
+      }
+      
+      // Add the text content (skip if it's just whitespace between images)
+      if (part.trim().length > 0) {
+        result += part
+      }
+    }
+  }
+  
+  // Handle any remaining consecutive images at the end
+  if (consecutiveImages.length > 0) {
+    if (consecutiveImages.length === 1) {
+      result += `<img src="${consecutiveImages[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+    } else {
+      result += '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
+      consecutiveImages.forEach(imageUrl => {
+        result += `<img src="${imageUrl}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
+      })
+      result += '</div>'
+    }
+  }
+  
+  return result
 }
 
 export default function AIOverview({ text }) {
