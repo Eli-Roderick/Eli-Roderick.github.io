@@ -190,25 +190,33 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
 /* Black horizontal bars between content sections - mobile only */
 @media (max-width: 768px) {
   .ai-separator {
-    height: 3px !important;
+    height: 6px !important;
     background: #000 !important;
     margin: 1rem 0 !important;
     opacity: 1 !important;
-    width: 100vw;
+    width: 100vw !important;
     position: relative;
     left: 50%;
-    margin-left: -50vw;
+    right: 50%;
+    margin-left: -50vw !important;
+    margin-right: -50vw !important;
+    z-index: 10;
+    display: block !important;
   }
   
   .result-divider {
-    height: 3px !important;
+    height: 6px !important;
     background: #000 !important;
     margin: 1rem 0 !important;
     opacity: 1 !important;
-    width: 100vw;
+    width: 100vw !important;
     position: relative;
     left: 50%;
-    margin-left: -50vw;
+    right: 50%;
+    margin-left: -50vw !important;
+    margin-right: -50vw !important;
+    z-index: 10;
+    display: block !important;
   }
   
   /* Hide double line under tabs on mobile */
