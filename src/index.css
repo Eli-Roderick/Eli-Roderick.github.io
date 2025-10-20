@@ -375,8 +375,8 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 }
 
 .scroll-indicator:hover {
-  background: rgba(128, 128, 128, 0.9) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  background: rgba(20, 20, 20, 0.85) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
 }
 
 .scroll-indicator::before {

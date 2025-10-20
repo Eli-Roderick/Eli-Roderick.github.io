@@ -32,7 +32,7 @@ function processContent(html) {
       
       row += `</div>
         <div class="scroll-indicator scroll-indicator-left" onclick="scrollImageRow('${containerId}', -200)" style="display: none;"></div>
-        <div class="scroll-indicator scroll-indicator-right" onclick="scrollImageRow('${containerId}', 200)"></div>
+        <div class="scroll-indicator scroll-indicator-right" onclick="scrollImageRow('${containerId}', 200)" style="display: none;"></div>
       </div>`
       
       return row
@@ -70,6 +70,17 @@ function updateScrollIndicators(containerId) {
   const rightIndicator = container.parentElement.querySelector('.scroll-indicator-right')
   
   if (leftIndicator && rightIndicator) {
+    // Check if scrolling is needed at all
+    const needsScrolling = container.scrollWidth > container.clientWidth
+    
+    if (!needsScrolling) {
+      // If no scrolling needed, hide both indicators
+      leftIndicator.style.display = 'none'
+      rightIndicator.style.display = 'none'
+      return
+    }
+    
+    // If scrolling is needed, show/hide based on scroll position
     const canScrollLeft = container.scrollLeft > 0
     const canScrollRight = container.scrollLeft < (container.scrollWidth - container.clientWidth)
     
@@ -90,16 +101,27 @@ export default function AIOverview({ text }) {
     const containers = document.querySelectorAll('.image-row')
     containers.forEach(container => {
       if (container.id) {
+        // Initial check
         updateScrollIndicators(container.id)
+        
+        // Check again after images load (with delay)
+        setTimeout(() => updateScrollIndicators(container.id), 100)
+        setTimeout(() => updateScrollIndicators(container.id), 500)
+        
         // Add scroll event listener to update indicators
-        container.addEventListener('scroll', () => updateScrollIndicators(container.id))
+        const scrollHandler = () => updateScrollIndicators(container.id)
+        container.addEventListener('scroll', scrollHandler)
+        
+        // Store handler for cleanup
+        container._scrollHandler = scrollHandler
       }
     })
     
     return () => {
       containers.forEach(container => {
-        if (container.id) {
-          container.removeEventListener('scroll', () => updateScrollIndicators(container.id))
+        if (container.id && container._scrollHandler) {
+          container.removeEventListener('scroll', container._scrollHandler)
+          delete container._scrollHandler
         }
       })
     }
