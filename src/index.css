@@ -232,4 +232,19 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
   .ai-card {
     max-width: 100%;
   }
+  
+  /* Mobile search bar adjustments */
+  .search-bar {
+    padding: 0.5rem 0.8rem; /* Slightly less padding on mobile */
+  }
+  
+  /* Profile icon positioning */
+  .search-header .relative {
+    position: relative;
+  }
+  
+  /* Ensure mobile search icon alignment */
+  .search-bar .icon-plain {
+    flex-shrink: 0;
+  }
 }

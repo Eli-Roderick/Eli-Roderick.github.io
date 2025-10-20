@@ -196,9 +196,15 @@ export default function App() {
       {/* Header */}
       <header className="search-header">
         {/* Top row: search bar + controls */}
-        <div className="pl-4 md:pl-48 pr-4 md:pr-6 pt-6 pb-3 flex items-center gap-4">
+        <div className="pl-4 md:pl-48 pr-4 md:pr-6 pt-6 pb-2 md:pb-3 flex items-center gap-4 relative">
+          {/* Profile icon - mobile only */}
+          <button className="md:hidden absolute top-2 right-4 material-symbols-outlined icon-plain text-2xl" aria-label="Profile" title="Profile">
+            account_circle
+          </button>
+
           <div className="flex-1">
-            <div className="search-bar">
+            {/* Desktop search bar */}
+            <div className="search-bar hidden md:flex">
               <input
                 className="flex-1 outline-none text-[16px]"
                 value={query}
@@ -213,6 +219,27 @@ export default function App() {
                 <span className="separator" />
                 {/* Search icon */}
                 <button className="material-symbols-outlined icon-plain" aria-label="Search" title="Search">search</button>
+              </div>
+            </div>
+
+            {/* Mobile search bar */}
+            <div className="search-bar flex md:hidden">
+              {/* Search icon on left for mobile */}
+              <button className="material-symbols-outlined icon-plain mr-2" aria-label="Search" title="Search">search</button>
+              <input
+                className="flex-1 outline-none text-[16px]"
+                value={query}
+                readOnly
+                onPaste={handlePaste}
+                placeholder="Paste text here to set AI Overview"
+                title={userAIText ? 'AI Overview text overridden by pasted content' : 'Paste to override AI Overview'}
+              />
+              <div className="search-affordances">
+                {/* Clear button (non-functional) */}
+                <button className="material-symbols-outlined icon-plain" aria-label="Clear" title="Clear">close</button>
+                <span className="separator" />
+                {/* Microphone icon for mobile */}
+                <button className="material-symbols-outlined icon-plain" aria-label="Voice search" title="Voice search">mic</button>
               </div>
             </div>
           </div>
@@ -282,7 +309,7 @@ export default function App() {
       )}
 
       {/* Content */}
-      <main className="pl-4 md:pl-52 pr-4 md:pr-6 py-6">
+      <main className="pl-4 md:pl-52 pr-4 md:pr-6 py-3 md:py-6">
         {loading && <div>Loading…</div>}
         {error && <div className="text-red-600">{error}</div>}
         {!loading && !error && effectiveConfig && (
