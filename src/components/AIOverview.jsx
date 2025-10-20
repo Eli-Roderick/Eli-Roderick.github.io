@@ -12,55 +12,67 @@ function stripTags(html) {
 function processContent(html) {
   if (!html) return html
   
-  // Step 1: Handle bracketed images [https://example.com/image.jpg]
-  let processed = html.replace(/\[(https?:\/\/[^\]]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\]]*)?)\]/gi, (match, url) => {
-    return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+  // Handle consecutive bracketed images specially
+  // First, find all bracketed images and replace them with placeholders
+  const bracketedImages = []
+  let processed = html.replace(/\[https?:\/\/[^\]]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\]]*)?\.?(?:webp|jpg|jpeg|png|gif|svg|bmp)?\]/gi, (match) => {
+    // Extract the URL from brackets
+    const url = match.slice(1, -1) // Remove [ and ]
+    bracketedImages.push(url)
+    return `__BRACKETED_IMAGE_${bracketedImages.length - 1}__`
   })
   
-  // Step 2: Handle consecutive images on separate lines
+  // Check if we have consecutive bracketed image placeholders
   const lines = processed.split('\n')
   let result = []
-  let consecutiveImages = []
+  let consecutiveImagePlaceholders = []
   
   for (let line of lines) {
     const trimmed = line.trim()
     
-    // Check if this line is just an image URL
-    if (trimmed.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(trimmed) && !trimmed.includes(' ')) {
-      consecutiveImages.push(trimmed)
+    // Check if this line contains only bracketed image placeholders
+    if (/^(__BRACKETED_IMAGE_\d+__\s*)+$/.test(trimmed)) {
+      // Extract all placeholder indices from this line
+      const matches = trimmed.match(/__BRACKETED_IMAGE_(\d+)__/g) || []
+      matches.forEach(match => {
+        const index = parseInt(match.match(/__BRACKETED_IMAGE_(\d+)__/)[1])
+        consecutiveImagePlaceholders.push(bracketedImages[index])
+      })
     } else {
       // Process any accumulated consecutive images
-      if (consecutiveImages.length > 0) {
-        if (consecutiveImages.length === 1) {
+      if (consecutiveImagePlaceholders.length > 0) {
+        if (consecutiveImagePlaceholders.length === 1) {
           // Single image
-          result.push(`<img src="${consecutiveImages[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`)
+          result.push(`<img src="${consecutiveImagePlaceholders[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`)
         } else {
           // Multiple consecutive images - horizontal row
           let row = '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
-          consecutiveImages.forEach(url => {
+          consecutiveImagePlaceholders.forEach(url => {
             row += `<img src="${url}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
           })
           row += '</div>'
           result.push(row)
         }
-        consecutiveImages = []
+        consecutiveImagePlaceholders = []
       }
       
-      // Process the current line for inline images
-      const processedLine = line.replace(/(?<!\[)(https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?\S*)?)/gi, (url) => {
-        return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+      // Replace any remaining placeholders in this line with individual images
+      let processedLine = line
+      bracketedImages.forEach((url, index) => {
+        processedLine = processedLine.replace(`__BRACKETED_IMAGE_${index}__`, `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`)
       })
+      
       result.push(processedLine)
     }
   }
   
   // Handle any remaining consecutive images at the end
-  if (consecutiveImages.length > 0) {
-    if (consecutiveImages.length === 1) {
-      result.push(`<img src="${consecutiveImages[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`)
+  if (consecutiveImagePlaceholders.length > 0) {
+    if (consecutiveImagePlaceholders.length === 1) {
+      result.push(`<img src="${consecutiveImagePlaceholders[0]}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`)
     } else {
       let row = '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
-      consecutiveImages.forEach(url => {
+      consecutiveImagePlaceholders.forEach(url => {
         row += `<img src="${url}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
       })
       row += '</div>'
