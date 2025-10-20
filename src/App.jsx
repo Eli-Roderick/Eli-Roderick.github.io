@@ -26,6 +26,7 @@ export default function App() {
   const [userAIText, setUserAIText] = useState('')
   const [showPasteModal, setShowPasteModal] = useState(false)
   const [draftAIText, setDraftAIText] = useState('')
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
 
   // Prevent background scroll when modal is open
   useEffect(() => {
@@ -197,13 +198,17 @@ export default function App() {
       <header className="search-header">
         {/* Profile row - mobile only */}
         <div className="md:hidden flex justify-end px-4 pt-3 pb-2">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer" title="Profile">
+          <div 
+            className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer" 
+            title="Profile"
+            onClick={() => setShowProfileMenu(true)}
+          >
             <span className="text-white text-base font-medium">E</span>
           </div>
         </div>
         
         {/* Top row: search bar + controls */}
-        <div className="px-4 md:pl-48 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-2 md:gap-4">
+        <div className="px-3 md:pl-48 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-2 md:gap-4">
 
           <div className="flex-1">
             {/* Desktop search bar */}
@@ -247,8 +252,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Experimenter controls */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Experimenter controls - desktop only */}
+          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
             <select className="select-primary" value={current} onChange={handleSelectChange}>
               {order.map((item, idx) => (
                 <option key={item.path} value={idx}>{item.label}</option>
@@ -260,8 +265,7 @@ export default function App() {
               title="Set AI Overview text"
             >
               <span className="material-symbols-outlined align-middle mr-1">edit</span>
-              <span className="hidden sm:inline">Set AI Text</span>
-              <span className="sm:hidden">AI</span>
+              Set AI Text
             </button>
           </div>
         </div>
@@ -306,6 +310,52 @@ export default function App() {
               <button className="border rounded px-3 py-1" onClick={clearAIOverview}>Clear</button>
               <button className="border rounded px-3 py-1" onClick={() => setShowPasteModal(false)}>Cancel</button>
               <button className="border rounded px-3 py-1 bg-blue-600 text-white" onClick={savePasteModal}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile menu - mobile only */}
+      {showProfileMenu && (
+        <div className="profile-menu md:hidden" onClick={() => setShowProfileMenu(false)}>
+          <div className="profile-menu-content" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium">Settings</h3>
+              <button 
+                className="material-symbols-outlined icon-plain text-xl" 
+                onClick={() => setShowProfileMenu(false)}
+                aria-label="Close"
+              >
+                close
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Query Selection</label>
+                <select 
+                  className="w-full border rounded px-3 py-2 text-sm" 
+                  value={current} 
+                  onChange={handleSelectChange}
+                >
+                  {order.map((item, idx) => (
+                    <option key={item.path} value={idx}>{item.label}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <button
+                  className="w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white"
+                  onClick={() => {
+                    setShowProfileMenu(false)
+                    openPasteModal()
+                  }}
+                >
+                  <span className="material-symbols-outlined align-middle mr-2 text-sm">edit</span>
+                  Set AI Overview Text
+                </button>
+              </div>
             </div>
           </div>
         </div>
