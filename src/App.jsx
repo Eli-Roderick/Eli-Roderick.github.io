@@ -132,10 +132,8 @@ export default function App() {
   }
 
   const openPasteModal = () => {
-    console.log('Opening modal...')
     setDraftAIText(userAIText)
     setShowPasteModal(true)
-    console.log('Modal state set to true')
   }
 
   const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','UL','OL','LI','A'])
@@ -299,55 +297,139 @@ export default function App() {
       </header>
 
       {/* Paste modal */}
-      {showPasteModal && (() => {
-        console.log('Modal is rendering!')
-        return (
+      {showPasteModal && (
+        <div style={{
+          position: 'fixed',
+          top: '0px',
+          left: '0px',
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 999999,
+          pointerEvents: 'all'
+        }} onClick={() => setShowPasteModal(false)}>
           <div style={{
-            position: 'fixed',
-            top: '0px',
-            left: '0px',
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            zIndex: 999999,
-            pointerEvents: 'all'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '400px',
-              height: '300px',
-              backgroundColor: 'white',
-              border: '5px solid red',
-              borderRadius: '10px',
-              zIndex: 1000000,
-              pointerEvents: 'all'
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: '500px',
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            zIndex: 1000000,
+            pointerEvents: 'all',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            {/* Header */}
+            <div style={{ 
+              padding: '1rem', 
+              borderBottom: '1px solid #ccc', 
+              backgroundColor: '#f8f9fa',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
             }}>
-              <div style={{ padding: '20px', color: 'black', fontSize: '18px' }}>
-                <h2>MODAL TEST</h2>
-                <button 
-                  style={{ 
-                    backgroundColor: 'red', 
-                    color: 'white', 
-                    padding: '10px 20px',
-                    border: 'none',
-                    fontSize: '16px',
-                    cursor: 'pointer'
-                  }} 
-                  onClick={() => {
-                    console.log('Closing modal...')
-                    setShowPasteModal(false)
-                  }}
-                >
-                  CLOSE MODAL
-                </button>
+              <h2 style={{ margin: 0, color: 'black', fontSize: '18px', fontWeight: '600' }}>Set AI Overview Text</h2>
+              <button 
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  fontSize: '20px', 
+                  cursor: 'pointer',
+                  color: '#666'
+                }} 
+                onClick={() => setShowPasteModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '1rem', backgroundColor: 'white' }}>
+              <div style={{ marginBottom: '1rem', color: '#666', fontSize: '14px' }}>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Tip:</strong> You can include images by pasting image URLs (jpg, png, gif, webp, svg, bmp).</p>
+                <p style={{ margin: '0 0 4px 0' }}><strong>Examples:</strong></p>
+                <p style={{ margin: '0 0 4px 0' }}>• Single image: [https://example.com/image.jpg]</p>
+                <p style={{ margin: '0 0 4px 0' }}>• Horizontal row: {'{[image1.jpg][image2.jpg][image3.jpg]}'}</p>
+                <p style={{ margin: '0' }}>• Use curly braces {} to group images into scrollable rows</p>
               </div>
+              <div
+                style={{
+                  width: '100%',
+                  minHeight: '200px',
+                  maxHeight: '300px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  padding: '12px',
+                  backgroundColor: 'white',
+                  color: 'black',
+                  fontSize: '14px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+                  overflow: 'auto',
+                  outline: 'none'
+                }}
+                contentEditable
+                suppressContentEditableWarning={true}
+                onInput={(e) => setDraftAIText(e.target.innerHTML)}
+                dangerouslySetInnerHTML={{ __html: draftAIText }}
+              />
+            </div>
+
+            {/* Footer */}
+            <div style={{ 
+              padding: '1rem', 
+              borderTop: '1px solid #ccc', 
+              backgroundColor: '#f8f9fa',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '8px'
+            }}>
+              <button 
+                style={{ 
+                  padding: '8px 16px', 
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  backgroundColor: 'white',
+                  color: 'black',
+                  cursor: 'pointer'
+                }} 
+                onClick={clearAIOverview}
+              >
+                Clear
+              </button>
+              <button 
+                style={{ 
+                  padding: '8px 16px', 
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  backgroundColor: 'white',
+                  color: 'black',
+                  cursor: 'pointer'
+                }} 
+                onClick={() => setShowPasteModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                style={{ 
+                  padding: '8px 16px', 
+                  border: 'none',
+                  borderRadius: '4px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  cursor: 'pointer'
+                }} 
+                onClick={savePasteModal}
+              >
+                Save
+              </button>
             </div>
           </div>
-        )
-      })()}
+        </div>
+      )}
 
       {/* Profile menu - mobile only */}
       {showProfileMenu && (
