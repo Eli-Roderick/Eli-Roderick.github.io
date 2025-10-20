@@ -132,8 +132,10 @@ export default function App() {
   }
 
   const openPasteModal = () => {
+    console.log('Opening modal...')
     setDraftAIText(userAIText)
     setShowPasteModal(true)
+    console.log('Modal state set to true')
   }
 
   const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','UL','OL','LI','A'])
@@ -297,63 +299,55 @@ export default function App() {
       </header>
 
       {/* Paste modal */}
-      {showPasteModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999999
-        }} onClick={() => setShowPasteModal(false)}>
+      {showPasteModal && (() => {
+        console.log('Modal is rendering!')
+        return (
           <div style={{
-            width: '90%',
-            maxWidth: '500px',
-            backgroundColor: 'white',
-            border: '3px solid red',
-            borderRadius: '8px',
-            padding: '0',
-            zIndex: 1000000
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: '1rem', borderBottom: '1px solid #ccc', backgroundColor: '#f5f5f5' }}>
-              <h2 style={{ margin: 0, color: 'black' }}>Set AI Overview Text</h2>
-              <button style={{ float: 'right', marginTop: '-30px', background: 'red', color: 'white', border: 'none', padding: '5px 10px' }} onClick={() => setShowPasteModal(false)}>X</button>
-            </div>
-            <div style={{ padding: '1rem', backgroundColor: 'white' }}>
-              <div style={{ marginBottom: '1rem', color: 'black' }}>
-                <p><strong>Tip:</strong> You can include images by pasting image URLs (jpg, png, gif, webp, svg, bmp).</p>
-                <p><strong>Examples:</strong></p>
-                <p>• Single image: [https://example.com/image.jpg]</p>
-                <p>• Horizontal row: {[image1.jpg][image2.jpg][image3.jpg]}</p>
-                <p>• Use curly braces {} to group images into scrollable rows</p>
+            position: 'fixed',
+            top: '0px',
+            left: '0px',
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            zIndex: 999999,
+            pointerEvents: 'all'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '400px',
+              height: '300px',
+              backgroundColor: 'white',
+              border: '5px solid red',
+              borderRadius: '10px',
+              zIndex: 1000000,
+              pointerEvents: 'all'
+            }}>
+              <div style={{ padding: '20px', color: 'black', fontSize: '18px' }}>
+                <h2>MODAL TEST</h2>
+                <button 
+                  style={{ 
+                    backgroundColor: 'red', 
+                    color: 'white', 
+                    padding: '10px 20px',
+                    border: 'none',
+                    fontSize: '16px',
+                    cursor: 'pointer'
+                  }} 
+                  onClick={() => {
+                    console.log('Closing modal...')
+                    setShowPasteModal(false)
+                  }}
+                >
+                  CLOSE MODAL
+                </button>
               </div>
-              <div
-                style={{
-                  width: '100%',
-                  minHeight: '200px',
-                  border: '2px solid black',
-                  padding: '10px',
-                  backgroundColor: 'white',
-                  color: 'black'
-                }}
-                contentEditable
-                suppressContentEditableWarning={true}
-                onInput={(e) => setDraftAIText(e.target.innerHTML)}
-                dangerouslySetInnerHTML={{ __html: draftAIText }}
-              />
-            </div>
-            <div style={{ padding: '1rem', borderTop: '1px solid #ccc', backgroundColor: '#f5f5f5', textAlign: 'right' }}>
-              <button style={{ marginRight: '10px', padding: '8px 16px', border: '1px solid #ccc' }} onClick={clearAIOverview}>Clear</button>
-              <button style={{ marginRight: '10px', padding: '8px 16px', border: '1px solid #ccc' }} onClick={() => setShowPasteModal(false)}>Cancel</button>
-              <button style={{ padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none' }} onClick={savePasteModal}>Save</button>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Profile menu - mobile only */}
       {showProfileMenu && (
