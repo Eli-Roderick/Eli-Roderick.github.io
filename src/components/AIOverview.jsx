@@ -12,11 +12,20 @@ function stripTags(html) {
 function processContent(html) {
   if (!html) return html
   
-  // Simple fallback: just convert all image URLs to img tags for now
-  // We can add the horizontal row feature later once basic images work
-  return html.replace(/(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi, (url) => {
-    return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
-  })
+  // Much simpler approach - look for any URL that might be an image
+  // Split by whitespace and check each "word"
+  const words = html.split(/(\s+)/)
+  
+  return words.map(word => {
+    const trimmed = word.trim()
+    
+    // Check if this looks like an image URL (starts with http and has image extension)
+    if (trimmed.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(trimmed)) {
+      return `<img src="${trimmed}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+    }
+    
+    return word // Return original word (including whitespace)
+  }).join('')
 }
 
 export default function AIOverview({ text }) {
