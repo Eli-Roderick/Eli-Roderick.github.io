@@ -30,14 +30,28 @@ function processContent(html) {
   for (let line of lines) {
     const trimmed = line.trim()
     
-    // Check if this line contains only bracketed image placeholders
+    // Check if this line contains only bracketed image placeholders (one or more)
     if (/^(__BRACKETED_IMAGE_\d+__\s*)+$/.test(trimmed)) {
       // Extract all placeholder indices from this line
       const matches = trimmed.match(/__BRACKETED_IMAGE_(\d+)__/g) || []
-      matches.forEach(match => {
-        const index = parseInt(match.match(/__BRACKETED_IMAGE_(\d+)__/)[1])
-        consecutiveImagePlaceholders.push(bracketedImages[index])
-      })
+      
+      if (matches.length > 1) {
+        // Multiple images on the same line - create horizontal row immediately
+        let row = '<div class="image-row" style="display: flex; gap: 0.5rem; overflow-x: auto; margin: 0.75rem 0; padding: 0.25rem 0;">'
+        matches.forEach(match => {
+          const index = parseInt(match.match(/__BRACKETED_IMAGE_(\d+)__/)[1])
+          const url = bracketedImages[index]
+          row += `<img src="${url}" alt="User provided image" style="min-width: 200px; max-width: 200px; height: auto; border-radius: 0.5rem; flex-shrink: 0;" />`
+        })
+        row += '</div>'
+        result.push(row)
+      } else {
+        // Single image on this line - add to consecutive collection
+        matches.forEach(match => {
+          const index = parseInt(match.match(/__BRACKETED_IMAGE_(\d+)__/)[1])
+          consecutiveImagePlaceholders.push(bracketedImages[index])
+        })
+      }
     } else {
       // Process any accumulated consecutive images
       if (consecutiveImagePlaceholders.length > 0) {
