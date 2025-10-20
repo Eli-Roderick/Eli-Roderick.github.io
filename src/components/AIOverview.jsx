@@ -24,7 +24,7 @@ function processContent(html) {
 export default function AIOverview({ text }) {
   if (!text) return null
   const [expanded, setExpanded] = useState(false)
-  const limit = 550
+  const limit = 750
   
   const processedText = useMemo(() => processContent(text), [text])
   
