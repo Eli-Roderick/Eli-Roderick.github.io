@@ -347,8 +347,8 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   position: absolute !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
-  width: 48px !important;
-  height: 48px !important;
+  width: 60px !important;
+  height: 60px !important;
   border-radius: 50% !important;
   background: rgba(128, 128, 128, 0.7) !important;
   border: 1px solid rgba(0, 0, 0, 0.1) !important;
@@ -367,11 +367,11 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 }
 
 .scroll-indicator-left {
-  left: -24px !important;
+  left: -15px !important;
 }
 
 .scroll-indicator-right {
-  right: -24px !important;
+  right: -15px !important;
 }
 
 .scroll-indicator:hover {
@@ -381,21 +381,21 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 
 .scroll-indicator::before {
   content: '' !important;
-  width: 0 !important;
-  height: 0 !important;
-  border-style: solid !important;
+  width: 12px !important;
+  height: 12px !important;
+  border-top: 2px solid #fff !important;
+  border-right: 2px solid #fff !important;
+  transform-origin: center !important;
 }
 
 .scroll-indicator-left::before {
-  border-width: 8px 10px 8px 0 !important;
-  border-color: transparent #fff transparent transparent !important;
-  margin-left: -2px !important;
+  transform: rotate(-135deg) !important;
+  margin-right: 2px !important;
 }
 
 .scroll-indicator-right::before {
-  border-width: 8px 0 8px 10px !important;
-  border-color: transparent transparent transparent #fff !important;
-  margin-right: -2px !important;
+  transform: rotate(45deg) !important;
+  margin-left: 2px !important;
 }
 
 /* Fallback - target any div with multiple images */
@@ -592,12 +592,11 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
 }
 
 @media (max-width: 768px) {
-  /* Add space under tabs */
+  /* Remove space under tabs */
   .tabs {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    margin-bottom: 1rem;
   }
   .tabs::-webkit-scrollbar {
     display: none;
@@ -607,6 +606,11 @@ body.light .search-bar { border: 1px solid #dadce0; box-shadow: 0 2px 8px rgba(0
   .tabs button {
     flex-shrink: 0;
     white-space: nowrap;
+  }
+  
+  /* Add space after tabs divider line and before AI overview */
+  .ai-card {
+    margin-top: 1rem;
   }
   
   /* Adjust search bar for mobile */
