@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import Icon from '@mdi/react'
 import { mdiStarFourPoints } from '@mdi/js'
 
@@ -18,7 +18,10 @@ function processContent(html) {
     const imageMatches = match.match(/\[([^\]]+)\]/g) || []
     
     if (imageMatches.length > 0) {
-      let row = '<div class="image-row">'
+      const containerId = `image-row-${Math.random().toString(36).substr(2, 9)}`
+      let row = `<div class="image-row-container">
+        <div class="image-row" id="${containerId}">`
+      
       imageMatches.forEach(bracketedUrl => {
         const url = bracketedUrl.slice(1, -1) // Remove [ and ]
         // Check if it's an image URL
@@ -26,7 +29,12 @@ function processContent(html) {
           row += `<img src="${url}" alt="User provided image" />`
         }
       })
-      row += '</div>'
+      
+      row += `</div>
+        <div class="scroll-indicator scroll-indicator-left" onclick="scrollImageRow('${containerId}', -200)" style="display: none;"></div>
+        <div class="scroll-indicator scroll-indicator-right" onclick="scrollImageRow('${containerId}', 200)"></div>
+      </div>`
+      
       return row
     }
     return match
@@ -44,12 +52,58 @@ function processContent(html) {
   return processed
 }
 
+// Global function for scroll indicators
+window.scrollImageRow = function(containerId, scrollAmount) {
+  const container = document.getElementById(containerId)
+  if (container) {
+    container.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    // Update scroll indicators after scrolling
+    setTimeout(() => updateScrollIndicators(containerId), 300)
+  }
+}
+
+function updateScrollIndicators(containerId) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  
+  const leftIndicator = container.parentElement.querySelector('.scroll-indicator-left')
+  const rightIndicator = container.parentElement.querySelector('.scroll-indicator-right')
+  
+  if (leftIndicator && rightIndicator) {
+    const canScrollLeft = container.scrollLeft > 0
+    const canScrollRight = container.scrollLeft < (container.scrollWidth - container.clientWidth)
+    
+    leftIndicator.style.display = canScrollLeft ? 'flex' : 'none'
+    rightIndicator.style.display = canScrollRight ? 'flex' : 'none'
+  }
+}
+
 export default function AIOverview({ text }) {
   if (!text) return null
   const [expanded, setExpanded] = useState(false)
   const limit = 750
   
   const processedText = useMemo(() => processContent(text), [text])
+  
+  // Update scroll indicators when component mounts or text changes
+  useEffect(() => {
+    const containers = document.querySelectorAll('.image-row')
+    containers.forEach(container => {
+      if (container.id) {
+        updateScrollIndicators(container.id)
+        // Add scroll event listener to update indicators
+        container.addEventListener('scroll', () => updateScrollIndicators(container.id))
+      }
+    })
+    
+    return () => {
+      containers.forEach(container => {
+        if (container.id) {
+          container.removeEventListener('scroll', () => updateScrollIndicators(container.id))
+        }
+      })
+    }
+  }, [processedText])
   
   // Check if text (excluding images) needs truncation
   const wasTruncated = useMemo(() => {

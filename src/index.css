@@ -87,13 +87,13 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
 
 /* AI overview links - dotted underline instead of blue */
 .ai-body a {
-  color: inherit; /* Use the same color as surrounding text */
-  text-decoration: none;
-  border-bottom: 1px dotted var(--text);
+  color: inherit !important; /* Use the same color as surrounding text */
+  text-decoration: none !important;
+  border-bottom: 1px dotted var(--text) !important;
 }
 
 .ai-body a:hover {
-  border-bottom: 1px solid var(--text);
+  border-bottom: 1px solid var(--text) !important;
 }
 .ai-footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.25rem 0; color: var(--muted); font-size: 12px; }
 .ai-actions { display: flex; gap: 0.5rem; }
@@ -301,7 +301,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   
 }
 
-/* Scrollable image rows - FORCE HORIZONTAL */
+/* Scrollable image rows with custom scroll indicators */
 .ai-body .image-row {
   display: flex !important;
   flex-direction: row !important;
@@ -309,9 +309,15 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   overflow-x: auto !important;
   margin: 0.75rem 0 !important;
   padding: 0.25rem 0 !important;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0,0,0,0.2) transparent;
   width: 100% !important;
+  position: relative !important;
+  scrollbar-width: none !important; /* Hide scrollbar on Firefox */
+  -ms-overflow-style: none !important; /* Hide scrollbar on IE/Edge */
+}
+
+/* Hide scrollbar on Webkit browsers */
+.ai-body .image-row::-webkit-scrollbar {
+  display: none !important;
 }
 
 .ai-body .image-row img {
@@ -325,29 +331,78 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   vertical-align: top !important;
 }
 
+/* Custom scroll indicators */
+.image-row-container {
+  position: relative !important;
+}
+
+.scroll-indicator {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.image-row-container:hover .scroll-indicator {
+  opacity: 1 !important;
+}
+
+.scroll-indicator-left {
+  left: -16px !important;
+}
+
+.scroll-indicator-right {
+  right: -16px !important;
+}
+
+.scroll-indicator:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.scroll-indicator::before {
+  content: '' !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-style: solid !important;
+}
+
+.scroll-indicator-left::before {
+  border-width: 6px 8px 6px 0 !important;
+  border-color: transparent #666 transparent transparent !important;
+  margin-left: -2px !important;
+}
+
+.scroll-indicator-right::before {
+  border-width: 6px 0 6px 8px !important;
+  border-color: transparent transparent transparent #666 !important;
+  margin-right: -2px !important;
+}
+
 /* Fallback - target any div with multiple images */
 .ai-body div:has(img + img) {
   display: flex !important;
   flex-direction: row !important;
   gap: 0.5rem !important;
   overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-.image-row::-webkit-scrollbar {
-  height: 6px;
-}
-
-.image-row::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.image-row::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.2);
-  border-radius: 3px;
-}
-
-.image-row::-webkit-scrollbar-thumb:hover {
-  background: rgba(0,0,0,0.3);
+.ai-body div:has(img + img)::-webkit-scrollbar {
+  display: none !important;
 }
 
 /* Separator under AI Overview (content width), same blue as icon */
