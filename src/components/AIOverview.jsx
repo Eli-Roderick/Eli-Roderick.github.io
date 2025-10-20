@@ -46,28 +46,55 @@ export default function AIOverview({ text }) {
     
     let textCharCount = 0
     let result = ''
+    let hasEnoughText = false
+    
+    // First pass: ensure we have at least some text (minimum 50 chars)
+    const minTextChars = 50
     
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i]
       
+      // Reset regex for each test
+      imageUrlRegex.lastIndex = 0
+      
       // Check if this part is an image URL
       if (imageUrlRegex.test(part)) {
-        imageUrlRegex.lastIndex = 0 // Reset regex
-        result += part // Always include images
+        // Always include images, but only after we have some text
+        if (textCharCount >= minTextChars || hasEnoughText) {
+          result += part
+        }
       } else {
         // This is text content
-        const remainingChars = limit - textCharCount
-        if (remainingChars > 0) {
-          if (part.length <= remainingChars) {
-            result += part
-            textCharCount += stripTags(part).length
-          } else {
-            // Truncate this text part
-            const truncated = part.substring(0, remainingChars)
+        const plainText = stripTags(part).trim()
+        if (plainText.length > 0) {
+          const remainingChars = limit - textCharCount
+          
+          if (remainingChars > 0) {
+            if (plainText.length <= remainingChars) {
+              result += part
+              textCharCount += plainText.length
+              if (textCharCount >= minTextChars) hasEnoughText = true
+            } else {
+              // Truncate this text part but ensure we have minimum text
+              const targetChars = Math.max(remainingChars, minTextChars - textCharCount)
+              const truncated = part.substring(0, Math.min(targetChars, part.length))
+              result += truncated
+              textCharCount += stripTags(truncated).trim().length
+              hasEnoughText = true
+              break
+            }
+          } else if (!hasEnoughText && textCharCount < minTextChars) {
+            // Force include more text if we don't have enough yet
+            const needed = minTextChars - textCharCount
+            const truncated = part.substring(0, needed)
             result += truncated
-            textCharCount = limit
+            textCharCount += stripTags(truncated).trim().length
+            hasEnoughText = true
             break
           }
+        } else {
+          // Include non-text content (like HTML tags, whitespace)
+          result += part
         }
       }
     }
