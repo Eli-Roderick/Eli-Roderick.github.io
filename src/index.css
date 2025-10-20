@@ -107,6 +107,9 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
   color: var(--text);
   border-radius: 9999px; /* pill-shaped, same as search bar */
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .ai-showmore-btn:hover { background: color-mix(in hsl, var(--bg), white 6%); }
 
