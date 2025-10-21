@@ -411,6 +411,209 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   display: none !important;
 }
 
+/* AI Overview Manager Modal */
+.ai-overview-manager {
+  max-width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.create-overview-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: background-color 0.2s;
+}
+
+.create-overview-btn:hover {
+  background: color-mix(in hsl, var(--primary), black 10%);
+}
+
+.create-form, .edit-form {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.title-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  margin-bottom: 0.5rem;
+}
+
+.text-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.save-btn {
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background: color-mix(in hsl, var(--primary), black 10%);
+}
+
+.cancel-btn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cancel-btn:hover {
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.overviews-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+}
+
+.empty-state p {
+  margin: 0.5rem 0;
+}
+
+.overview-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  background: var(--card-bg);
+  transition: all 0.2s;
+}
+
+.overview-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.overview-item.selected {
+  border-color: var(--primary);
+  background: color-mix(in hsl, var(--primary), transparent 95%);
+}
+
+.overview-content {
+  flex: 1;
+  cursor: pointer;
+}
+
+.overview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.overview-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.overview-date {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.overview-preview {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.overview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.edit-btn, .delete-btn {
+  padding: 0.375rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.edit-btn {
+  background: transparent;
+  color: var(--muted);
+}
+
+.edit-btn:hover {
+  background: var(--card-bg);
+  color: var(--primary);
+}
+
+.delete-btn {
+  background: transparent;
+  color: var(--muted);
+}
+
+.delete-btn:hover {
+  background: color-mix(in hsl, red, transparent 90%);
+  color: red;
+}
+
 /* Separator under AI Overview (content width), same blue as icon */
 .ai-separator { height: 1px; background: #1a73e8; opacity: 0.5; margin: 10px 0 14px; max-width: 48rem; }
 

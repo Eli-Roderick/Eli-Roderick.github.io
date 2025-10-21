@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import SearchPage from './pages/SearchPage'
+import AIOverviewManager from './components/AIOverviewManager'
 import { loadConfigList, loadConfigByPath } from './utils/configLoader'
 import { ClickLogger } from './utils/logger'
 
@@ -29,6 +30,23 @@ export default function App() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showImageManager, setShowImageManager] = useState(false)
   const [selectedResultForImages, setSelectedResultForImages] = useState(null)
+  const [showAIOverviewManager, setShowAIOverviewManager] = useState(false)
+  const [aiOverviews, setAIOverviews] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ai_overviews')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
+  const [selectedAIOverviewId, setSelectedAIOverviewId] = useState(() => {
+    try {
+      const saved = localStorage.getItem('selected_ai_overview_id')
+      return saved || null
+    } catch {
+      return null
+    }
+  })
   const [resultImages, setResultImages] = useState(() => {
     try {
       const saved = localStorage.getItem('result_images')
@@ -158,18 +176,11 @@ export default function App() {
     }
     
     setResultImages(newResultImages)
-    
-    // Save to localStorage
-    try {
-      localStorage.setItem('result_images', JSON.stringify(newResultImages))
-    } catch (error) {
-      console.warn('Failed to save images to localStorage:', error)
-    }
   }
 
-  const openImageEditorForResult = (result) => {
+  const openImageManager = (result) => {
     setSelectedResultForImages(result)
-    setShowImageManager(false)
+    setShowImageManager(true)
   }
 
   const clearAllImages = () => {
@@ -179,6 +190,86 @@ export default function App() {
     } catch (error) {
       console.warn('Failed to clear images from localStorage:', error)
     }
+  }
+
+  // Save result images to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('result_images', JSON.stringify(resultImages))
+    } catch (error) {
+      console.warn('Failed to save images to localStorage:', error)
+    }
+  }, [resultImages])
+
+  // Save AI overviews to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('ai_overviews', JSON.stringify(aiOverviews))
+    } catch (error) {
+      console.warn('Failed to save AI overviews to localStorage:', error)
+    }
+  }, [aiOverviews])
+
+  // Save selected AI overview ID to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (selectedAIOverviewId) {
+        localStorage.setItem('selected_ai_overview_id', selectedAIOverviewId)
+      } else {
+        localStorage.removeItem('selected_ai_overview_id')
+      }
+    } catch (error) {
+      console.warn('Failed to save selected AI overview ID to localStorage:', error)
+    }
+  }, [selectedAIOverviewId])
+
+  // Update userAIText when selected AI overview changes
+  useEffect(() => {
+    if (selectedAIOverviewId) {
+      const selectedOverview = aiOverviews.find(overview => overview.id === selectedAIOverviewId)
+      if (selectedOverview) {
+        setUserAIText(selectedOverview.text)
+      }
+    }
+  }, [selectedAIOverviewId, aiOverviews])
+
+  // AI Overview management functions
+  const createAIOverview = (title, text) => {
+    const newOverview = {
+      id: Date.now().toString(),
+      title: title.trim() || `AI Overview ${aiOverviews.length + 1}`,
+      text: text.trim(),
+      createdAt: new Date().toISOString()
+    }
+    
+    const updatedOverviews = [...aiOverviews, newOverview]
+    setAIOverviews(updatedOverviews)
+    setSelectedAIOverviewId(newOverview.id)
+    return newOverview.id
+  }
+
+  const selectAIOverview = (id) => {
+    setSelectedAIOverviewId(id)
+  }
+
+  const deleteAIOverview = (id) => {
+    const updatedOverviews = aiOverviews.filter(overview => overview.id !== id)
+    setAIOverviews(updatedOverviews)
+    
+    // If we deleted the currently selected overview, clear selection
+    if (selectedAIOverviewId === id) {
+      setSelectedAIOverviewId(null)
+      setUserAIText('')
+    }
+  }
+
+  const updateAIOverview = (id, title, text) => {
+    const updatedOverviews = aiOverviews.map(overview => 
+      overview.id === id 
+        ? { ...overview, title: title.trim(), text: text.trim() }
+        : overview
+    )
+    setAIOverviews(updatedOverviews)
   }
 
   const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','UL','OL','LI','A'])
@@ -328,6 +419,14 @@ export default function App() {
             >
               <span className="material-symbols-outlined align-middle mr-1">image</span>
               Manage Images
+            </button>
+            <button
+              className="border rounded px-2 py-1 text-sm whitespace-nowrap"
+              onClick={() => setShowAIOverviewManager(true)}
+              title="Manage AI Overview texts"
+            >
+              <span className="material-symbols-outlined align-middle mr-1">psychology</span>
+              AI Overviews
             </button>
           </div>
         </div>
@@ -483,6 +582,18 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* AI Overview Manager Modal */}
+      <AIOverviewManager
+        isOpen={showAIOverviewManager}
+        onClose={() => setShowAIOverviewManager(false)}
+        aiOverviews={aiOverviews}
+        selectedAIOverviewId={selectedAIOverviewId}
+        onSelect={selectAIOverview}
+        onCreate={createAIOverview}
+        onDelete={deleteAIOverview}
+        onUpdate={updateAIOverview}
+      />
 
       {/* Image Manager Modal */}
       {showImageManager && (
@@ -715,6 +826,7 @@ export default function App() {
             onImagesUpdate={handleImagesUpdate}
             selectedResultForImages={selectedResultForImages}
             onCloseImageEditor={() => setSelectedResultForImages(null)}
+            userAIText={userAIText}
           />
         )}
       </main>

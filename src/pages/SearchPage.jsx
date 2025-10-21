@@ -9,7 +9,8 @@ export default function SearchPage({
   resultImages, 
   onImagesUpdate, 
   selectedResultForImages, 
-  onCloseImageEditor 
+  onCloseImageEditor,
+  userAIText 
 }) {
   if (!config) return null
   const { query, aiOverview, results } = config
@@ -21,7 +22,7 @@ export default function SearchPage({
           {/* AI Overview */}
           {aiOverview?.show && (
             <div className="mt-0 md:mt-4 mb-4">
-              <AIOverview text={aiOverview.text} />
+              <AIOverview text={userAIText || aiOverview.text} />
               <div className="ai-separator" />
             </div>
           )}
