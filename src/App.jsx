@@ -31,6 +31,7 @@ export default function App() {
   const [selectedResultForImages, setSelectedResultForImages] = useState(null)
   const [showAIOverviewManager, setShowAIOverviewManager] = useState(false)
   const [modalView, setModalView] = useState('editor') // 'editor' or 'list'
+  const [draftTitle, setDraftTitle] = useState('')
   const [aiOverviews, setAIOverviews] = useState(() => {
     try {
       const saved = localStorage.getItem('ai_overviews')
@@ -173,8 +174,10 @@ export default function App() {
       setModalView('editor')
       const selectedOverview = aiOverviews.find(overview => overview.id === selectedAIOverviewId)
       if (selectedOverview) {
+        setDraftTitle(selectedOverview.title)
         setDraftAIText(selectedOverview.text)
       } else {
+        setDraftTitle('')
         setDraftAIText(userAIText)
       }
     } else {
@@ -187,13 +190,10 @@ export default function App() {
     if (draftAIText.trim()) {
       if (selectedAIOverviewId) {
         // Update existing AI overview
-        const selectedOverview = aiOverviews.find(overview => overview.id === selectedAIOverviewId)
-        if (selectedOverview) {
-          updateAIOverview(selectedAIOverviewId, selectedOverview.title, draftAIText)
-        }
+        updateAIOverview(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
       } else if (modalView === 'editor' && draftAIText !== userAIText) {
         // Create new AI overview if text is different and we're in editor mode
-        const newId = createAIOverview(`AI Overview ${aiOverviews.length + 1}`, draftAIText)
+        const newId = createAIOverview(draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
         setSelectedAIOverviewId(newId)
       }
       setUserAIText(draftAIText)
@@ -202,6 +202,7 @@ export default function App() {
   }
 
   const clearAIOverview = () => {
+    setDraftTitle('')
     setDraftAIText('')
     setUserAIText('')
     setSelectedAIOverviewId(null)
@@ -213,12 +214,14 @@ export default function App() {
 
   const handleSelectFromList = (overview) => {
     setModalView('editor')
+    setDraftTitle(overview.title)
     setDraftAIText(overview.text)
     selectAIOverview(overview.id)
   }
 
   const handleCreateNew = () => {
     setModalView('editor')
+    setDraftTitle('')
     setDraftAIText('')
     setSelectedAIOverviewId(null)
   }
@@ -571,9 +574,17 @@ export default function App() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 {/* AI Overview Toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: '500' }}>AI Overview</span>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.75rem',
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'var(--bg)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)'
+                }}>
+                  <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: '600' }}>AI Overview</span>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '52px', height: '28px' }}>
                     <input
                       type="checkbox"
                       checked={aiOverviewEnabled}
@@ -587,23 +598,32 @@ export default function App() {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      backgroundColor: aiOverviewEnabled ? 'var(--primary)' : 'var(--border)',
+                      backgroundColor: aiOverviewEnabled ? '#007bff' : '#ccc',
                       transition: '0.3s',
-                      borderRadius: '24px'
+                      borderRadius: '28px',
+                      boxShadow: aiOverviewEnabled ? '0 0 0 2px rgba(0, 123, 255, 0.25)' : 'none'
                     }}>
                       <span style={{
                         position: 'absolute',
                         content: '""',
-                        height: '18px',
-                        width: '18px',
-                        left: aiOverviewEnabled ? '23px' : '3px',
+                        height: '22px',
+                        width: '22px',
+                        left: aiOverviewEnabled ? '27px' : '3px',
                         bottom: '3px',
                         backgroundColor: 'white',
                         transition: '0.3s',
-                        borderRadius: '50%'
+                        borderRadius: '50%',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
                       }}></span>
                     </span>
                   </label>
+                  <span style={{ 
+                    fontSize: '12px', 
+                    color: aiOverviewEnabled ? '#007bff' : 'var(--muted)',
+                    fontWeight: '500'
+                  }}>
+                    {aiOverviewEnabled ? 'ON' : 'OFF'}
+                  </span>
                 </div>
                 <button 
                   style={{ 
@@ -637,6 +657,30 @@ export default function App() {
             }}>
               {modalView === 'editor' ? (
                 <>
+                  {/* Title Input */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                      AI Overview Title
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter a title for this AI overview..."
+                      value={draftTitle}
+                      onChange={(e) => setDraftTitle(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '4px',
+                        backgroundColor: 'var(--card-bg)',
+                        color: 'var(--text)',
+                        fontSize: '14px',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+
                   <div style={{ marginBottom: '1rem', color: 'var(--muted)', fontSize: '14px' }}>
                     <p style={{ margin: '0 0 8px 0' }}><strong>Tip:</strong> You can include images by pasting image URLs (jpg, png, gif, webp, svg, bmp).</p>
                     <p style={{ margin: '0 0 4px 0' }}><strong>Examples:</strong></p>
