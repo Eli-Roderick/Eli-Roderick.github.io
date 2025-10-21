@@ -92,9 +92,24 @@ function updateScrollIndicators(containerId) {
 export default function AIOverview({ text }) {
   if (!text) return null
   const [expanded, setExpanded] = useState(false)
+  const [feedback, setFeedback] = useState(null) // 'up', 'down', or null
   const limit = 750
   
   const processedText = useMemo(() => processContent(text), [text])
+  
+  // Handle feedback clicks
+  const handleFeedback = (type) => {
+    if (feedback === type) {
+      // If clicking the same button, toggle it off
+      setFeedback(null)
+    } else {
+      // Set new feedback
+      setFeedback(type)
+    }
+    
+    // Optional: You could add analytics or API calls here
+    console.log(`AI Overview feedback: ${type === null ? 'removed' : type}`)
+  }
   
   // Update scroll indicators when component mounts or text changes
   useEffect(() => {
@@ -221,8 +236,22 @@ export default function AIOverview({ text }) {
           <div className="ai-footer">
             <div className="text-[11px]">AI responses may include mistakes</div>
             <div className="ai-actions">
-              <span className="material-symbols-outlined text-blue-400 text-[18px] cursor-pointer" title="Thumbs up" aria-label="Thumbs up">thumb_up</span>
-              <span className="material-symbols-outlined text-blue-400 text-[18px] cursor-pointer" title="Thumbs down" aria-label="Thumbs down">thumb_down</span>
+              <button 
+                className={`ai-feedback-btn ${feedback === 'up' ? 'ai-feedback-active' : ''}`}
+                onClick={() => handleFeedback('up')}
+                title="Thumbs up" 
+                aria-label="Thumbs up"
+              >
+                <span className="material-symbols-outlined text-[18px]">thumb_up</span>
+              </button>
+              <button 
+                className={`ai-feedback-btn ${feedback === 'down' ? 'ai-feedback-active' : ''}`}
+                onClick={() => handleFeedback('down')}
+                title="Thumbs down" 
+                aria-label="Thumbs down"
+              >
+                <span className="material-symbols-outlined text-[18px]">thumb_down</span>
+              </button>
             </div>
           </div>
         </>

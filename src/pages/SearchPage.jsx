@@ -10,7 +10,8 @@ export default function SearchPage({
   onImagesUpdate, 
   selectedResultForImages, 
   onCloseImageEditor,
-  userAIText 
+  userAIText,
+  aiOverviewEnabled 
 }) {
   if (!config) return null
   const { query, aiOverview, results } = config
@@ -20,7 +21,7 @@ export default function SearchPage({
       <div className="w-full">
         <div className="w-full max-w-[580px] px-0">
           {/* AI Overview */}
-          {aiOverview?.show && (
+          {aiOverview?.show && aiOverviewEnabled && (userAIText || aiOverview.text) && (
             <div className="mt-0 md:mt-4 mb-4">
               <AIOverview text={userAIText || aiOverview.text} />
               <div className="ai-separator" />

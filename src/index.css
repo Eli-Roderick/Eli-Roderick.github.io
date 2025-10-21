@@ -614,6 +614,172 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   color: red;
 }
 
+/* AI Overview Feedback Buttons */
+.ai-feedback-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-feedback-btn:hover {
+  background: var(--card-bg);
+  color: var(--primary);
+}
+
+.ai-feedback-btn.ai-feedback-active {
+  background: color-mix(in hsl, var(--primary), transparent 90%);
+  color: var(--primary);
+}
+
+.ai-feedback-btn.ai-feedback-active:hover {
+  background: color-mix(in hsl, var(--primary), transparent 80%);
+}
+
+/* Integrated AI Modal */
+.integrated-ai-modal {
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.ai-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-label {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border);
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--primary);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.ai-editor {
+  padding: 1rem;
+}
+
+.ai-editor .text-input {
+  min-height: 200px;
+  margin-bottom: 1rem;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.clear-btn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-btn:hover {
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.ai-list {
+  padding: 1rem;
+}
+
 /* Separator under AI Overview (content width), same blue as icon */
 .ai-separator { height: 1px; background: #1a73e8; opacity: 0.5; margin: 10px 0 14px; max-width: 48rem; }
 
