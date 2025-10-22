@@ -133,19 +133,34 @@ function updateScrollIndicators(containerId) {
   const rightIndicator = container.parentElement.querySelector('.scroll-indicator-right')
   
   if (leftIndicator && rightIndicator) {
+    // Get scroll measurements
+    const scrollWidth = container.scrollWidth
+    const clientWidth = container.clientWidth
+    const scrollLeft = container.scrollLeft
+    
+    console.log(`Container ${containerId}:`, {
+      scrollWidth,
+      clientWidth,
+      scrollLeft,
+      needsScrolling: scrollWidth > clientWidth
+    })
+    
     // Check if scrolling is needed at all
-    const needsScrolling = container.scrollWidth > container.clientWidth
+    const needsScrolling = scrollWidth > clientWidth
     
     if (!needsScrolling) {
       // If no scrolling needed, hide both indicators
+      console.log('No scrolling needed, hiding indicators')
       leftIndicator.style.display = 'none'
       rightIndicator.style.display = 'none'
       return
     }
     
     // If scrolling is needed, show/hide based on scroll position
-    const canScrollLeft = container.scrollLeft > 0
-    const canScrollRight = container.scrollLeft < (container.scrollWidth - container.clientWidth)
+    const canScrollLeft = scrollLeft > 0
+    const canScrollRight = scrollLeft < (scrollWidth - clientWidth - 1) // Add 1px tolerance
+    
+    console.log('Scroll states:', { canScrollLeft, canScrollRight })
     
     leftIndicator.style.display = canScrollLeft ? 'flex' : 'none'
     rightIndicator.style.display = canScrollRight ? 'flex' : 'none'
