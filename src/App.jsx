@@ -37,6 +37,22 @@ export default function App() {
   const [showAIOverviewManager, setShowAIOverviewManager] = useState(false)
   const [modalView, setModalView] = useState('editor') // 'editor' or 'list'
   const [draftTitle, setDraftTitle] = useState('')
+  const [showClickTracker, setShowClickTracker] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState(() => {
+    try {
+      return localStorage.getItem('click_tracking_user_id') || ''
+    } catch {
+      return ''
+    }
+  })
+  const [clickLogs, setClickLogs] = useState(() => {
+    try {
+      const saved = localStorage.getItem('click_logs')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
   const [aiOverviews, setAIOverviews] = useState(() => {
     try {
       const saved = localStorage.getItem('ai_overviews')
@@ -106,6 +122,7 @@ export default function App() {
 
   const handleResultClick = ({ query, url }) => {
     logger.log({ query, url })
+    logClick('search_result', url)
   }
 
   const handleDownload = () => logger.downloadCSV()
@@ -231,6 +248,64 @@ export default function App() {
     } catch (error) {
       console.warn('Failed to clear images from localStorage:', error)
     }
+  }
+
+  // Click tracking functions
+  const logClick = (element, url = null) => {
+    if (!currentUserId) return
+    
+    const clickData = {
+      timestamp: new Date().toISOString(),
+      element: element,
+      url: url,
+      query: config?.query || '',
+      page: window.location.href
+    }
+    
+    const userLogs = clickLogs[currentUserId] || []
+    const updatedLogs = {
+      ...clickLogs,
+      [currentUserId]: [...userLogs, clickData]
+    }
+    
+    setClickLogs(updatedLogs)
+    try {
+      localStorage.setItem('click_logs', JSON.stringify(updatedLogs))
+    } catch (error) {
+      console.warn('Failed to save click logs:', error)
+    }
+  }
+
+  const setUserId = (userId) => {
+    setCurrentUserId(userId)
+    try {
+      localStorage.setItem('click_tracking_user_id', userId)
+    } catch (error) {
+      console.warn('Failed to save user ID:', error)
+    }
+  }
+
+  const downloadClickLogs = (userId) => {
+    const userLogs = clickLogs[userId] || []
+    if (userLogs.length === 0) {
+      alert('No click logs found for this user')
+      return
+    }
+    
+    const csv = [
+      'Timestamp,Element,URL,Query,Page',
+      ...userLogs.map(log => 
+        `"${log.timestamp}","${log.element}","${log.url || ''}","${log.query}","${log.page}"`
+      )
+    ].join('\n')
+    
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `click_logs_${userId}_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   // Save result images to localStorage whenever they change
@@ -489,6 +564,14 @@ export default function App() {
             >
               <span className="material-symbols-outlined align-middle mr-1">image</span>
               Manage Images
+            </button>
+            <button
+              className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-orange-500 text-white"
+              onClick={() => setShowClickTracker(true)}
+              title="Click tracking admin panel"
+            >
+              <span className="material-symbols-outlined align-middle mr-1">analytics</span>
+              Click Tracker
             </button>
           </div>
         </div>
@@ -845,6 +928,189 @@ export default function App() {
         onImagesUpdate={handleImagesUpdate}
         onClearAll={clearAllImages}
       />
+
+      {/* Click Tracker Modal */}
+      {showClickTracker && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }} onClick={() => setShowClickTracker(false)}>
+          <div style={{
+            width: '90%',
+            maxWidth: '600px',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            maxHeight: '80vh',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            <div style={{
+              padding: '1rem',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: '#f97316',
+              color: 'white'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Click Tracking Admin</h2>
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: 'white'
+                }}
+                onClick={() => setShowClickTracker(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{
+              padding: '1rem',
+              flex: 1,
+              overflow: 'auto'
+            }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '0.5rem', 
+                  fontSize: '14px', 
+                  fontWeight: '500' 
+                }}>
+                  Current User ID for Tracking:
+                </label>
+                <input
+                  type="text"
+                  value={currentUserId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="Enter user ID to track clicks..."
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--card-bg)',
+                    color: 'var(--text)',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+                <p style={{ 
+                  margin: '0.5rem 0 0 0', 
+                  fontSize: '12px', 
+                  color: 'var(--muted)' 
+                }}>
+                  {currentUserId ? `Currently tracking clicks for: ${currentUserId}` : 'No user ID set - clicks will not be tracked'}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '0.5rem', 
+                  fontSize: '14px', 
+                  fontWeight: '500' 
+                }}>
+                  Download Click Logs:
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="User ID to download logs for..."
+                    id="downloadUserId"
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '4px',
+                      backgroundColor: 'var(--card-bg)',
+                      color: 'var(--text)',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      const userId = document.getElementById('downloadUserId').value
+                      if (userId) downloadClickLogs(userId)
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Download CSV
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '0.5rem' }}>
+                  Tracked Users ({Object.keys(clickLogs).length})
+                </h3>
+                {Object.keys(clickLogs).length === 0 ? (
+                  <p style={{ color: 'var(--muted)', fontSize: '14px' }}>No click data recorded yet</p>
+                ) : (
+                  <div style={{ maxHeight: '200px', overflow: 'auto' }}>
+                    {Object.entries(clickLogs).map(([userId, logs]) => (
+                      <div key={userId} style={{
+                        padding: '0.5rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '4px',
+                        marginBottom: '0.5rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div>
+                          <strong>{userId}</strong>
+                          <span style={{ color: 'var(--muted)', fontSize: '12px', marginLeft: '0.5rem' }}>
+                            {logs.length} clicks
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => downloadClickLogs(userId)}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Profile menu - mobile only */}
       {showProfileMenu && (
