@@ -10,8 +10,18 @@ function stripTags(html) {
 }
 
 function processContent(html) {
-  // DO NOT PROCESS ANYTHING - JUST RETURN THE CONTENT AS-IS
-  return html || ''
+  if (!html) return html
+  
+  // ONLY remove the giant link icons, don't touch any text content
+  const container = document.createElement('div')
+  container.innerHTML = html
+  
+  // Remove ONLY the problematic visual elements (icons, buttons, etc) but keep ALL text
+  container.querySelectorAll('svg, img, button, [class*="icon"], [class*="link"], [role="button"], [id*="__"], div[role="none"]').forEach(el => {
+    el.remove()
+  })
+  
+  return container.innerHTML
   
   // Use placeholders to prevent double processing
   const placeholders = new Map()
