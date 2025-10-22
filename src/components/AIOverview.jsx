@@ -145,10 +145,22 @@ export default function AIOverview({ text }) {
   const limit = 750
   
   const processedText = useMemo(() => {
-    // Convert plain text to HTML with line breaks and process images
+    // Convert plain text to properly formatted HTML like Google's AI Overview
     if (!text) return ''
-    const withBreaks = text.replace(/\n/g, '<br>')
-    return processContent(withBreaks)
+    
+    // Split into paragraphs and format properly
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim())
+    
+    let formatted = paragraphs.map(paragraph => {
+      // Clean up the paragraph
+      let p = paragraph.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ')
+      
+      // Wrap in paragraph tags
+      return `<p>${p}</p>`
+    }).join('')
+    
+    // Process images after paragraph formatting
+    return processContent(formatted)
   }, [text])
   
   // Handle feedback clicks
