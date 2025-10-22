@@ -10,8 +10,8 @@ function stripTags(html) {
 }
 
 function processContent(html) {
-  // DO NOT DELETE ANYTHING - JUST RETURN CONTENT AS-IS
-  return html || ''
+  if (!html) return ''
+  let processed = html
   
   // Use placeholders to prevent double processing
   const placeholders = new Map()
@@ -142,9 +142,10 @@ export default function AIOverview({ text }) {
   const limit = 750
   
   const processedText = useMemo(() => {
-    // Convert plain text to HTML with line breaks
+    // Convert plain text to HTML with line breaks and process images
     if (!text) return ''
-    return text.replace(/\n/g, '<br>')
+    const withBreaks = text.replace(/\n/g, '<br>')
+    return processContent(withBreaks)
   }, [text])
   
   // Handle feedback clicks
