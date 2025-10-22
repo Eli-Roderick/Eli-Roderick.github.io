@@ -23,18 +23,9 @@ export default function App() {
   const [configIndex, setConfigIndex] = useState([])
   const [order, setOrder] = useState([])
   const [current, setCurrent] = useState(0)
-  const [config, setConfig] = useState({
-    query: "Sample Search Query",
-    results: [
-      {
-        title: "Sample Result",
-        url: "https://example.com",
-        snippet: "This is a sample search result for testing purposes."
-      }
-    ]
-  })
+  const [config, setConfig] = useState(null)
   const [randomize, setRandomize] = useState(true)
-  const [loading, setLoading] = useState(false) // Temporarily set to false for debugging
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('All')
   const [userAIText, setUserAIText] = useState('')
@@ -461,14 +452,104 @@ export default function App() {
       </header>
 
 
-      {/* AI Overview Editor */}
-      <AIOverviewEditor
-        isOpen={showAIEditor}
-        onClose={() => setShowAIEditor(false)}
-        onSave={handleAISave}
-        initialText={userAIText}
-        initialTitle={userAITitle}
-      />
+      {/* Paste Modal */}
+      {showPasteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }} onClick={() => setShowPasteModal(false)}>
+          <div style={{
+            width: '90%',
+            maxWidth: '600px',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            maxHeight: '80vh',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            <div style={{
+              padding: '1rem',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Set AI Overview Text</h2>
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: 'var(--muted)'
+                }}
+                onClick={() => setShowPasteModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{
+              padding: '1rem',
+              flex: 1,
+              overflow: 'auto'
+            }}>
+              <SimpleTextEditor
+                value={draftAIText}
+                onChange={setDraftAIText}
+                placeholder="Paste your AI overview content here..."
+              />
+            </div>
+
+            <div style={{
+              padding: '1rem',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '8px'
+            }}>
+              <button
+                style={{
+                  padding: '8px 16px',
+                  border: '1px solid var(--border)',
+                  borderRadius: '4px',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setShowPasteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                style={{
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderRadius: '4px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  cursor: 'pointer'
+                }}
+                onClick={savePasteModal}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Image Manager */}
       <ImageManager
