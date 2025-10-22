@@ -348,13 +348,23 @@ export default function App() {
   const BLOCKED_TAGS = new Set(['IMG','SVG','BUTTON','IFRAME','SCRIPT','STYLE'])
   const sanitizeHTML = (html) => {
     try {
+      console.log('=== SANITIZE HTML ===')
+      console.log('Input HTML:', html)
+      
       const container = document.createElement('div')
       container.innerHTML = html || ''
+      
+      console.log('Container before cleanup:', container.innerHTML)
 
       // Remove problematic elements that cause sizing issues (like link icons)
-      container.querySelectorAll('svg, img, button, .icon, [class*="icon"], [class*="link"], [role="button"]').forEach((el) => {
+      const problematicElements = container.querySelectorAll('svg, img, button, .icon, [class*="icon"], [class*="link"], [role="button"]')
+      console.log('Found problematic elements:', problematicElements.length)
+      problematicElements.forEach((el, index) => {
+        console.log(`Removing element ${index}:`, el.outerHTML)
         el.remove()
       })
+      
+      console.log('Container after removing problematic elements:', container.innerHTML)
 
       // Remove problematic styles that cause sizing issues
       container.querySelectorAll('*').forEach((el) => {
@@ -721,11 +731,27 @@ export default function App() {
                     onInput={(e) => setDraftAIText(e.target.innerHTML)}
                     onPaste={(e) => {
                       e.preventDefault()
-                      const paste = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain')
+                      const pasteHTML = e.clipboardData.getData('text/html')
+                      const pasteText = e.clipboardData.getData('text/plain')
+                      
+                      console.log('=== PASTE EVENT ===')
+                      console.log('Raw HTML:', pasteHTML)
+                      console.log('Raw Text:', pasteText)
+                      
+                      const paste = pasteHTML || pasteText
+                      console.log('Using paste content:', paste)
+                      
                       const sanitized = sanitizeHTML(paste)
+                      console.log('Sanitized content:', sanitized)
+                      
                       document.execCommand('insertHTML', false, sanitized)
+                      
                       // Update state with sanitized content
-                      setTimeout(() => setDraftAIText(e.target.innerHTML), 0)
+                      setTimeout(() => {
+                        const finalContent = e.target.innerHTML
+                        console.log('Final content in editor:', finalContent)
+                        setDraftAIText(finalContent)
+                      }, 0)
                     }}
                     dangerouslySetInnerHTML={{ __html: draftAIText }}
                   />
