@@ -6,7 +6,7 @@ import ImageManager from './components/ImageManager'
 import AIOverviewEditor from './components/AIOverviewEditor'
 import SearchPage from './pages/SearchPage'
 import { ClickLogger } from './utils/logger'
-import { loadConfigList, loadConfigByPath } from './utils/config'
+import { loadConfigList, loadConfigByPath } from './utils/configLoader'
 
 const logger = new ClickLogger()
 
@@ -401,167 +401,15 @@ export default function App() {
         initialTitle={userAITitle}
       />
 
-      {/* Image Manager Modal */}
-      {showImageManager && (
-        <div style={{
-          position: 'fixed',
-          top: '0px',
-          left: '0px',
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          zIndex: 999999,
-          pointerEvents: 'all'
-        }} onClick={() => setShowImageManager(false)}>
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '90%',
-            maxWidth: '600px',
-            backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            zIndex: 1000000,
-            pointerEvents: 'all',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-            maxHeight: '80vh',
-            overflow: 'hidden'
-          }} onClick={(e) => e.stopPropagation()}>
-            
-            {/* Header */}
-            <div style={{ 
-              padding: '1rem', 
-              borderBottom: '1px solid var(--border)', 
-              backgroundColor: 'var(--card-bg)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <h2 style={{ margin: 0, color: 'var(--text)', fontSize: '18px', fontWeight: '600' }}>Manage Images</h2>
-              <button 
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  fontSize: '20px', 
-                  cursor: 'pointer',
-                  color: 'var(--muted)'
-                }} 
-                onClick={() => setShowImageManager(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Body */}
-            <div style={{ 
-              padding: '1rem', 
-              backgroundColor: 'var(--card-bg)',
-              maxHeight: '60vh',
-              overflow: 'auto'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '1rem'
-              }}>
-                <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
-                  Select a search result to add or edit images:
-                </p>
-                {Object.keys(resultImages).length > 0 && (
-                  <button
-                    onClick={clearAllImages}
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: '12px',
-                      border: '1px solid #dc3545',
-                      borderRadius: '4px',
-                      backgroundColor: 'transparent',
-                      color: '#dc3545',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Clear All
-                  </button>
-                )}
-              </div>
-              
-              {effectiveConfig?.results?.slice(0, 10).map((result, idx) => (
-                !result.ad && (
-                  <div 
-                    key={idx}
-                    style={{
-                      padding: '12px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      marginBottom: '8px',
-                      cursor: 'pointer',
-                      backgroundColor: 'var(--card-bg)',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onClick={() => setSelectedResultForImages(result)}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--border-subtle)'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--card-bg)'}
-                  >
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'flex-start',
-                      gap: '12px'
-                    }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h4 style={{ 
-                          margin: '0 0 4px 0', 
-                          color: 'var(--text)', 
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {result.title}
-                        </h4>
-                        <p style={{ 
-                          margin: '0', 
-                          color: 'var(--muted)', 
-                          fontSize: '12px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {result.url.replace(/^https?:\/\//, '')}
-                        </p>
-                      </div>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        flexShrink: 0
-                      }}>
-                        {resultImages[result.url]?.length > 0 && (
-                          <span style={{
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            padding: '2px 6px',
-                            borderRadius: '12px',
-                            fontSize: '11px',
-                            fontWeight: '500'
-                          }}>
-                            {resultImages[result.url].length} image{resultImages[result.url].length !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                        <span style={{ color: 'var(--muted)', fontSize: '12px' }}>→</span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Image Manager */}
+      <ImageManager
+        isOpen={showImageManager}
+        onClose={() => setShowImageManager(false)}
+        results={effectiveConfig?.results || []}
+        resultImages={resultImages}
+        onImagesUpdate={handleImagesUpdate}
+        onClearAll={clearAllImages}
+      />
 
       {/* Profile menu - mobile only */}
       {showProfileMenu && (
