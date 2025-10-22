@@ -23,9 +23,18 @@ export default function App() {
   const [configIndex, setConfigIndex] = useState([])
   const [order, setOrder] = useState([])
   const [current, setCurrent] = useState(0)
-  const [config, setConfig] = useState(null)
+  const [config, setConfig] = useState({
+    query: "Sample Search Query",
+    results: [
+      {
+        title: "Sample Result",
+        url: "https://example.com",
+        snippet: "This is a sample search result for testing purposes."
+      }
+    ]
+  })
   const [randomize, setRandomize] = useState(true)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Temporarily set to false for debugging
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('All')
   const [userAIText, setUserAIText] = useState('')
@@ -70,13 +79,11 @@ export default function App() {
     }
   })
 
-  // Load persisted AI text and title on mount
+  // Load persisted AI text on mount
   useEffect(() => {
     try {
       const savedText = localStorage.getItem('ai_overview_text')
-      const savedTitle = localStorage.getItem('ai_overview_title')
       if (savedText) setUserAIText(savedText)
-      if (savedTitle) setUserAITitle(savedTitle)
     } catch {}
   }, [])
 
