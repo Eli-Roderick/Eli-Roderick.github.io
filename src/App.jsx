@@ -719,6 +719,14 @@ export default function App() {
                     contentEditable
                     suppressContentEditableWarning={true}
                     onInput={(e) => setDraftAIText(e.target.innerHTML)}
+                    onPaste={(e) => {
+                      e.preventDefault()
+                      const paste = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain')
+                      const sanitized = sanitizeHTML(paste)
+                      document.execCommand('insertHTML', false, sanitized)
+                      // Update state with sanitized content
+                      setTimeout(() => setDraftAIText(e.target.innerHTML), 0)
+                    }}
                     dangerouslySetInnerHTML={{ __html: draftAIText }}
                   />
                 </>
