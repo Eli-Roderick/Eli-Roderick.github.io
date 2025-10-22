@@ -187,7 +187,6 @@ export default function App() {
   }
 
   const savePasteModal = () => {
-    if (draftAIText.trim()) {
       if (selectedAIOverviewId) {
         // Update existing AI overview
         updateAIOverview(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
