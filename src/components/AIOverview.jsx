@@ -296,7 +296,7 @@ export default function AIOverview({ text }) {
         </div>
       </div>
       <div
-        className={`ai-body whitespace-pre-wrap ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
+        className={`ai-body ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
         dangerouslySetInnerHTML={{ __html: expanded ? processedText : truncatedContent }}
       />
 
