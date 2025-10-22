@@ -326,8 +326,67 @@ export default function App() {
   const ALLOWED_ATTRS = { 'A': new Set(['href']) }
   const BLOCKED_TAGS = new Set(['IMG','SVG','BUTTON','IFRAME','SCRIPT','STYLE'])
   const sanitizeHTML = (html) => {
-    // DO NOT DELETE ANYTHING - JUST RETURN THE CONTENT AS-IS
-    return html || ''
+    if (!html) return ''
+    
+    // Create a temporary DOM element to parse HTML
+    const temp = document.createElement('div')
+    temp.innerHTML = html
+    
+    // Function to clean a node
+    const cleanNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent
+      }
+      
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tagName = node.tagName.toUpperCase()
+        
+        // Block dangerous tags completely
+        if (BLOCKED_TAGS.has(tagName)) {
+          return ''
+        }
+        
+        // Allow certain tags
+        if (ALLOWED_TAGS.has(tagName)) {
+          let result = `<${tagName.toLowerCase()}`
+          
+          // Add allowed attributes
+          if (ALLOWED_ATTRS[tagName]) {
+            for (const attr of node.attributes) {
+              if (ALLOWED_ATTRS[tagName].has(attr.name.toUpperCase())) {
+                result += ` ${attr.name}="${attr.value}"`
+              }
+            }
+          }
+          
+          result += '>'
+          
+          // Process children
+          for (const child of node.childNodes) {
+            result += cleanNode(child)
+          }
+          
+          result += `</${tagName.toLowerCase()}>`
+          return result
+        } else {
+          // For disallowed tags, just return the text content
+          let result = ''
+          for (const child of node.childNodes) {
+            result += cleanNode(child)
+          }
+          return result
+        }
+      }
+      
+      return ''
+    }
+    
+    let result = ''
+    for (const child of temp.childNodes) {
+      result += cleanNode(child)
+    }
+    
+    return result
   }
 
 

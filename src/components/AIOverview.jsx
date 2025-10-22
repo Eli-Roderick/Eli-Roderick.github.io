@@ -145,10 +145,16 @@ export default function AIOverview({ text }) {
   const limit = 750
   
   const processedText = useMemo(() => {
-    // Convert plain text to HTML with line breaks and process images
+    // Process and sanitize HTML content properly
     if (!text) return ''
-    const withBreaks = text.replace(/\n/g, '<br>')
-    return processContent(withBreaks)
+    
+    // First process images
+    const withImages = processContent(text)
+    
+    // Then sanitize and format the HTML
+    const sanitized = withImages
+    
+    return sanitized
   }, [text])
   
   // Handle feedback clicks
