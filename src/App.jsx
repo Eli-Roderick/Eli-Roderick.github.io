@@ -735,86 +735,44 @@ export default function App() {
                     className="ai-text-editor"
                     contentEditable
                     suppressContentEditableWarning={true}
+                    ref={(el) => {
+                      if (el && el.innerHTML !== draftAIText) {
+                        el.innerHTML = draftAIText
+                      }
+                    }}
                     onInput={(e) => {
-                      // Save cursor position before state update
-                      const selection = window.getSelection()
-                      const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null
-                      const cursorOffset = range ? range.startOffset : 0
-                      const cursorNode = range ? range.startContainer : null
-                      
-                      // Debounce state updates to prevent cursor jumping
-                      clearTimeout(window.draftTextTimeout)
-                      window.draftTextTimeout = setTimeout(() => {
-                        setDraftAIText(e.target.innerHTML)
-                        
-                        // Restore cursor position after React re-render
-                        setTimeout(() => {
-                          if (cursorNode && e.target.contains(cursorNode)) {
-                            try {
-                              const newRange = document.createRange()
-                              newRange.setStart(cursorNode, Math.min(cursorOffset, cursorNode.textContent?.length || 0))
-                              newRange.collapse(true)
-                              selection.removeAllRanges()
-                              selection.addRange(newRange)
-                            } catch (err) {
-                              // Fallback: place cursor at end
-                              const newRange = document.createRange()
-                              newRange.selectNodeContents(e.target)
-                              newRange.collapse(false)
-                              selection.removeAllRanges()
-                              selection.addRange(newRange)
-                            }
-                          }
-                        }, 0)
-                      }, 300)
+                      // Just update the state, no cursor manipulation
+                      setDraftAIText(e.target.innerHTML)
                     }}
                     onPaste={(e) => {
                       e.preventDefault()
+                      
+                      // Get the paste content
                       const pasteHTML = e.clipboardData.getData('text/html')
                       const pasteText = e.clipboardData.getData('text/plain')
-                      
-                      console.log('=== PASTE EVENT ===')
-                      console.log('Raw HTML:', pasteHTML)
-                      console.log('Raw Text:', pasteText)
-                      
                       const paste = pasteHTML || pasteText
-                      console.log('Using paste content:', paste)
                       
+                      // Sanitize the content
                       const sanitized = sanitizeHTML(paste)
-                      console.log('Sanitized content:', sanitized)
                       
-                      // Get current selection/cursor position
+                      // Just use the browser's default paste behavior with sanitized content
                       const selection = window.getSelection()
                       if (selection.rangeCount > 0) {
                         const range = selection.getRangeAt(0)
-                        range.deleteContents() // Remove any selected text
+                        range.deleteContents()
                         
-                        // Create a temporary div to hold the sanitized HTML
-                        const tempDiv = document.createElement('div')
-                        tempDiv.innerHTML = sanitized
-                        
-                        // Insert each child node from the temp div
-                        while (tempDiv.firstChild) {
-                          range.insertNode(tempDiv.firstChild)
-                          range.collapse(false) // Move cursor to end of inserted content
-                        }
-                      } else {
-                        // Fallback: if no selection, append to end
-                        const tempDiv = document.createElement('div')
-                        tempDiv.innerHTML = sanitized
-                        while (tempDiv.firstChild) {
-                          e.target.appendChild(tempDiv.firstChild)
-                        }
+                        // Insert as plain text to avoid issues
+                        const textNode = document.createTextNode(sanitized.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
+                        range.insertNode(textNode)
+                        range.setStartAfter(textNode)
+                        range.collapse(true)
+                        selection.removeAllRanges()
+                        selection.addRange(range)
                       }
                       
-                      // Update state with final content
-                      setTimeout(() => {
-                        const finalContent = e.target.innerHTML
-                        console.log('Final content in editor:', finalContent)
-                        setDraftAIText(finalContent)
-                      }, 0)
+                      // Update state
+                      setDraftAIText(e.target.innerHTML)
                     }}
-                    dangerouslySetInnerHTML={{ __html: draftAIText }}
                   />
                 </>
               ) : (
