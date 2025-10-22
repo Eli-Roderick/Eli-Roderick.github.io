@@ -735,44 +735,8 @@ export default function App() {
                     className="ai-text-editor"
                     contentEditable
                     suppressContentEditableWarning={true}
-                    ref={(el) => {
-                      if (el && el.innerHTML !== draftAIText) {
-                        el.innerHTML = draftAIText
-                      }
-                    }}
-                    onInput={(e) => {
-                      // Just update the state, no cursor manipulation
-                      setDraftAIText(e.target.innerHTML)
-                    }}
-                    onPaste={(e) => {
-                      e.preventDefault()
-                      
-                      // Get the paste content
-                      const pasteHTML = e.clipboardData.getData('text/html')
-                      const pasteText = e.clipboardData.getData('text/plain')
-                      const paste = pasteHTML || pasteText
-                      
-                      // Sanitize the content
-                      const sanitized = sanitizeHTML(paste)
-                      
-                      // Just use the browser's default paste behavior with sanitized content
-                      const selection = window.getSelection()
-                      if (selection.rangeCount > 0) {
-                        const range = selection.getRangeAt(0)
-                        range.deleteContents()
-                        
-                        // Insert as plain text to avoid issues
-                        const textNode = document.createTextNode(sanitized.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
-                        range.insertNode(textNode)
-                        range.setStartAfter(textNode)
-                        range.collapse(true)
-                        selection.removeAllRanges()
-                        selection.addRange(range)
-                      }
-                      
-                      // Update state
-                      setDraftAIText(e.target.innerHTML)
-                    }}
+                    onInput={(e) => setDraftAIText(e.target.innerHTML)}
+                    dangerouslySetInnerHTML={{ __html: draftAIText }}
                   />
                 </>
               ) : (
