@@ -353,6 +353,23 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
+      {/* Version Indicator */}
+      <div style={{
+        position: 'fixed',
+        top: '10px',
+        right: '10px',
+        background: '#00ff00',
+        color: 'black',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        zIndex: 9999,
+        border: '2px solid black'
+      }}>
+        v1.17.2 ✓
+      </div>
+
       {/* Header */}
       <header className="search-header">
         {/* Profile row - mobile only */}
