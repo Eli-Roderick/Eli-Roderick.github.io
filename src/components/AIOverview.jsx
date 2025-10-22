@@ -12,6 +12,10 @@ function stripTags(html) {
 function processContent(html) {
   if (!html) return html
   
+  // Use placeholders to prevent double processing
+  const placeholders = new Map()
+  let placeholderCounter = 0
+  
   // Step 1: Handle curly brace grouped images {[image1][image2][image3]}
   let processed = html.replace(/\{(\[[^\]]+\])+\}/g, (match) => {
     // Extract all bracketed images from within the curly braces
@@ -22,11 +26,13 @@ function processContent(html) {
       let row = `<div class="image-row-container" style="clear: both; margin: 1rem 0;">
         <div class="image-row" id="${containerId}">`
       
+      let hasValidImages = false
       imageMatches.forEach(bracketedUrl => {
         const url = bracketedUrl.slice(1, -1) // Remove [ and ]
         // Check if it's an image URL
         if (/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?.*)?$/i.test(url)) {
           row += `<img src="${url}" alt="User provided image" />`
+          hasValidImages = true
         }
       })
       
@@ -35,7 +41,12 @@ function processContent(html) {
         <div class="scroll-indicator scroll-indicator-right" onclick="scrollImageRow('${containerId}', 200)" style="display: none;"></div>
       </div>`
       
-      return row
+      if (hasValidImages) {
+        // Create a placeholder to prevent further processing
+        const placeholder = `__IMAGE_ROW_PLACEHOLDER_${placeholderCounter++}__`
+        placeholders.set(placeholder, row)
+        return placeholder
+      }
     }
     return match
   })
@@ -47,6 +58,11 @@ function processContent(html) {
       return `<div style="clear: both; margin: 1rem 0;"><img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; border-radius: 0.5rem; display: block;" /></div>`
     }
     return match // Return original if not an image
+  })
+  
+  // Step 3: Replace placeholders with actual content
+  placeholders.forEach((content, placeholder) => {
+    processed = processed.replace(placeholder, content)
   })
   
   return processed
