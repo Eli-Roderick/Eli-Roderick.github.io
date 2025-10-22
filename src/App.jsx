@@ -357,11 +357,18 @@ export default function App() {
       console.log('Container before cleanup:', container.innerHTML)
 
       // Remove problematic elements that cause sizing issues (like link icons)
-      const problematicElements = container.querySelectorAll('svg, img, button, .icon, [class*="icon"], [class*="link"], [role="button"]')
+      const problematicElements = container.querySelectorAll('svg, img, button, .icon, [class*="icon"], [class*="link"], [role="button"], [id*="__"], div[role="none"]')
       console.log('Found problematic elements:', problematicElements.length)
       problematicElements.forEach((el, index) => {
         console.log(`Removing element ${index}:`, el.outerHTML)
         el.remove()
+      })
+      
+      // Remove any divs that are empty or only contain whitespace after cleanup
+      container.querySelectorAll('div').forEach(div => {
+        if (!div.textContent.trim() || div.textContent.trim() === '') {
+          div.remove()
+        }
       })
       
       console.log('Container after removing problematic elements:', container.innerHTML)
