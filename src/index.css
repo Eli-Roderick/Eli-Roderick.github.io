@@ -153,6 +153,106 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+/* AI Overview image rows with scroll indicators */
+.image-row-container {
+  position: relative;
+  clear: both;
+  margin: 1rem 0;
+}
+
+.image-row {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0.5rem !important;
+  overflow-x: auto !important;
+  scroll-behavior: smooth !important;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.image-row::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.image-row img {
+  min-width: 200px !important;
+  max-width: 200px !important;
+  width: 200px !important;
+  height: auto !important;
+  border-radius: 0.5rem !important;
+  flex-shrink: 0 !important;
+  object-fit: cover !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Scroll indicators for image rows */
+.scroll-indicator-left,
+.scroll-indicator-right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60px;
+  height: 68px;
+  background: rgba(248, 249, 250, 0.9);
+  border: 1px solid rgba(218, 220, 224, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.scroll-indicator-left {
+  left: -32px;
+}
+
+.scroll-indicator-right {
+  right: -32px;
+}
+
+.scroll-indicator-left:hover,
+.scroll-indicator-right:hover {
+  opacity: 1;
+  background: rgba(232, 234, 237, 0.95);
+}
+
+.scroll-indicator-left::after {
+  content: '‹';
+  font-size: 24px;
+  font-weight: bold;
+  color: #5f6368;
+}
+
+.scroll-indicator-right::after {
+  content: '›';
+  font-size: 24px;
+  font-weight: bold;
+  color: #5f6368;
+}
+
+/* Dark mode scroll indicators */
+@media (prefers-color-scheme: dark) {
+  .scroll-indicator-left,
+  .scroll-indicator-right {
+    background: rgba(32, 33, 36, 0.9);
+    border-color: rgba(60, 64, 67, 0.8);
+  }
+  
+  .scroll-indicator-left:hover,
+  .scroll-indicator-right:hover {
+    background: rgba(60, 64, 67, 0.95);
+  }
+  
+  .scroll-indicator-left::after,
+  .scroll-indicator-right::after {
+    color: #9aa0a6;
+  }
+}
+
 /* Images in result content */
 .result-snippet img {
   max-width: 100%;

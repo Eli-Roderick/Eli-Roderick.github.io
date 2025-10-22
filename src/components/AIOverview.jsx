@@ -35,7 +35,10 @@ function processContent(html) {
       }
     })
     
-    row += `</div></div>`
+    row += `</div>
+      <div class="scroll-indicator-left" style="display: none;" onclick="scrollImageRow('${containerId}', -200)"></div>
+      <div class="scroll-indicator-right" style="display: none;" onclick="scrollImageRow('${containerId}', 200)"></div>
+    </div>`
     
     if (hasValidImages) {
       const placeholder = `__IMAGE_ROW_PLACEHOLDER_${placeholderCounter++}__`
