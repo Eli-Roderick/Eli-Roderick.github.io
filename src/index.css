@@ -617,6 +617,26 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   color: red;
 }
 
+/* AI Text Editor */
+.ai-text-editor {
+  width: 100%;
+  min-height: 200px;
+  max-height: 300px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  overflow: auto;
+  outline: none;
+}
+
+.ai-text-editor * {
+  color: var(--text) !important;
+}
+
 /* AI Overview Feedback Buttons */
 .ai-feedback-btn {
   background: none;

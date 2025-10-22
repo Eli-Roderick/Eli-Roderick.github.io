@@ -689,20 +689,7 @@ export default function App() {
                     <p style={{ margin: '0' }}>• Use curly braces {} to group images into scrollable rows</p>
                   </div>
                   <div
-                    style={{
-                      width: '100%',
-                      minHeight: '200px',
-                      maxHeight: '300px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '4px',
-                      padding: '12px',
-                      backgroundColor: 'var(--card-bg)',
-                      color: 'var(--text)',
-                      fontSize: '14px',
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
-                      overflow: 'auto',
-                      outline: 'none'
-                    }}
+                    className="ai-text-editor"
                     contentEditable
                     suppressContentEditableWarning={true}
                     onInput={(e) => setDraftAIText(e.target.innerHTML)}
