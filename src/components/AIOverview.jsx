@@ -10,23 +10,8 @@ function stripTags(html) {
 }
 
 function processContent(html) {
-  if (!html) return html
-  
-  
-  // Step 0: Clean up HTML tags that might split curly braces
-  // Remove span and div tags but keep their content to merge split braces
-  let processed = html
-    .replace(/<span[^>]*>/g, '')
-    .replace(/<\/span>/g, '')
-    .replace(/<div[^>]*>/g, '')
-    .replace(/<\/div>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')  // Collapse multiple spaces
-    .trim()
-  
-  // Step 0.5: Fix malformed curly brace patterns
-  // Look for patterns like "{[url][url] }" and fix them to "{[url][url]}"
-  processed = processed.replace(/\{\s*(\[[^\]]+\])\s*(\[[^\]]+\])\s*\}/g, '{$1$2}')
+  // DO NOT PROCESS ANYTHING - JUST RETURN THE CONTENT AS-IS
+  return html || ''
   
   // Use placeholders to prevent double processing
   const placeholders = new Map()
