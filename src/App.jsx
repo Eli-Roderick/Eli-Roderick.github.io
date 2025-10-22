@@ -345,20 +345,28 @@ export default function App() {
 
   const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','UL','OL','LI','A'])
   const ALLOWED_ATTRS = { 'A': new Set(['href']) }
+  const BLOCKED_TAGS = new Set(['IMG','SVG','BUTTON','IFRAME','SCRIPT','STYLE'])
   const sanitizeHTML = (html) => {
     try {
       const container = document.createElement('div')
       container.innerHTML = html || ''
+
+      // Remove problematic elements that cause sizing issues (like link icons)
+      container.querySelectorAll('svg, img, button, .icon, [class*="icon"], [class*="link"], [role="button"]').forEach((el) => {
+        el.remove()
+      })
 
       // Remove problematic styles that cause sizing issues
       container.querySelectorAll('*').forEach((el) => {
         // Remove all style attributes to prevent sizing issues
         el.removeAttribute('style')
         el.removeAttribute('class')
+        el.removeAttribute('width')
+        el.removeAttribute('height')
         
         // Remove data attributes that might cause issues
         Array.from(el.attributes).forEach(attr => {
-          if (attr.name.startsWith('data-') || attr.name.startsWith('aria-')) {
+          if (attr.name.startsWith('data-') || attr.name.startsWith('aria-') || attr.name.startsWith('js')) {
             el.removeAttribute(attr.name)
           }
         })
@@ -384,7 +392,11 @@ export default function App() {
         for (const child of children) {
           if (child.nodeType === 1) { // ELEMENT_NODE
             const tag = child.tagName
-            if (!ALLOWED_TAGS.has(tag)) {
+            if (BLOCKED_TAGS.has(tag)) {
+              // Remove blocked elements completely (no text content)
+              node.removeChild(child)
+              continue
+            } else if (!ALLOWED_TAGS.has(tag)) {
               // Replace disallowed element with its text content/children
               const fragment = document.createDocumentFragment()
               while (child.firstChild) fragment.appendChild(child.firstChild)
