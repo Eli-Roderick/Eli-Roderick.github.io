@@ -12,9 +12,6 @@ function stripTags(html) {
 function processContent(html) {
   if (!html) return html
   
-  console.log('Input HTML:', html)
-  console.log('Contains { ?', html.includes('{'))
-  console.log('Contains } ?', html.includes('}'))
   
   // Step 0: Clean up HTML tags that might split curly braces
   // Remove span and div tags but keep their content to merge split braces
@@ -26,12 +23,10 @@ function processContent(html) {
     .replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')  // Collapse multiple spaces
     .trim()
-  console.log('After cleaning HTML:', processed)
   
   // Step 0.5: Fix malformed curly brace patterns
   // Look for patterns like "{[url][url] }" and fix them to "{[url][url]}"
   processed = processed.replace(/\{\s*(\[[^\]]+\])\s*(\[[^\]]+\])\s*\}/g, '{$1$2}')
-  console.log('After fixing patterns:', processed)
   
   // Use placeholders to prevent double processing
   const placeholders = new Map()
@@ -48,22 +43,16 @@ function processContent(html) {
     let hasValidImages = false
     imageMatches.forEach(bracketedUrl => {
       const url = bracketedUrl.slice(1, -1) // Remove [ and ]
-      console.log('Processing URL:', url)
       // Check if it's an image URL
       if (/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?.*)?$/i.test(url)) {
-        console.log('Valid image URL:', url)
-        row += `<img src="${url}" alt="User provided image" style="min-width: 200px !important; max-width: 200px !important; width: 200px !important; height: auto !important; border-radius: 0.5rem !important; flex-shrink: 0 !important;" />`
+        row += `<img src="${url}" alt="User provided image" style="min-width: 200px !important; max-width: 200px !important; width: 200px !important; height: auto !important; border-radius: 0.5rem !important; flex-shrink: 0 !important; object-fit: cover !important;" />`
         hasValidImages = true
       }
     })
     
-    row += `</div>
-      <div class="scroll-indicator scroll-indicator-left" onclick="scrollImageRow('${containerId}', -200)" style="display: none;"></div>
-      <div class="scroll-indicator scroll-indicator-right" onclick="scrollImageRow('${containerId}', 200)" style="display: none;"></div>
-    </div>`
+    row += `</div></div>`
     
     if (hasValidImages) {
-      console.log('Creating image row with', imageMatches.length, 'images')
       const placeholder = `__IMAGE_ROW_PLACEHOLDER_${placeholderCounter++}__`
       placeholders.set(placeholder, row)
       return placeholder
@@ -73,27 +62,21 @@ function processContent(html) {
 
   // Try normal curly braces first
   processed = processed.replace(/\{(\[[^\]]+\])+\}/g, (match) => {
-    console.log('Processing normal curly brace match:', match)
     const imageMatches = match.match(/\[([^\]]+)\]/g) || []
-    console.log('Found image matches:', imageMatches)
     const result = createImageRow(imageMatches)
     return result || match
   })
   
   // Try HTML encoded curly braces
   processed = processed.replace(/&#123;(\[[^\]]+\])+&#125;/g, (match) => {
-    console.log('Processing HTML encoded curly brace match:', match)
     const imageMatches = match.match(/\[([^\]]+)\]/g) || []
-    console.log('Found image matches in encoded:', imageMatches)
     const result = createImageRow(imageMatches)
     return result || match
   })
   
   // Try &lbrace; and &rbrace;
   processed = processed.replace(/&lbrace;(\[[^\]]+\])+&rbrace;/g, (match) => {
-    console.log('Processing &lbrace; encoded match:', match)
     const imageMatches = match.match(/\[([^\]]+)\]/g) || []
-    console.log('Found image matches in &lbrace;:', imageMatches)
     const result = createImageRow(imageMatches)
     return result || match
   })
