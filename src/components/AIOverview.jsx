@@ -24,8 +24,14 @@ function processContent(html) {
     .replace(/<div[^>]*>/g, '')
     .replace(/<\/div>/g, '')
     .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')  // Collapse multiple spaces
     .trim()
   console.log('After cleaning HTML:', processed)
+  
+  // Step 0.5: Fix malformed curly brace patterns
+  // Look for patterns like "{[url][url] }" and fix them to "{[url][url]}"
+  processed = processed.replace(/\{\s*(\[[^\]]+\])\s*(\[[^\]]+\])\s*\}/g, '{$1$2}')
+  console.log('After fixing patterns:', processed)
   
   // Use placeholders to prevent double processing
   const placeholders = new Map()
