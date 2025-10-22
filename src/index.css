@@ -652,18 +652,21 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
   opacity: 0.8 !important;
 }
 
-/* Hide any remaining problematic elements that might cause sizing issues */
-.ai-text-editor [id*="__"],
-.ai-text-editor [role="none"],
-.ai-text-editor svg,
-.ai-text-editor img:not([src*="ytimg"]):not([src*="imgur"]):not([src*="example"]),
-.ai-text-editor button,
-.ai-text-editor [class*="icon"],
-.ai-text-editor [class*="link-icon"] {
-  display: none !important;
-  visibility: hidden !important;
-  width: 0 !important;
-  height: 0 !important;
+/* Fix sizing of link icons - make them normal size instead of hiding */
+.ai-overview svg,
+.ai-overview img,
+.ai-overview button,
+.ai-overview [class*="icon"],
+.ai-overview [class*="link-icon"],
+.ai-overview [id*="__"],
+.ai-overview [role="none"] {
+  max-width: 16px !important;
+  max-height: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  display: inline !important;
+  vertical-align: middle !important;
+  margin: 0 2px !important;
 }
 
 /* AI Overview Feedback Buttons */
