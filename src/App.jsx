@@ -1,6 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import SearchPage from './pages/SearchPage'
-import { loadConfigList, loadConfigByPath } from './utils/configLoader'
+import React, { useEffect, useMemo } from 'react'
+import AIOverview from './components/AIOverview'
+import SearchResult from './components/SearchResult'
+import AdResult from './components/AdResult'
+import ImageManager from './components/ImageManager'
+import SimpleTextEditor from './components/SimpleTextEditor'
 import { ClickLogger } from './utils/logger'
 
 const logger = new ClickLogger()
@@ -367,7 +370,7 @@ export default function App() {
         zIndex: 9999,
         border: '2px solid black'
       }}>
-        v1.17.2 ✓
+        v1.18.0 ✓
       </div>
 
       {/* Header */}
@@ -660,15 +663,10 @@ export default function App() {
                     <p style={{ margin: '0 0 4px 0' }}>• Horizontal row: {'{[image1.jpg][image2.jpg][image3.jpg]}'}</p>
                     <p style={{ margin: '0' }}>• Use curly braces {} to group images into scrollable rows</p>
                   </div>
-                  <textarea
-                    className="ai-text-editor"
+                  <SimpleTextEditor
                     value={draftAIText}
-                    onChange={(e) => setDraftAIText(e.target.value)}
+                    onChange={setDraftAIText}
                     placeholder="Paste your AI overview content here..."
-                    style={{
-                      resize: 'vertical',
-                      fontFamily: 'inherit'
-                    }}
                   />
                 </>
               ) : (
