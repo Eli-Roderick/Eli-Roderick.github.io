@@ -1,18 +1,45 @@
-import React, { useRef } from 'react'
+import React, { useRef, useEffect } from 'react'
 
 export default function SimpleTextEditor({ value, onChange, placeholder }) {
-  const textareaRef = useRef(null)
+  const editorRef = useRef(null)
 
-  const handleChange = (e) => {
-    onChange(e.target.value)
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value || ''
+    }
+  }, [value])
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML)
+    }
+  }
+
+  const handlePaste = (e) => {
+    e.preventDefault()
+    
+    // Get pasted content as HTML
+    const clipboardData = e.clipboardData || window.clipboardData
+    const htmlData = clipboardData.getData('text/html')
+    const textData = clipboardData.getData('text/plain')
+    
+    // Use HTML if available, otherwise convert plain text to HTML with line breaks
+    let content = htmlData || textData.replace(/\n/g, '<br>')
+    
+    // Insert the content
+    document.execCommand('insertHTML', false, content)
+    
+    // Trigger change
+    handleInput()
   }
 
   return (
-    <textarea
-      ref={textareaRef}
-      value={value || ''}
-      onChange={handleChange}
-      placeholder={placeholder}
+    <div
+      ref={editorRef}
+      contentEditable
+      onInput={handleInput}
+      onPaste={handlePaste}
+      data-placeholder={placeholder}
       style={{
         width: '100%',
         minHeight: '200px',
@@ -26,8 +53,9 @@ export default function SimpleTextEditor({ value, onChange, placeholder }) {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
         overflow: 'auto',
         outline: 'none',
-        resize: 'vertical'
+        lineHeight: '1.5'
       }}
+      dangerouslySetInnerHTML={{ __html: value || '' }}
     />
   )
 }

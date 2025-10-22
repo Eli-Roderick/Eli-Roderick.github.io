@@ -147,14 +147,11 @@ export default function AIOverview({ text }) {
   const processedText = useMemo(() => {
     if (!text) return ''
     
-    // Debug: log the original text
-    console.log('Original text:', text)
+    // MINIMAL processing - just handle images and preserve everything else
+    let content = text
     
-    // Process image syntax while preserving all HTML formatting
-    let content = processContent(text)
-    
-    // Debug: log the processed content
-    console.log('Processed content:', content)
+    // Only process images, leave all other HTML intact
+    content = processContent(content)
     
     return content
   }, [text])
