@@ -179,27 +179,44 @@ export default function AIOverview({ text }) {
     const containers = document.querySelectorAll('.image-row')
     containers.forEach(container => {
       if (container.id) {
-        // Initial check
-        updateScrollIndicators(container.id)
+        // Initial check - wait for images to load
+        const checkIndicators = () => updateScrollIndicators(container.id)
         
-        // Check again after images load (with delay)
-        setTimeout(() => updateScrollIndicators(container.id), 100)
-        setTimeout(() => updateScrollIndicators(container.id), 500)
+        // Check immediately
+        checkIndicators()
+        
+        // Check after images load
+        setTimeout(checkIndicators, 100)
+        setTimeout(checkIndicators, 500)
+        setTimeout(checkIndicators, 1000)
         
         // Add scroll event listener to update indicators
         const scrollHandler = () => updateScrollIndicators(container.id)
         container.addEventListener('scroll', scrollHandler)
         
-        // Store handler for cleanup
+        // Add resize observer to handle window resize
+        const resizeObserver = new ResizeObserver(() => {
+          checkIndicators()
+        })
+        resizeObserver.observe(container)
+        
+        // Store handlers for cleanup
         container._scrollHandler = scrollHandler
+        container._resizeObserver = resizeObserver
       }
     })
     
     return () => {
       containers.forEach(container => {
-        if (container.id && container._scrollHandler) {
-          container.removeEventListener('scroll', container._scrollHandler)
-          delete container._scrollHandler
+        if (container.id) {
+          if (container._scrollHandler) {
+            container.removeEventListener('scroll', container._scrollHandler)
+            delete container._scrollHandler
+          }
+          if (container._resizeObserver) {
+            container._resizeObserver.disconnect()
+            delete container._resizeObserver
+          }
         }
       })
     }
