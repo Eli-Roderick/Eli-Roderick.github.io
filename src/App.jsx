@@ -735,7 +735,13 @@ export default function App() {
                     className="ai-text-editor"
                     contentEditable
                     suppressContentEditableWarning={true}
-                    onInput={(e) => setDraftAIText(e.target.innerHTML)}
+                    onInput={(e) => {
+                      // Debounce state updates to prevent cursor jumping
+                      clearTimeout(window.draftTextTimeout)
+                      window.draftTextTimeout = setTimeout(() => {
+                        setDraftAIText(e.target.innerHTML)
+                      }, 300)
+                    }}
                     onPaste={(e) => {
                       e.preventDefault()
                       const pasteHTML = e.clipboardData.getData('text/html')
