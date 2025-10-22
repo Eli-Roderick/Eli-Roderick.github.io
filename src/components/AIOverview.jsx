@@ -16,12 +16,22 @@ function processContent(html) {
   console.log('Contains { ?', html.includes('{'))
   console.log('Contains } ?', html.includes('}'))
   
+  // Step 0: Clean up HTML tags that might split curly braces
+  // Remove span and div tags but keep their content to merge split braces
+  let processed = html
+    .replace(/<span[^>]*>/g, '')
+    .replace(/<\/span>/g, '')
+    .replace(/<div[^>]*>/g, '')
+    .replace(/<\/div>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .trim()
+  console.log('After cleaning HTML:', processed)
+  
   // Use placeholders to prevent double processing
   const placeholders = new Map()
   let placeholderCounter = 0
   
   // Step 1: Handle curly brace grouped images - check for HTML encoded braces too
-  let processed = html
   
   // Function to create image row
   const createImageRow = (imageMatches) => {
