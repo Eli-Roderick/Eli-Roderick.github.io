@@ -3,10 +3,10 @@ import AIOverview from './components/AIOverview'
 import SearchResult from './components/SearchResult'
 import AdResult from './components/AdResult'
 import ImageManager from './components/ImageManager'
-import AIOverviewEditor from './components/AIOverviewEditor'
+import SimpleTextEditor from './components/SimpleTextEditor'
 import SearchPage from './pages/SearchPage'
 import { ClickLogger } from './utils/logger'
-import { loadConfigList, loadConfigByPath } from './utils/configLoader'
+import { loadConfigList, loadConfigByPath } from './utils/config'
 
 const logger = new ClickLogger()
 
@@ -29,11 +29,30 @@ export default function App() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('All')
   const [userAIText, setUserAIText] = useState('')
-  const [userAITitle, setUserAITitle] = useState('AI Overview')
-  const [showAIEditor, setShowAIEditor] = useState(false)
+  const [showPasteModal, setShowPasteModal] = useState(false)
+  const [draftAIText, setDraftAIText] = useState('')
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showImageManager, setShowImageManager] = useState(false)
   const [selectedResultForImages, setSelectedResultForImages] = useState(null)
+  const [showAIOverviewManager, setShowAIOverviewManager] = useState(false)
+  const [modalView, setModalView] = useState('editor') // 'editor' or 'list'
+  const [draftTitle, setDraftTitle] = useState('')
+  const [aiOverviews, setAIOverviews] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ai_overviews')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
+  const [selectedAIOverviewId, setSelectedAIOverviewId] = useState(() => {
+    try {
+      const saved = localStorage.getItem('selected_ai_overview_id')
+      return saved || null
+    } catch {
+      return null
+    }
+  })
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(() => {
     try {
       const saved = localStorage.getItem('ai_overview_enabled')
@@ -132,17 +151,60 @@ export default function App() {
     }
   }
 
-  const openAIEditor = () => {
-    setShowAIEditor(true)
+  const openPasteModal = () => {
+    // Determine which view to show
+    if (selectedAIOverviewId || userAIText) {
+      setModalView('editor')
+      const selectedOverview = aiOverviews.find(overview => overview.id === selectedAIOverviewId)
+      if (selectedOverview) {
+        setDraftTitle(selectedOverview.title)
+        setDraftAIText(selectedOverview.text)
+      } else {
+        setDraftTitle('')
+        setDraftAIText(userAIText)
+      }
+    } else {
+      setModalView('list')
+    }
+    setShowPasteModal(true)
   }
 
-  const handleAISave = ({ title, text }) => {
-    setUserAITitle(title)
-    setUserAIText(text)
-    try {
-      localStorage.setItem('ai_overview_title', title)
-      localStorage.setItem('ai_overview_text', text)
-    } catch {}
+  const savePasteModal = () => {
+    if (selectedAIOverviewId) {
+      // Update existing AI overview
+      updateAIOverview(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
+    } else if (modalView === 'editor' && draftAIText !== userAIText) {
+      // Create new AI overview if text is different and we're in editor mode
+      const newId = createAIOverview(draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
+      setSelectedAIOverviewId(newId)
+    }
+    setUserAIText(draftAIText)
+    setShowPasteModal(false)
+  }
+
+  const clearAIOverview = () => {
+    setDraftTitle('')
+    setDraftAIText('')
+    setUserAIText('')
+    setSelectedAIOverviewId(null)
+  }
+
+  const handleBackToList = () => {
+    setModalView('list')
+  }
+
+  const handleSelectFromList = (overview) => {
+    setModalView('editor')
+    setDraftTitle(overview.title)
+    setDraftAIText(overview.text)
+    selectAIOverview(overview.id)
+  }
+
+  const handleCreateNew = () => {
+    setModalView('editor')
+    setDraftTitle('')
+    setDraftAIText('')
+    setSelectedAIOverviewId(null)
   }
 
   const handleImagesUpdate = (resultUrl, images) => {
@@ -357,7 +419,7 @@ export default function App() {
             </select>
             <button
               className="border rounded px-2 py-1 text-sm whitespace-nowrap"
-              onClick={openAIEditor}
+              onClick={openPasteModal}
               title="Set AI Overview text"
             >
               <span className="material-symbols-outlined align-middle mr-1">edit</span>
@@ -445,7 +507,7 @@ export default function App() {
                   className="w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white mb-2"
                   onClick={() => {
                     setShowProfileMenu(false)
-                    openAIEditor()
+                    openPasteModal()
                   }}
                 >
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">edit</span>
