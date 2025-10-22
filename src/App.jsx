@@ -736,10 +736,36 @@ export default function App() {
                     contentEditable
                     suppressContentEditableWarning={true}
                     onInput={(e) => {
+                      // Save cursor position before state update
+                      const selection = window.getSelection()
+                      const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null
+                      const cursorOffset = range ? range.startOffset : 0
+                      const cursorNode = range ? range.startContainer : null
+                      
                       // Debounce state updates to prevent cursor jumping
                       clearTimeout(window.draftTextTimeout)
                       window.draftTextTimeout = setTimeout(() => {
                         setDraftAIText(e.target.innerHTML)
+                        
+                        // Restore cursor position after React re-render
+                        setTimeout(() => {
+                          if (cursorNode && e.target.contains(cursorNode)) {
+                            try {
+                              const newRange = document.createRange()
+                              newRange.setStart(cursorNode, Math.min(cursorOffset, cursorNode.textContent?.length || 0))
+                              newRange.collapse(true)
+                              selection.removeAllRanges()
+                              selection.addRange(newRange)
+                            } catch (err) {
+                              // Fallback: place cursor at end
+                              const newRange = document.createRange()
+                              newRange.selectNodeContents(e.target)
+                              newRange.collapse(false)
+                              selection.removeAllRanges()
+                              selection.addRange(newRange)
+                            }
+                          }
+                        }, 0)
                       }, 300)
                     }}
                     onPaste={(e) => {
@@ -757,9 +783,31 @@ export default function App() {
                       const sanitized = sanitizeHTML(paste)
                       console.log('Sanitized content:', sanitized)
                       
-                      document.execCommand('insertHTML', false, sanitized)
+                      // Get current selection/cursor position
+                      const selection = window.getSelection()
+                      if (selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0)
+                        range.deleteContents() // Remove any selected text
+                        
+                        // Create a temporary div to hold the sanitized HTML
+                        const tempDiv = document.createElement('div')
+                        tempDiv.innerHTML = sanitized
+                        
+                        // Insert each child node from the temp div
+                        while (tempDiv.firstChild) {
+                          range.insertNode(tempDiv.firstChild)
+                          range.collapse(false) // Move cursor to end of inserted content
+                        }
+                      } else {
+                        // Fallback: if no selection, append to end
+                        const tempDiv = document.createElement('div')
+                        tempDiv.innerHTML = sanitized
+                        while (tempDiv.firstChild) {
+                          e.target.appendChild(tempDiv.firstChild)
+                        }
+                      }
                       
-                      // Update state with sanitized content
+                      // Update state with final content
                       setTimeout(() => {
                         const finalContent = e.target.innerHTML
                         console.log('Final content in editor:', finalContent)
