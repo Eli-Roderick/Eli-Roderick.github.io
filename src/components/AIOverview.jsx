@@ -13,6 +13,12 @@ function processContent(html) {
   if (!html) return ''
   let processed = html
   
+  // Convert line breaks to proper HTML if it's plain text
+  if (!html.includes('<') && !html.includes('>')) {
+    // It's plain text, convert line breaks
+    processed = html.replace(/\n/g, '<br>')
+  }
+  
   // Use placeholders to prevent double processing
   const placeholders = new Map()
   let placeholderCounter = 0
@@ -145,16 +151,11 @@ export default function AIOverview({ text }) {
   const limit = 750
   
   const processedText = useMemo(() => {
-    // Process and sanitize HTML content properly
+    // Process content while preserving HTML formatting
     if (!text) return ''
     
-    // First process images
-    const withImages = processContent(text)
-    
-    // Then sanitize and format the HTML
-    const sanitized = withImages
-    
-    return sanitized
+    // Process images and preserve HTML structure
+    return processContent(text)
   }, [text])
   
   // Handle feedback clicks
