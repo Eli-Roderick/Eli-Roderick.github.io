@@ -145,11 +145,18 @@ export default function AIOverview({ text }) {
   const limit = 750
   
   const processedText = useMemo(() => {
-    // Process content while preserving HTML formatting
     if (!text) return ''
     
-    // Process images and preserve HTML structure
-    return processContent(text)
+    // Debug: log the original text
+    console.log('Original text:', text)
+    
+    // Process image syntax while preserving all HTML formatting
+    let content = processContent(text)
+    
+    // Debug: log the processed content
+    console.log('Processed content:', content)
+    
+    return content
   }, [text])
   
   // Handle feedback clicks
