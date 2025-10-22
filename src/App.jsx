@@ -3,7 +3,7 @@ import AIOverview from './components/AIOverview'
 import SearchResult from './components/SearchResult'
 import AdResult from './components/AdResult'
 import ImageManager from './components/ImageManager'
-import SimpleTextEditor from './components/SimpleTextEditor'
+import AIOverviewEditor from './components/AIOverviewEditor'
 import SearchPage from './pages/SearchPage'
 import { ClickLogger } from './utils/logger'
 import { loadConfigList, loadConfigByPath } from './utils/config'
@@ -29,30 +29,11 @@ export default function App() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('All')
   const [userAIText, setUserAIText] = useState('')
-  const [showPasteModal, setShowPasteModal] = useState(false)
-  const [draftAIText, setDraftAIText] = useState('')
+  const [userAITitle, setUserAITitle] = useState('AI Overview')
+  const [showAIEditor, setShowAIEditor] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showImageManager, setShowImageManager] = useState(false)
   const [selectedResultForImages, setSelectedResultForImages] = useState(null)
-  const [showAIOverviewManager, setShowAIOverviewManager] = useState(false)
-  const [modalView, setModalView] = useState('editor') // 'editor' or 'list'
-  const [draftTitle, setDraftTitle] = useState('')
-  const [aiOverviews, setAIOverviews] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ai_overviews')
-      return saved ? JSON.parse(saved) : []
-    } catch {
-      return []
-    }
-  })
-  const [selectedAIOverviewId, setSelectedAIOverviewId] = useState(() => {
-    try {
-      const saved = localStorage.getItem('selected_ai_overview_id')
-      return saved || null
-    } catch {
-      return null
-    }
-  })
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(() => {
     try {
       const saved = localStorage.getItem('ai_overview_enabled')
@@ -70,30 +51,15 @@ export default function App() {
     }
   })
 
-  // Prevent background scroll when modal is open and handle escape key
+  // Load persisted AI text and title on mount
   useEffect(() => {
-    if (showPasteModal) {
-      document.body.classList.add('modal-open')
-      document.body.style.overflow = 'hidden'
-      
-      // Add escape key handler
-      const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-          setShowPasteModal(false)
-        }
-      }
-      document.addEventListener('keydown', handleEscape)
-      
-      return () => {
-        document.removeEventListener('keydown', handleEscape)
-        document.body.classList.remove('modal-open')
-        document.body.style.overflow = ''
-      }
-    } else {
-      document.body.classList.remove('modal-open')
-      document.body.style.overflow = ''
-    }
-  }, [showPasteModal])
+    try {
+      const savedText = localStorage.getItem('ai_overview_text')
+      const savedTitle = localStorage.getItem('ai_overview_title')
+      if (savedText) setUserAIText(savedText)
+      if (savedTitle) setUserAITitle(savedTitle)
+    } catch {}
+  }, [])
 
   useEffect(() => {
     (async () => {
@@ -109,13 +75,6 @@ export default function App() {
     })()
   }, [])
 
-  // Load persisted AI text on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('ai_overview_text')
-      if (saved) setUserAIText(saved)
-    } catch {}
-  }, [])
 
   useEffect(() => {
     if (!order.length) return
@@ -173,60 +132,17 @@ export default function App() {
     }
   }
 
-  const openPasteModal = () => {
-    // Determine which view to show
-    if (selectedAIOverviewId || userAIText) {
-      setModalView('editor')
-      const selectedOverview = aiOverviews.find(overview => overview.id === selectedAIOverviewId)
-      if (selectedOverview) {
-        setDraftTitle(selectedOverview.title)
-        setDraftAIText(selectedOverview.text)
-      } else {
-        setDraftTitle('')
-        setDraftAIText(userAIText)
-      }
-    } else {
-      setModalView('list')
-    }
-    setShowPasteModal(true)
+  const openAIEditor = () => {
+    setShowAIEditor(true)
   }
 
-  const savePasteModal = () => {
-    if (selectedAIOverviewId) {
-      // Update existing AI overview
-      updateAIOverview(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
-    } else if (modalView === 'editor' && draftAIText !== userAIText) {
-      // Create new AI overview if text is different and we're in editor mode
-      const newId = createAIOverview(draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
-      setSelectedAIOverviewId(newId)
-    }
-    setUserAIText(draftAIText)
-    setShowPasteModal(false)
-  }
-
-  const clearAIOverview = () => {
-    setDraftTitle('')
-    setDraftAIText('')
-    setUserAIText('')
-    setSelectedAIOverviewId(null)
-  }
-
-  const handleBackToList = () => {
-    setModalView('list')
-  }
-
-  const handleSelectFromList = (overview) => {
-    setModalView('editor')
-    setDraftTitle(overview.title)
-    setDraftAIText(overview.text)
-    selectAIOverview(overview.id)
-  }
-
-  const handleCreateNew = () => {
-    setModalView('editor')
-    setDraftTitle('')
-    setDraftAIText('')
-    setSelectedAIOverviewId(null)
+  const handleAISave = ({ title, text }) => {
+    setUserAITitle(title)
+    setUserAIText(text)
+    try {
+      localStorage.setItem('ai_overview_title', title)
+      localStorage.setItem('ai_overview_text', text)
+    } catch {}
   }
 
   const handleImagesUpdate = (resultUrl, images) => {
@@ -441,7 +357,7 @@ export default function App() {
             </select>
             <button
               className="border rounded px-2 py-1 text-sm whitespace-nowrap"
-              onClick={openPasteModal}
+              onClick={openAIEditor}
               title="Set AI Overview text"
             >
               <span className="material-symbols-outlined align-middle mr-1">edit</span>
@@ -476,330 +392,14 @@ export default function App() {
       </header>
 
 
-      {/* Enhanced Paste Modal */}
-      {showPasteModal && (
-        <div style={{
-          position: 'fixed',
-          top: '0px',
-          left: '0px',
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          zIndex: 999999,
-          pointerEvents: 'all'
-        }} onClick={() => {
-          if (modalView === 'editor') {
-            savePasteModal()
-          } else {
-            setUserAIText('')
-            setSelectedAIOverviewId(null)
-            setShowPasteModal(false)
-          }
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '90%',
-            maxWidth: '700px',
-            backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            zIndex: 1000000,
-            pointerEvents: 'all',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-            maxHeight: '85vh',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-          }} onClick={(e) => e.stopPropagation()}>
-            
-            {/* Header */}
-            <div style={{ 
-              padding: '1rem', 
-              borderBottom: '1px solid var(--border)', 
-              backgroundColor: 'var(--card-bg)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexShrink: 0
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                {modalView === 'editor' && (aiOverviews.length > 0 || selectedAIOverviewId) && (
-                  <button 
-                    style={{ 
-                      background: 'none', 
-                      border: 'none', 
-                      padding: '0.5rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      color: 'var(--muted)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }} 
-                    onClick={handleBackToList}
-                  >
-                    ←
-                  </button>
-                )}
-                <h2 style={{ margin: 0, color: 'var(--text)', fontSize: '18px', fontWeight: '600' }}>
-                  {modalView === 'editor' ? 'Set AI Overview Text' : 'AI Overview Manager'}
-                </h2>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                {/* AI Overview Toggle */}
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.75rem',
-                  padding: '0.5rem 0.75rem',
-                  backgroundColor: 'var(--bg)',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border)'
-                }}>
-                  <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: '600' }}>AI Overview</span>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '52px', height: '28px' }}>
-                    <input
-                      type="checkbox"
-                      checked={aiOverviewEnabled}
-                      onChange={(e) => setAIOverviewEnabled(e.target.checked)}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: aiOverviewEnabled ? '#007bff' : '#ccc',
-                      transition: '0.3s',
-                      borderRadius: '28px',
-                      boxShadow: aiOverviewEnabled ? '0 0 0 2px rgba(0, 123, 255, 0.25)' : 'none'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '""',
-                        height: '22px',
-                        width: '22px',
-                        left: aiOverviewEnabled ? '27px' : '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        transition: '0.3s',
-                        borderRadius: '50%',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-                      }}></span>
-                    </span>
-                  </label>
-                  <span style={{ 
-                    fontSize: '12px', 
-                    color: aiOverviewEnabled ? '#007bff' : 'var(--muted)',
-                    fontWeight: '500'
-                  }}>
-                    {aiOverviewEnabled ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-                <button 
-                  style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    fontSize: '20px', 
-                    cursor: 'pointer',
-                    color: 'var(--muted)'
-                  }} 
-                  onClick={() => {
-                    if (modalView === 'editor') {
-                      savePasteModal()
-                    } else {
-                      setUserAIText('')
-                      setSelectedAIOverviewId(null)
-                      setShowPasteModal(false)
-                    }
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div style={{ 
-              padding: '1rem', 
-              backgroundColor: 'var(--card-bg)',
-              flex: 1,
-              overflow: 'auto'
-            }}>
-              {modalView === 'editor' ? (
-                <>
-                  {/* Title Input */}
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
-                      AI Overview Title
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter a title for this AI overview..."
-                      value={draftTitle}
-                      onChange={(e) => setDraftTitle(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '1px solid var(--border)',
-                        borderRadius: '4px',
-                        backgroundColor: 'var(--card-bg)',
-                        color: 'var(--text)',
-                        fontSize: '14px',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ marginBottom: '1rem', color: 'var(--muted)', fontSize: '14px' }}>
-                    <p style={{ margin: '0 0 8px 0' }}><strong>Tip:</strong> You can include images by pasting image URLs (jpg, png, gif, webp, svg, bmp).</p>
-                    <p style={{ margin: '0 0 4px 0' }}><strong>Examples:</strong></p>
-                    <p style={{ margin: '0 0 4px 0' }}>• Single image: [https://example.com/image.jpg]</p>
-                    <p style={{ margin: '0 0 4px 0' }}>• Horizontal row: {'{[image1.jpg][image2.jpg][image3.jpg]}'}</p>
-                    <p style={{ margin: '0' }}>• Use curly braces {} to group images into scrollable rows</p>
-                  </div>
-                  <SimpleTextEditor
-                    value={draftAIText}
-                    onChange={setDraftAIText}
-                    placeholder="Paste your AI overview content here..."
-                  />
-                </>
-              ) : (
-                <>
-                  {/* Create New Button */}
-                  <button 
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      background: 'var(--primary)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      marginBottom: '1rem'
-                    }}
-                    onClick={handleCreateNew}
-                  >
-                    + Create New AI Overview
-                  </button>
-
-                  {/* AI Overviews List */}
-                  <div style={{ maxHeight: '400px', overflow: 'auto' }}>
-                    {aiOverviews.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
-                        <p style={{ margin: '0.5rem 0' }}>No AI overviews created yet.</p>
-                        <p style={{ margin: '0.5rem 0' }}>Create your first one to get started!</p>
-                      </div>
-                    ) : (
-                      aiOverviews.map(overview => (
-                        <div 
-                          key={overview.id} 
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '0.75rem',
-                            padding: '1rem',
-                            border: `1px solid ${selectedAIOverviewId === overview.id ? 'var(--primary)' : 'var(--border)'}`,
-                            borderRadius: '8px',
-                            marginBottom: '0.75rem',
-                            background: selectedAIOverviewId === overview.id ? 'color-mix(in hsl, var(--primary), transparent 95%)' : 'var(--card-bg)',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => handleSelectFromList(overview)}
-                        >
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>{overview.title}</h3>
-                              <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                                {new Date(overview.createdAt).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                            </div>
-                            <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.4', color: 'var(--text-secondary)' }}>
-                              {overview.text.length > 150 
-                                ? overview.text.substring(0, 150) + '...' 
-                                : overview.text}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Footer */}
-            {modalView === 'editor' && (
-              <div style={{ 
-                padding: '1rem', 
-                borderTop: '1px solid var(--border)', 
-                backgroundColor: 'var(--card-bg)',
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '8px',
-                flexShrink: 0
-              }}>
-                <button 
-                  style={{ 
-                    padding: '8px 16px', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '4px',
-                    backgroundColor: 'var(--card-bg)',
-                    color: 'var(--text)',
-                    cursor: 'pointer'
-                  }} 
-                  onClick={clearAIOverview}
-                >
-                  Clear
-                </button>
-                <button 
-                  style={{ 
-                    padding: '8px 16px', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '4px',
-                    backgroundColor: 'var(--card-bg)',
-                    color: 'var(--text)',
-                    cursor: 'pointer'
-                  }} 
-                  onClick={() => setShowPasteModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  style={{ 
-                    padding: '8px 16px', 
-                    border: 'none',
-                    borderRadius: '4px',
-                    backgroundColor: '#007bff',
-                    color: 'white',
-                    cursor: 'pointer'
-                  }} 
-                  onClick={savePasteModal}
-                >
-                  Save
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* AI Overview Editor */}
+      <AIOverviewEditor
+        isOpen={showAIEditor}
+        onClose={() => setShowAIEditor(false)}
+        onSave={handleAISave}
+        initialText={userAIText}
+        initialTitle={userAITitle}
+      />
 
       {/* Image Manager Modal */}
       {showImageManager && (
@@ -997,7 +597,7 @@ export default function App() {
                   className="w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white mb-2"
                   onClick={() => {
                     setShowProfileMenu(false)
-                    openPasteModal()
+                    openAIEditor()
                   }}
                 >
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">edit</span>
