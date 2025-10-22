@@ -18,20 +18,24 @@ function processContent(html) {
   
   // Step 1: Handle curly brace grouped images {[image1][image2][image3]}
   let processed = html.replace(/\{(\[[^\]]+\])+\}/g, (match) => {
+    console.log('Processing curly brace match:', match)
     // Extract all bracketed images from within the curly braces
     const imageMatches = match.match(/\[([^\]]+)\]/g) || []
+    console.log('Found image matches:', imageMatches)
     
     if (imageMatches.length > 0) {
       const containerId = `image-row-${Math.random().toString(36).substr(2, 9)}`
       let row = `<div class="image-row-container" style="clear: both; margin: 1rem 0;">
-        <div class="image-row" id="${containerId}">`
+        <div class="image-row" id="${containerId}" style="display: flex !important; flex-direction: row !important; gap: 0.5rem !important; overflow-x: auto !important; scroll-behavior: smooth !important;">`
       
       let hasValidImages = false
       imageMatches.forEach(bracketedUrl => {
         const url = bracketedUrl.slice(1, -1) // Remove [ and ]
+        console.log('Processing URL:', url)
         // Check if it's an image URL
         if (/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?.*)?$/i.test(url)) {
-          row += `<img src="${url}" alt="User provided image" />`
+          console.log('Valid image URL:', url)
+          row += `<img src="${url}" alt="User provided image" style="min-width: 200px !important; max-width: 200px !important; width: 200px !important; height: auto !important; border-radius: 0.5rem !important; flex-shrink: 0 !important;" />`
           hasValidImages = true
         }
       })
@@ -42,6 +46,7 @@ function processContent(html) {
       </div>`
       
       if (hasValidImages) {
+        console.log('Creating image row with', imageMatches.length, 'images')
         // Create a placeholder to prevent further processing
         const placeholder = `__IMAGE_ROW_PLACEHOLDER_${placeholderCounter++}__`
         placeholders.set(placeholder, row)
