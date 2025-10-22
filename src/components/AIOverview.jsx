@@ -141,7 +141,11 @@ export default function AIOverview({ text }) {
   const [feedback, setFeedback] = useState(null) // 'up', 'down', or null
   const limit = 750
   
-  const processedText = useMemo(() => processContent(text), [text])
+  const processedText = useMemo(() => {
+    // Convert plain text to HTML with line breaks
+    if (!text) return ''
+    return text.replace(/\n/g, '<br>')
+  }, [text])
   
   // Handle feedback clicks
   const handleFeedback = (type) => {

@@ -643,12 +643,15 @@ export default function App() {
                     <p style={{ margin: '0 0 4px 0' }}>• Horizontal row: {'{[image1.jpg][image2.jpg][image3.jpg]}'}</p>
                     <p style={{ margin: '0' }}>• Use curly braces {} to group images into scrollable rows</p>
                   </div>
-                  <div
+                  <textarea
                     className="ai-text-editor"
-                    contentEditable
-                    suppressContentEditableWarning={true}
-                    onInput={(e) => setDraftAIText(e.target.innerHTML)}
-                    dangerouslySetInnerHTML={{ __html: draftAIText }}
+                    value={draftAIText}
+                    onChange={(e) => setDraftAIText(e.target.value)}
+                    placeholder="Paste your AI overview content here..."
+                    style={{
+                      resize: 'vertical',
+                      fontFamily: 'inherit'
+                    }}
                   />
                 </>
               ) : (
