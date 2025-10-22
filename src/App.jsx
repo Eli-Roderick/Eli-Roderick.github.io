@@ -350,6 +350,20 @@ export default function App() {
       const container = document.createElement('div')
       container.innerHTML = html || ''
 
+      // Remove problematic styles that cause sizing issues
+      container.querySelectorAll('*').forEach((el) => {
+        // Remove all style attributes to prevent sizing issues
+        el.removeAttribute('style')
+        el.removeAttribute('class')
+        
+        // Remove data attributes that might cause issues
+        Array.from(el.attributes).forEach(attr => {
+          if (attr.name.startsWith('data-') || attr.name.startsWith('aria-')) {
+            el.removeAttribute(attr.name)
+          }
+        })
+      })
+
       // Convert styled spans to semantic tags before filtering
       container.querySelectorAll('span').forEach((el) => {
         const fw = (el.style && el.style.fontWeight) || ''
