@@ -1,31 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useRef } from 'react'
 
 export default function SimpleTextEditor({ value, onChange, placeholder }) {
-  const [internalValue, setInternalValue] = useState(value || '')
   const textareaRef = useRef(null)
 
-  // Sync with external value changes
-  useEffect(() => {
-    if (value !== internalValue) {
-      setInternalValue(value || '')
-    }
-  }, [value])
-
   const handleChange = (e) => {
-    const newValue = e.target.value
-    setInternalValue(newValue)
-    
-    // Debounce the external onChange to prevent issues
-    clearTimeout(window.textEditorTimeout)
-    window.textEditorTimeout = setTimeout(() => {
-      onChange(newValue)
-    }, 100)
+    onChange(e.target.value)
   }
 
   return (
     <textarea
       ref={textareaRef}
-      value={internalValue}
+      value={value || ''}
       onChange={handleChange}
       placeholder={placeholder}
       style={{
