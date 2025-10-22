@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import AIOverview from './components/AIOverview'
 import SearchResult from './components/SearchResult'
 import AdResult from './components/AdResult'
 import ImageManager from './components/ImageManager'
 import SimpleTextEditor from './components/SimpleTextEditor'
+import SearchPage from './pages/SearchPage'
 import { ClickLogger } from './utils/logger'
+import { loadConfigList, loadConfigByPath } from './utils/config'
 
 const logger = new ClickLogger()
 
@@ -190,16 +192,15 @@ export default function App() {
   }
 
   const savePasteModal = () => {
-      if (selectedAIOverviewId) {
-        // Update existing AI overview
-        updateAIOverview(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
-      } else if (modalView === 'editor' && draftAIText !== userAIText) {
-        // Create new AI overview if text is different and we're in editor mode
-        const newId = createAIOverview(draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
-        setSelectedAIOverviewId(newId)
-      }
-      setUserAIText(draftAIText)
+    if (selectedAIOverviewId) {
+      // Update existing AI overview
+      updateAIOverview(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
+    } else if (modalView === 'editor' && draftAIText !== userAIText) {
+      // Create new AI overview if text is different and we're in editor mode
+      const newId = createAIOverview(draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
+      setSelectedAIOverviewId(newId)
     }
+    setUserAIText(draftAIText)
     setShowPasteModal(false)
   }
 
@@ -370,7 +371,7 @@ export default function App() {
         zIndex: 9999,
         border: '2px solid black'
       }}>
-        v1.18.0 ✓
+        v1.19.2 ✓
       </div>
 
       {/* Header */}
@@ -900,7 +901,7 @@ export default function App() {
                       backgroundColor: 'var(--card-bg)',
                       transition: 'background-color 0.2s'
                     }}
-                    onClick={() => openImageEditorForResult(result)}
+                    onClick={() => setSelectedResultForImages(result)}
                     onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--border-subtle)'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--card-bg)'}
                   >
