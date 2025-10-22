@@ -341,6 +341,9 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 /* Custom scroll indicators */
 .image-row-container {
   position: relative !important;
+  width: 100% !important;
+  display: block !important;
+  clear: both !important;
 }
 
 .scroll-indicator {

@@ -19,7 +19,7 @@ function processContent(html) {
     
     if (imageMatches.length > 0) {
       const containerId = `image-row-${Math.random().toString(36).substr(2, 9)}`
-      let row = `<div class="image-row-container">
+      let row = `<div class="image-row-container" style="clear: both; margin: 1rem 0;">
         <div class="image-row" id="${containerId}">`
       
       imageMatches.forEach(bracketedUrl => {
@@ -44,7 +44,7 @@ function processContent(html) {
   processed = processed.replace(/\[([^\]]+)\]/g, (match, url) => {
     // Check if it's an image URL
     if (/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?.*)?$/i.test(url)) {
-      return `<img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; margin: 0.5rem 0; border-radius: 0.5rem; display: block;" />`
+      return `<div style="clear: both; margin: 1rem 0;"><img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; border-radius: 0.5rem; display: block;" /></div>`
     }
     return match // Return original if not an image
   })
@@ -149,56 +149,56 @@ export default function AIOverview({ text }) {
     return plain.trim().length > limit
   }, [text])
   
-  // Create truncated version that ALWAYS shows at least 220 chars of text + all images in original positions
+  // Create truncated version that ALWAYS shows at least 750 chars of text + all images in original positions
   const truncatedContent = useMemo(() => {
     if (!wasTruncated || expanded) return processedText
     
-    // Strategy: Go through original text, include all images, ensure we get 220 chars of text
-    const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/gi
+    // Strategy: Split text into segments, preserve image blocks, truncate text portions
+    const imageBlockRegex = /(\{(?:\[[^\]]+\])+\}|\[[^\]]+\])/g
+    const segments = text.split(imageBlockRegex)
     
-    // Count text characters in original content (excluding images)
-    const textWithoutImages = text.replace(imageUrlRegex, '')
-    const totalTextChars = stripTags(textWithoutImages).length
-    
-    if (totalTextChars <= limit) {
-      // If total text is under limit, show everything
-      return processedText
-    }
-    
-    // Need to truncate: go through original text and collect 220 chars of text + all images
     let result = ''
     let textCharCount = 0
-    let i = 0
     
-    while (i < text.length && textCharCount < limit) {
-      // Check if we're at the start of an image URL
-      const remainingText = text.substring(i)
-      const imageMatch = remainingText.match(/^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?[^\s]*)?)/i)
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i]
       
-      if (imageMatch) {
-        // This is an image URL - include it completely
-        result += imageMatch[0]
-        i += imageMatch[0].length
+      // Check if this segment is an image block
+      if (imageBlockRegex.test(segment)) {
+        // This is an image block - always include it
+        result += segment
+        imageBlockRegex.lastIndex = 0 // Reset regex
       } else {
-        // This is regular content - check if it adds to text count
-        const char = text[i]
-        result += char
+        // This is text content - check if we need to truncate
+        const segmentTextLength = stripTags(segment).length
         
-        // Only count actual text characters (not HTML tags)
-        if (char !== '<') {
-          const plainChar = stripTags(char)
-          if (plainChar.length > 0) {
-            textCharCount++
-          }
+        if (textCharCount + segmentTextLength <= limit) {
+          // Include entire segment
+          result += segment
+          textCharCount += segmentTextLength
         } else {
-          // Skip HTML tag
-          const tagEnd = text.indexOf('>', i)
-          if (tagEnd !== -1) {
-            result += text.substring(i + 1, tagEnd + 1)
-            i = tagEnd
+          // Truncate this segment
+          const remainingChars = limit - textCharCount
+          if (remainingChars > 0) {
+            // Take only part of this segment
+            let truncatedSegment = ''
+            let segmentCharCount = 0
+            
+            for (let j = 0; j < segment.length && segmentCharCount < remainingChars; j++) {
+              const char = segment[j]
+              truncatedSegment += char
+              
+              // Count only visible text characters
+              const plainChar = stripTags(char)
+              if (plainChar.length > 0) {
+                segmentCharCount++
+              }
+            }
+            
+            result += truncatedSegment
           }
+          break // Stop processing further segments
         }
-        i++
       }
     }
     
