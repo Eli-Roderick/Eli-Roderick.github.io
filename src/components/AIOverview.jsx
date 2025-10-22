@@ -13,12 +13,6 @@ function processContent(html) {
   if (!html) return ''
   let processed = html
   
-  // Convert line breaks to proper HTML if it's plain text
-  if (!html.includes('<') && !html.includes('>')) {
-    // It's plain text, convert line breaks
-    processed = html.replace(/\n/g, '<br>')
-  }
-  
   // Use placeholders to prevent double processing
   const placeholders = new Map()
   let placeholderCounter = 0
@@ -291,7 +285,7 @@ export default function AIOverview({ text }) {
         </div>
       </div>
       <div
-        className={`ai-body whitespace-pre-wrap ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
+        className={`ai-body ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
         dangerouslySetInnerHTML={{ __html: expanded ? processedText : truncatedContent }}
       />
 
