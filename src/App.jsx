@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import AIOverview from './components/AIOverview'
+import SimpleAIOverview from './components/SimpleAIOverview'
 import SearchResult from './components/SearchResult'
 import AdResult from './components/AdResult'
 import ImageManager from './components/ImageManager'
-import SimpleTextEditor from './components/SimpleTextEditor'
+import RichTextEditor from './components/RichTextEditor'
 import SearchPage from './pages/SearchPage'
 import { ClickLogger } from './utils/logger'
 import { loadConfigList, loadConfigByPath } from './utils/config'
@@ -467,22 +467,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      {/* Version Indicator */}
-      <div style={{
-        position: 'fixed',
-        top: '10px',
-        right: '10px',
-        background: '#00ff00',
-        color: 'black',
-        padding: '4px 8px',
-        borderRadius: '4px',
-        fontSize: '12px',
-        fontWeight: 'bold',
-        zIndex: 9999,
-        border: '2px solid black'
-      }}>
-        v1.19.2 ✓
-      </div>
 
       {/* Header */}
       <header className="search-header">
@@ -782,7 +766,7 @@ export default function App() {
                     <p style={{ margin: '0 0 4px 0' }}>• Horizontal row: {'{[image1.jpg][image2.jpg][image3.jpg]}'}</p>
                     <p style={{ margin: '0' }}>• Use curly braces {} to group images into scrollable rows</p>
                   </div>
-                  <SimpleTextEditor
+                  <RichTextEditor
                     value={draftAIText}
                     onChange={setDraftAIText}
                     placeholder="Paste your AI overview content here..."
@@ -1162,6 +1146,17 @@ export default function App() {
                 >
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">image</span>
                   Manage Images
+                </button>
+                
+                <button
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  onClick={() => {
+                    setShowProfileMenu(false)
+                    setShowClickTracker(true)
+                  }}
+                >
+                  <span className="material-symbols-outlined align-middle mr-2 text-sm">analytics</span>
+                  Click Tracking
                 </button>
               </div>
             </div>

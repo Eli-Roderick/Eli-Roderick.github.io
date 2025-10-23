@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import AIOverview from '../components/AIOverview'
+import SimpleAIOverview from '../components/SimpleAIOverview'
 import SearchResult from '../components/SearchResult'
 import AdResult from '../components/AdResult'
 
@@ -23,7 +23,7 @@ export default function SearchPage({
           {/* AI Overview */}
           {aiOverview?.show && aiOverviewEnabled && (userAIText || aiOverview.text) && (
             <div className="mt-0 md:mt-4 mb-4">
-              <AIOverview text={userAIText || aiOverview.text} />
+              <SimpleAIOverview htmlContent={userAIText || aiOverview.text} />
               <div className="ai-separator" />
             </div>
           )}
