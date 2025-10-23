@@ -90,7 +90,7 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
     margin-bottom: 0.15rem; 
   }
 }
-.ai-body { padding: 0.1rem 0; font-size: 16px; line-height: 1.7; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+.ai-body { padding: 0.1rem 0; font-size: 16px; line-height: 1.7; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; white-space: pre-wrap; }
 
 /* AI overview links - dotted underline instead of blue */
 .ai-body a {
