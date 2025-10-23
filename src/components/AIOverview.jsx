@@ -11,8 +11,6 @@ function stripTags(html) {
 
 function processContent(html) {
   if (!html) return ''
-  
-  // SIMPLE: Just return the HTML as-is and only process images
   let processed = html
   
   // Use placeholders to prevent double processing
