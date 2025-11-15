@@ -1,16 +1,16 @@
 import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import HomePage from './pages/HomePage'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import SearchResultsPage from './pages/SearchResultsPage'
 
 export default function AppRouter() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        {/* Default to hiking boots search */}
+        <Route path="/" element={<Navigate to="/search/hiking-boots" replace />} />
         <Route path="/search/:searchType" element={<SearchResultsPage />} />
-        {/* Fallback route */}
-        <Route path="*" element={<HomePage />} />
+        {/* Fallback route - also redirect to hiking boots */}
+        <Route path="*" element={<Navigate to="/search/hiking-boots" replace />} />
       </Routes>
     </Router>
   )

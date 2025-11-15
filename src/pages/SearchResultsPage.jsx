@@ -435,14 +435,14 @@ export default function SearchResultsPage() {
         <div className="px-4 md:pl-48 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-2 md:gap-4">
           {/* Google Logo - Desktop only */}
           <div className="hidden md:block">
-            <Link to="/" className="text-2xl font-normal hover:opacity-80 transition-opacity">
+            <div className="text-2xl font-normal">
               <span className="text-blue-500">G</span>
               <span className="text-red-500">o</span>
               <span className="text-yellow-500">o</span>
               <span className="text-blue-500">g</span>
               <span className="text-green-500">l</span>
               <span className="text-red-500">e</span>
-            </Link>
+            </div>
           </div>
 
           <div className="flex-1">
@@ -518,14 +518,6 @@ export default function SearchResultsPage() {
               <span className="material-symbols-outlined align-middle mr-1">analytics</span>
               Click Tracker
             </button>
-            <Link
-              to="/"
-              className="border rounded px-2 py-1 text-sm whitespace-nowrap hover:bg-gray-50"
-              title="Back to home"
-            >
-              <span className="material-symbols-outlined align-middle mr-1">home</span>
-              Home
-            </Link>
           </div>
         </div>
 
@@ -1169,15 +1161,6 @@ export default function SearchResultsPage() {
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">analytics</span>
                   Click Tracking
                 </button>
-
-                <Link
-                  to="/"
-                  className="w-full border rounded px-3 py-2 text-sm block text-center"
-                  onClick={() => setShowProfileMenu(false)}
-                >
-                  <span className="material-symbols-outlined align-middle mr-2 text-sm">home</span>
-                  Back to Home
-                </Link>
               </div>
             </div>
           </div>
