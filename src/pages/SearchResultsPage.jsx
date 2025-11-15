@@ -45,7 +45,7 @@ export default function SearchResultsPage() {
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
   console.log('SearchResultsPage loading with query:', searchQuery)
   
-  // Find matching config - try exact match first, then fallback to hiking boots
+  // Find matching config - try built-in first, then custom pages, then fallback
   let searchConfig = queryToConfig[searchQuery.toLowerCase()]
   if (!searchConfig) {
     // Try without URL encoding
@@ -56,6 +56,16 @@ export default function SearchResultsPage() {
       )
     )
   }
+  
+  // Check custom pages
+  if (!searchConfig && customSearchPages[searchQuery.toLowerCase()]) {
+    const customPage = customSearchPages[searchQuery.toLowerCase()]
+    searchConfig = {
+      path: null, // Custom pages don't have config files
+      key: customPage.key
+    }
+  }
+  
   if (!searchConfig) {
     searchConfig = queryToConfig['best+hiking+boots'] // Default fallback
   }
@@ -117,9 +127,18 @@ export default function SearchResultsPage() {
   })
   const [showSearchManagement, setShowSearchManagement] = useState(false)
   const [showSearchResultsEditor, setShowSearchResultsEditor] = useState(false)
+  const [showNewPageEditor, setShowNewPageEditor] = useState(false)
   const [customSearchResults, setCustomSearchResults] = useState(() => {
     try {
       const saved = localStorage.getItem('custom_search_results')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+  const [customSearchPages, setCustomSearchPages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('custom_search_pages')
       return saved ? JSON.parse(saved) : {}
     } catch {
       return {}
@@ -153,6 +172,20 @@ export default function SearchResultsPage() {
   // Load config based on search query
   useEffect(() => {
     const configPath = searchConfig.path
+    
+    // Handle custom pages (no config file)
+    if (!configPath && customSearchPages[searchQuery.toLowerCase()]) {
+      const customPage = customSearchPages[searchQuery.toLowerCase()]
+      setConfig({
+        query: customPage.displayName,
+        results: [],
+        ads: [],
+        aiOverview: { show: true, text: '' }
+      })
+      setLoading(false)
+      return
+    }
+    
     if (!configPath) {
       setError('Search query not found')
       setLoading(false)
@@ -164,7 +197,7 @@ export default function SearchResultsPage() {
       .then(setConfig)
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
-  }, [searchConfig.path])
+  }, [searchConfig.path, searchQuery, customSearchPages])
 
   // Load assigned AI overview for current search type
   useEffect(() => {
@@ -424,6 +457,15 @@ export default function SearchResultsPage() {
     }
   }, [customSearchResults])
 
+  // Save custom search pages to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('custom_search_pages', JSON.stringify(customSearchPages))
+    } catch (error) {
+      console.warn('Failed to save custom search pages to localStorage:', error)
+    }
+  }, [customSearchPages])
+
   // Update userAIText when selected AI overview changes
   useEffect(() => {
     if (selectedAIOverviewId) {
@@ -572,6 +614,46 @@ export default function SearchResultsPage() {
     setCustomSearchResults(newResults)
   }
 
+  // Add custom search page
+  const addCustomSearchPage = (pageData) => {
+    const queryKey = pageData.query.toLowerCase().replace(/\s+/g, '+')
+    const searchKey = pageData.query.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    
+    const newPages = {
+      ...customSearchPages,
+      [queryKey]: {
+        ...pageData,
+        key: searchKey,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString()
+      }
+    }
+    setCustomSearchPages(newPages)
+    
+    // Initialize empty custom results for this page
+    setCustomSearchResults({
+      ...customSearchResults,
+      [searchKey]: []
+    })
+    
+    return queryKey
+  }
+
+  // Remove custom search page
+  const removeCustomSearchPage = (queryKey) => {
+    const newPages = { ...customSearchPages }
+    const pageKey = newPages[queryKey]?.key
+    delete newPages[queryKey]
+    setCustomSearchPages(newPages)
+    
+    // Also remove its custom results
+    if (pageKey) {
+      const newResults = { ...customSearchResults }
+      delete newResults[pageKey]
+      setCustomSearchResults(newResults)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -688,6 +770,14 @@ export default function SearchResultsPage() {
             >
               <span className="material-symbols-outlined align-middle mr-1">add</span>
               Edit Results
+            </button>
+            <button
+              className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-blue-600 text-white"
+              onClick={() => setShowNewPageEditor(true)}
+              title="Create entirely new search pages"
+            >
+              <span className="material-symbols-outlined align-middle mr-1">add_circle</span>
+              New Page
             </button>
             <button
               className="border rounded px-2 py-1 text-sm whitespace-nowrap"
@@ -826,6 +916,7 @@ export default function SearchResultsPage() {
                 </p>
                 
                 <div style={{ display: 'grid', gap: '1rem' }}>
+                  {/* Built-in search types */}
                   {Object.entries(displayNames).map(([key, name]) => (
                     <div key={key} style={{
                       padding: '1rem',
@@ -915,6 +1006,117 @@ export default function SearchResultsPage() {
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Custom search pages */}
+                  {Object.entries(customSearchPages).map(([queryKey, page]) => (
+                    <div key={queryKey} style={{
+                      padding: '1rem',
+                      border: `2px solid ${searchType === page.key ? '#3b82f6' : 'var(--border)'}`,
+                      borderRadius: '8px',
+                      backgroundColor: searchType === page.key ? 'color-mix(in hsl, #3b82f6, transparent 95%)' : 'var(--card-bg)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
+                            {page.displayName}
+                            {searchType === page.key && <span style={{ color: '#3b82f6', marginLeft: '0.5rem' }}>(Current)</span>}
+                            <span style={{ color: '#3b82f6', marginLeft: '0.5rem', fontSize: '12px', fontWeight: 'normal' }}>(Custom)</span>
+                          </h4>
+                          <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
+                            URL: /search?q={queryKey}
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            style={{
+                              padding: '6px 12px',
+                              border: 'none',
+                              borderRadius: '4px',
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '12px'
+                            }}
+                            onClick={() => {
+                              setShowSearchManagement(false)
+                              navigate(`/search?q=${queryKey}&oq=${queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
+                            }}
+                          >
+                            View
+                          </button>
+                          <button
+                            style={{
+                              padding: '6px 12px',
+                              border: '1px solid #dc2626',
+                              borderRadius: '4px',
+                              backgroundColor: '#dc2626',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '12px'
+                            }}
+                            onClick={() => {
+                              if (confirm(`Delete "${page.displayName}" page and all its search results?`)) {
+                                removeCustomSearchPage(queryKey)
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                          Assigned AI Overview:
+                        </label>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <select
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              backgroundColor: 'var(--card-bg)',
+                              color: 'var(--text)',
+                              fontSize: '14px'
+                            }}
+                            value={searchResultAssignments[page.key] || ''}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                assignAIOverviewToSearch(page.key, e.target.value)
+                              } else {
+                                removeAIOverviewFromSearch(page.key)
+                              }
+                            }}
+                          >
+                            <option value="">No AI Overview</option>
+                            {aiOverviews.map(overview => (
+                              <option key={overview.id} value={overview.id}>
+                                {overview.title}
+                              </option>
+                            ))}
+                          </select>
+                          {searchResultAssignments[page.key] && (
+                            <button
+                              style={{
+                                padding: '0.5rem',
+                                border: '1px solid #dc3545',
+                                borderRadius: '4px',
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                              }}
+                              onClick={() => removeAIOverviewFromSearch(page.key)}
+                              title="Remove assignment"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -933,6 +1135,20 @@ export default function SearchResultsPage() {
           onAddResult={(result) => addCustomSearchResult(searchType, result)}
           onUpdateResult={(resultId, result) => updateCustomSearchResult(searchType, resultId, result)}
           onRemoveResult={(resultId) => removeCustomSearchResult(searchType, resultId)}
+        />
+      )}
+
+      {/* New Page Editor Modal */}
+      {showNewPageEditor && (
+        <NewPageEditorModal
+          isOpen={showNewPageEditor}
+          onClose={() => setShowNewPageEditor(false)}
+          onCreatePage={(pageData) => {
+            const queryKey = addCustomSearchPage(pageData)
+            setShowNewPageEditor(false)
+            // Navigate to the new page
+            navigate(`/search?q=${queryKey}&oq=${queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
+          }}
         />
       )}
 
@@ -1492,6 +1708,17 @@ export default function SearchResultsPage() {
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">add</span>
                   Edit Results
                 </button>
+                
+                <button
+                  className="w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white mb-2"
+                  onClick={() => {
+                    setShowProfileMenu(false)
+                    setShowNewPageEditor(true)
+                  }}
+                >
+                  <span className="material-symbols-outlined align-middle mr-2 text-sm">add_circle</span>
+                  New Page
+                </button>
               </div>
               
               <div>
@@ -1836,6 +2063,217 @@ function SearchResultsEditorModal({
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// New Page Editor Modal Component
+function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
+  const [formData, setFormData] = useState({
+    query: '',
+    displayName: ''
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!formData.query.trim() || !formData.displayName.trim()) {
+      alert('Please fill in all fields')
+      return
+    }
+
+    onCreatePage(formData)
+    setFormData({ query: '', displayName: '' })
+  }
+
+  const handleQueryChange = (e) => {
+    const query = e.target.value
+    setFormData({
+      ...formData,
+      query,
+      // Auto-generate display name if it's empty
+      displayName: formData.displayName || query
+    })
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '0px',
+      left: '0px',
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      zIndex: 999999,
+      pointerEvents: 'all'
+    }} onClick={onClose}>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '90%',
+        maxWidth: '600px',
+        backgroundColor: 'var(--card-bg)',
+        border: '1px solid var(--border)',
+        borderRadius: '8px',
+        zIndex: 1000000,
+        pointerEvents: 'all',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+        maxHeight: '90vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }} onClick={(e) => e.stopPropagation()}>
+        
+        {/* Header */}
+        <div style={{ 
+          padding: '1rem', 
+          borderBottom: '1px solid var(--border)', 
+          backgroundColor: '#2563eb',
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexShrink: 0
+        }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+            Create New Search Page
+          </h2>
+          <button 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              fontSize: '20px', 
+              cursor: 'pointer',
+              color: 'white'
+            }} 
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ 
+          padding: '2rem', 
+          backgroundColor: 'var(--card-bg)',
+          flex: 1,
+          overflow: 'auto'
+        }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p style={{ margin: '0 0 1.5rem 0', fontSize: '14px', color: 'var(--muted)', lineHeight: '1.5' }}>
+              Create a completely new search page with its own URL. After creating the page, you can add custom search results to it using the "Edit Results" button.
+            </p>
+          </div>
+          
+          <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.5rem' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                Search Query *
+              </label>
+              <input
+                type="text"
+                value={formData.query}
+                onChange={handleQueryChange}
+                placeholder="e.g., best laptops 2024, healthy recipes, travel tips"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '4px',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
+                  fontSize: '14px'
+                }}
+                required
+              />
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
+                This will be the search query that appears in the URL and search bar
+              </p>
+            </div>
+            
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                Display Name *
+              </label>
+              <input
+                type="text"
+                value={formData.displayName}
+                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                placeholder="e.g., Best Laptops 2024, Healthy Recipes, Travel Tips"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '4px',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
+                  fontSize: '14px'
+                }}
+                required
+              />
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
+                This will be the friendly name shown in the management interface
+              </p>
+            </div>
+
+            {/* Preview */}
+            {formData.query && (
+              <div style={{
+                padding: '1rem',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                backgroundColor: 'color-mix(in hsl, var(--card-bg), var(--border) 10%)'
+              }}>
+                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '14px', fontWeight: '600', color: 'var(--text)' }}>
+                  Preview:
+                </h4>
+                <p style={{ margin: '0 0 0.25rem 0', fontSize: '12px', color: 'var(--muted)' }}>
+                  <strong>URL:</strong> /search?q={formData.query.toLowerCase().replace(/\s+/g, '+')}
+                </p>
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)' }}>
+                  <strong>Search Bar:</strong> {formData.query}
+                </p>
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '4px',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '4px',
+                  backgroundColor: '#2563eb',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Create Page
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
