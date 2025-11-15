@@ -440,17 +440,6 @@ export default function SearchResultsPage() {
         
         {/* Top row: search bar + controls */}
         <div className="px-4 md:pl-48 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-2 md:gap-4">
-          {/* Google Logo - Desktop only */}
-          <div className="hidden md:block">
-            <div className="text-2xl font-normal">
-              <span className="text-blue-500">G</span>
-              <span className="text-red-500">o</span>
-              <span className="text-yellow-500">o</span>
-              <span className="text-blue-500">g</span>
-              <span className="text-green-500">l</span>
-              <span className="text-red-500">e</span>
-            </div>
-          </div>
 
           <div className="flex-1">
             {/* Desktop search bar */}

@@ -178,7 +178,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 .ai-body img { 
   max-width: 300px; 
   height: auto; 
-  margin: 0.25rem 0; 
+  margin: 0.125rem 0; 
   border-radius: 0.5rem; 
   display: block;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -188,7 +188,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 .image-row-container {
   position: relative;
   clear: both;
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
 }
 
 .image-row {
