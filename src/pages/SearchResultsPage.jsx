@@ -57,9 +57,6 @@ export default function SearchResultsPage() {
   
   // Find matching config - use useMemo to recalculate when customSearchPages changes
   const searchConfig = useMemo(() => {
-    console.log('Calculating searchConfig for query:', searchQuery)
-    console.log('Available custom pages:', Object.keys(customSearchPages))
-    
     // Try built-in first
     let config = queryToConfig[searchQuery.toLowerCase()]
     if (!config) {
@@ -75,7 +72,6 @@ export default function SearchResultsPage() {
     // Check custom pages
     if (!config && customSearchPages[searchQuery.toLowerCase()]) {
       const customPage = customSearchPages[searchQuery.toLowerCase()]
-      console.log('Found custom page:', customPage)
       config = {
         path: null, // Custom pages don't have config files
         key: customPage.key
@@ -86,7 +82,6 @@ export default function SearchResultsPage() {
       config = queryToConfig['best+hiking+boots'] // Default fallback
     }
     
-    console.log('Final searchConfig:', config)
     return config
   }, [searchQuery, customSearchPages])
   
@@ -227,8 +222,24 @@ export default function SearchResultsPage() {
         setSelectedAIOverviewId(null)
         setUserAIText('')
       }
+    } else if (searchType) {
+      // Clear AI overview for pages without assignments
+      setSelectedAIOverviewId(null)
+      setUserAIText('')
     }
   }, [searchType, aiOverviews, searchResultAssignments])
+
+  // Clear AI text when navigating to a new custom page (no assignment)
+  useEffect(() => {
+    // Check if this is a custom page with no AI assignment
+    const isCustomPage = customSearchPages[searchQuery.toLowerCase()]
+    const hasAssignment = searchResultAssignments[searchType]
+    
+    if (isCustomPage && !hasAssignment) {
+      setUserAIText('')
+      setSelectedAIOverviewId(null)
+    }
+  }, [searchQuery, searchType, customSearchPages, searchResultAssignments])
 
   const displayQuery = searchQuery.replace(/\+/g, ' ') // Convert + back to spaces for display
 
@@ -254,12 +265,21 @@ export default function SearchResultsPage() {
       favicon: result.favicon
     }))
     
+    // For custom pages, use userAIText only if there's content or an assignment
+    const isCustomPage = customSearchPages[searchQuery.toLowerCase()]
+    const hasAssignment = searchResultAssignments[searchType]
+    const aiText = (isCustomPage && !hasAssignment && !userAIText.trim()) ? '' : userAIText
+    
     return {
       ...config,
       results: shuffle([...defaultResults, ...formattedCustomResults]),
-      aiOverview: { ...(config.aiOverview || {}), show: true, text: userAIText },
+      aiOverview: { 
+        ...(config.aiOverview || {}), 
+        show: aiOverviewEnabled && (!!aiText || hasAssignment), 
+        text: aiText 
+      },
     }
-  }, [config, customSearchResults, searchType, userAIText])
+  }, [config, customSearchResults, searchType, userAIText, customSearchPages, searchQuery, searchResultAssignments, aiOverviewEnabled])
 
   const handlePaste = (e) => {
     const clipboard = e.clipboardData
