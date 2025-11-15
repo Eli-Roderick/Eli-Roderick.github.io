@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import SimpleAIOverview from '../components/SimpleAIOverview'
 import SearchResult from '../components/SearchResult'
 import AdResult from '../components/AdResult'
@@ -43,7 +43,23 @@ export default function SearchResultsPage() {
   
   // Get search query from URL parameters
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
-  const searchConfig = queryToConfig[searchQuery.toLowerCase()] || queryToConfig['best+hiking+boots']
+  console.log('SearchResultsPage loading with query:', searchQuery)
+  
+  // Find matching config - try exact match first, then fallback to hiking boots
+  let searchConfig = queryToConfig[searchQuery.toLowerCase()]
+  if (!searchConfig) {
+    // Try without URL encoding
+    const decodedQuery = searchQuery.replace(/\+/g, ' ').toLowerCase()
+    searchConfig = Object.values(queryToConfig).find(config => 
+      Object.keys(queryToConfig).some(key => 
+        key.toLowerCase() === decodedQuery && queryToConfig[key] === config
+      )
+    )
+  }
+  if (!searchConfig) {
+    searchConfig = queryToConfig['best+hiking+boots'] // Default fallback
+  }
+  
   const searchType = searchConfig.key
   
   const [config, setConfig] = useState(null)
@@ -503,13 +519,13 @@ export default function SearchResultsPage() {
     )
   }
 
-  if (!configMapping[searchType]) {
+  if (!searchConfig) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">Search type "{searchType}" not found</p>
+          <p className="text-gray-600 mb-4">Search query "{searchQuery}" not found</p>
           <button 
-            onClick={() => navigate('/search/hiking-boots')} 
+            onClick={() => navigate('/search?q=best+hiking+boots&oq=best+hiking+boots&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8')} 
             className="text-blue-600 hover:underline"
           >
             ← Go to Hiking Boots Search
