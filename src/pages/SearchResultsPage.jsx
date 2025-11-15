@@ -806,14 +806,6 @@ export default function SearchResultsPage() {
               Manage Search Results
             </button>
             <button
-              className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-green-600 text-white"
-              onClick={() => setShowSearchResultsEditor(true)}
-              title="Add and edit custom search results"
-            >
-              <span className="material-symbols-outlined align-middle mr-1">add</span>
-              Edit Results
-            </button>
-            <button
               className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-blue-600 text-white"
               onClick={() => setShowNewPageEditor(true)}
               title="Create entirely new search pages"
@@ -1481,17 +1473,6 @@ export default function SearchResultsPage() {
                 >
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">settings</span>
                   Manage Search Results
-                </button>
-                
-                <button
-                  className="w-full border rounded px-3 py-2 text-sm bg-green-600 text-white mb-2"
-                  onClick={() => {
-                    setShowProfileMenu(false)
-                    setShowSearchResultsEditor(true)
-                  }}
-                >
-                  <span className="material-symbols-outlined align-middle mr-2 text-sm">add</span>
-                  Edit Results
                 </button>
                 
                 <button
@@ -2231,10 +2212,8 @@ function EnhancedSearchManagementModal({
                       border: `2px solid ${currentSearchType === page.key ? '#667eea' : 'var(--border)'}`,
                       borderRadius: '8px',
                       backgroundColor: currentSearchType === page.key ? 'rgba(102, 126, 234, 0.05)' : 'var(--card-bg)',
-                      cursor: 'pointer',
                       transition: 'all 0.2s ease'
                     }}
-                    onClick={() => setSelectedPageForResults(page)}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ flex: 1 }}>
@@ -2261,9 +2240,6 @@ function EnhancedSearchManagementModal({
                               URL: /search?q={page.queryKey}
                             </p>
                           )}
-                          <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', color: '#667eea', fontWeight: '500' }}>
-                            👆 Click to view and edit search results
-                          </p>
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                           <button
@@ -2279,6 +2255,20 @@ function EnhancedSearchManagementModal({
                             }}
                           >
                             Visit Page
+                          </button>
+                          <button
+                            onClick={() => setSelectedPageForResults(page)}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              border: '1px solid #16a34a',
+                              borderRadius: '4px',
+                              backgroundColor: '#16a34a',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '12px'
+                            }}
+                          >
+                            View Results
                           </button>
                           {page.type === 'custom' && (
                             <button
@@ -2416,6 +2406,7 @@ function EnhancedSearchManagementModal({
 
 // Page Results View Component
 function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult, onDeleteResult }) {
+  console.log('PageResultsView - page:', page, 'pageResults:', pageResults)
   return (
     <div>
       {/* Header with back button */}
