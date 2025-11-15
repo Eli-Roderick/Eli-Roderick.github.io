@@ -5,6 +5,7 @@ import SearchResult from '../components/SearchResult'
 import AdResult from '../components/AdResult'
 import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
+import SearchPage from './SearchPage'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
 
@@ -544,48 +545,23 @@ export default function SearchResultsPage() {
         </div>
       </header>
 
-      {/* Rest of your existing search results UI would go here */}
-      {/* I'll add the rest of the component in the next part since this is getting long */}
-      
-      <div className="px-4 md:pl-52 md:pr-6 py-4">
-        <p className="text-sm text-gray-600 mb-4">
-          About {Math.floor(Math.random() * 1000000).toLocaleString()} results ({(Math.random() * 0.5 + 0.1).toFixed(2)} seconds)
-        </p>
-        
-        {/* AI Overview */}
-        {effectiveConfig?.aiOverview?.show && aiOverviewEnabled && (
-          <div className="mt-0 md:mt-4 mb-4">
-            <SimpleAIOverview 
-              htmlContent={effectiveConfig.aiOverview.text} 
-              onImageClick={(url) => logClick('ai_overview_image', url)}
-            />
-            <div className="ai-separator" />
-          </div>
+      {/* Content */}
+      <main className="px-4 md:pl-52 md:pr-6 py-1 md:py-6">
+        {loading && <div>Loading…</div>}
+        {error && <div className="text-red-600">{error}</div>}
+        {!loading && !error && effectiveConfig && (
+          <SearchPage 
+            config={effectiveConfig} 
+            onResultClick={handleResultClick}
+            resultImages={resultImages}
+            onImagesUpdate={handleImagesUpdate}
+            selectedResultForImages={selectedResultForImages}
+            onCloseImageEditor={() => setSelectedResultForImages(null)}
+            userAIText={userAIText}
+            aiOverviewEnabled={aiOverviewEnabled}
+          />
         )}
-
-        {/* Search Results */}
-        {effectiveConfig?.results?.map((result, index) => (
-          <SearchResult
-            key={index}
-            result={result}
-            onClick={handleResultClick}
-            images={resultImages[result.url] || []}
-            onManageImages={() => openImageManager(result)}
-          />
-        ))}
-
-        {/* Ad Results */}
-        {effectiveConfig?.ads?.map((ad, index) => (
-          <AdResult
-            key={index}
-            ad={ad}
-            onClick={(data) => {
-              logger.log(data)
-              logClick('ad_result', data.url)
-            }}
-          />
-        ))}
-      </div>
+      </main>
 
       {/* Enhanced Paste Modal */}
       {showPasteModal && (
