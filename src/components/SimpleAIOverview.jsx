@@ -162,7 +162,7 @@ export default function SimpleAIOverview({ htmlContent }) {
   
   const [expanded, setExpanded] = useState(false)
   const [feedback, setFeedback] = useState(null) // 'up', 'down', or null
-  const limit = 750
+  const limit = 1000 // Increased limit to show more content before truncating
 
   // Process the content to handle formatting and images
   const processedContent = useMemo(() => {
@@ -183,8 +183,20 @@ export default function SimpleAIOverview({ htmlContent }) {
     const plain = stripTags(htmlContent)
     if (plain.length <= limit) return processedContent
     
-    // Simple truncation - just cut at character limit and then process
-    const truncated = htmlContent.substring(0, limit * 2) // Give more room for HTML tags
+    // Better truncation - try to cut at a sentence or paragraph boundary
+    let truncateAt = limit * 1.5 // Give more room for HTML tags
+    const truncated = htmlContent.substring(0, truncateAt)
+    
+    // Try to find a good breaking point (sentence end)
+    const lastSentence = truncated.lastIndexOf('. ')
+    const lastParagraph = truncated.lastIndexOf('</p>')
+    
+    if (lastSentence > limit * 0.8) {
+      return processContent(htmlContent.substring(0, lastSentence + 1))
+    } else if (lastParagraph > limit * 0.8) {
+      return processContent(htmlContent.substring(0, lastParagraph + 4))
+    }
+    
     return processContent(truncated)
   }, [htmlContent, processedContent, wasTruncated, expanded, limit])
 

@@ -129,7 +129,7 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
 .icon-btn:hover { background: color-mix(in hsl, var(--card-bg), black 4%); }
 /* AI Overview: truncated fade and show more button */
 .ai-body--truncated {
-  max-height: 30rem; /* approx 20 lines - even more content */
+  max-height: 40rem; /* Increased to show more content before truncating */
   overflow: hidden;
   /* Use mask to fade the text itself so there is no hard cutoff */
   -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0));
