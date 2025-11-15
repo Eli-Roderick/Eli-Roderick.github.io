@@ -1932,7 +1932,7 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
         }}>
           <div style={{ marginBottom: '1.5rem' }}>
             <p style={{ margin: '0 0 1.5rem 0', fontSize: '14px', color: 'var(--muted)', lineHeight: '1.5' }}>
-              Create a completely new search page with its own URL. After creating the page, you can add custom search results to it using the "Edit Results" button.
+              Create a completely new search page with its own URL. After creating the page, you can add custom search results to it using the management system.
             </p>
           </div>
           
@@ -2303,6 +2303,7 @@ function EnhancedSearchManagementModal({
             <PageResultsView 
               page={selectedPageForResults}
               pageResults={customSearchResults[selectedPageForResults.key] || []}
+              allCustomResults={customSearchResults}
               onBack={() => setSelectedPageForResults(null)}
               onEditResult={() => onEditResults(selectedPageForResults.key)}
               onAddResult={() => onEditResults(selectedPageForResults.key)}
@@ -2405,8 +2406,14 @@ function EnhancedSearchManagementModal({
 }
 
 // Page Results View Component
-function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult, onDeleteResult }) {
-  console.log('PageResultsView - page:', page, 'pageResults:', pageResults)
+function PageResultsView({ page, pageResults, allCustomResults, onBack, onEditResult, onAddResult, onDeleteResult }) {
+  console.log('PageResultsView DEBUG:')
+  console.log('- page:', page)
+  console.log('- page.key:', page?.key)
+  console.log('- pageResults:', pageResults)
+  console.log('- allCustomResults:', allCustomResults)
+  console.log('- allCustomResults[page.key]:', allCustomResults?.[page?.key])
+  
   return (
     <div>
       {/* Header with back button */}
