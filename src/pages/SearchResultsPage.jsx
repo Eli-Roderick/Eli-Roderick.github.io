@@ -45,30 +45,50 @@ export default function SearchResultsPage() {
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
   console.log('SearchResultsPage loading with query:', searchQuery)
   
-  // Find matching config - try built-in first, then custom pages, then fallback
-  let searchConfig = queryToConfig[searchQuery.toLowerCase()]
-  if (!searchConfig) {
-    // Try without URL encoding
-    const decodedQuery = searchQuery.replace(/\+/g, ' ').toLowerCase()
-    searchConfig = Object.values(queryToConfig).find(config => 
-      Object.keys(queryToConfig).some(key => 
-        key.toLowerCase() === decodedQuery && queryToConfig[key] === config
-      )
-    )
-  }
-  
-  // Check custom pages
-  if (!searchConfig && customSearchPages[searchQuery.toLowerCase()]) {
-    const customPage = customSearchPages[searchQuery.toLowerCase()]
-    searchConfig = {
-      path: null, // Custom pages don't have config files
-      key: customPage.key
+  // Load custom search pages first (needed for searchConfig calculation)
+  const [customSearchPages, setCustomSearchPages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('custom_search_pages')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
     }
-  }
+  })
   
-  if (!searchConfig) {
-    searchConfig = queryToConfig['best+hiking+boots'] // Default fallback
-  }
+  // Find matching config - use useMemo to recalculate when customSearchPages changes
+  const searchConfig = useMemo(() => {
+    console.log('Calculating searchConfig for query:', searchQuery)
+    console.log('Available custom pages:', Object.keys(customSearchPages))
+    
+    // Try built-in first
+    let config = queryToConfig[searchQuery.toLowerCase()]
+    if (!config) {
+      // Try without URL encoding
+      const decodedQuery = searchQuery.replace(/\+/g, ' ').toLowerCase()
+      config = Object.values(queryToConfig).find(c => 
+        Object.keys(queryToConfig).some(key => 
+          key.toLowerCase() === decodedQuery && queryToConfig[key] === c
+        )
+      )
+    }
+    
+    // Check custom pages
+    if (!config && customSearchPages[searchQuery.toLowerCase()]) {
+      const customPage = customSearchPages[searchQuery.toLowerCase()]
+      console.log('Found custom page:', customPage)
+      config = {
+        path: null, // Custom pages don't have config files
+        key: customPage.key
+      }
+    }
+    
+    if (!config) {
+      config = queryToConfig['best+hiking+boots'] // Default fallback
+    }
+    
+    console.log('Final searchConfig:', config)
+    return config
+  }, [searchQuery, customSearchPages])
   
   const searchType = searchConfig.key
   
@@ -131,14 +151,6 @@ export default function SearchResultsPage() {
   const [customSearchResults, setCustomSearchResults] = useState(() => {
     try {
       const saved = localStorage.getItem('custom_search_results')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
-  const [customSearchPages, setCustomSearchPages] = useState(() => {
-    try {
-      const saved = localStorage.getItem('custom_search_pages')
       return saved ? JSON.parse(saved) : {}
     } catch {
       return {}
