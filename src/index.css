@@ -102,6 +102,27 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
 .ai-body a:hover {
   border-bottom: 1px solid var(--text) !important;
 }
+
+/* Override any pasted highlight styling to use consistent blue highlights */
+.ai-body mark,
+.ai-body span[style*="background"],
+.ai-body span[style*="background-color"],
+.ai-body *[style*="background-color: yellow"],
+.ai-body *[style*="background-color: #ffff00"],
+.ai-body *[style*="background: yellow"],
+.ai-body *[style*="background: #ffff00"] {
+  background-color: rgba(26, 115, 232, 0.2) !important; /* Blue highlight */
+  background: rgba(26, 115, 232, 0.2) !important;
+  color: var(--text) !important;
+  border-radius: 2px !important;
+  padding: 0 2px !important;
+}
+
+/* Ensure consistent highlight styling for any highlight elements */
+.ai-body ::selection {
+  background-color: rgba(26, 115, 232, 0.3) !important;
+  color: var(--text) !important;
+}
 .ai-footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.25rem 0; color: var(--muted); font-size: 12px; }
 .ai-actions { display: flex; gap: 0.5rem; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9999px; border: 1px solid var(--border); background: var(--card-bg); color: #1a73e8; cursor: pointer; }

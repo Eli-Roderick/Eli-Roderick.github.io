@@ -116,6 +116,15 @@ export default function SearchResultsPage() {
     }
   })
   const [showSearchManagement, setShowSearchManagement] = useState(false)
+  const [showSearchResultsEditor, setShowSearchResultsEditor] = useState(false)
+  const [customSearchResults, setCustomSearchResults] = useState(() => {
+    try {
+      const saved = localStorage.getItem('custom_search_results')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(() => {
     try {
       const saved = localStorage.getItem('ai_overview_enabled')
@@ -187,12 +196,25 @@ export default function SearchResultsPage() {
 
   const effectiveConfig = useMemo(() => {
     if (!config) return null
-    if (!userAIText) return config
+    
+    // Merge default results with custom results
+    const defaultResults = config.results || []
+    const customResults = customSearchResults[searchType] || []
+    
+    // Convert custom results to the same format as default results
+    const formattedCustomResults = customResults.map(result => ({
+      title: result.title,
+      url: result.url,
+      snippet: result.snippet,
+      favicon: result.favicon
+    }))
+    
     return {
       ...config,
+      results: shuffle([...defaultResults, ...formattedCustomResults]),
       aiOverview: { ...(config.aiOverview || {}), show: true, text: userAIText },
     }
-  }, [config, userAIText])
+  }, [config, customSearchResults, searchType, userAIText])
 
   const handlePaste = (e) => {
     const clipboard = e.clipboardData
@@ -393,6 +415,15 @@ export default function SearchResultsPage() {
     }
   }, [searchResultAssignments])
 
+  // Save custom search results to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('custom_search_results', JSON.stringify(customSearchResults))
+    } catch (error) {
+      console.warn('Failed to save custom search results to localStorage:', error)
+    }
+  }, [customSearchResults])
+
   // Update userAIText when selected AI overview changes
   useEffect(() => {
     if (selectedAIOverviewId) {
@@ -490,6 +521,55 @@ export default function SearchResultsPage() {
       setSelectedAIOverviewId(null)
       setUserAIText('')
     }
+  }
+
+  // Generate favicon URL from domain
+  const getFaviconUrl = (url) => {
+    try {
+      const domain = new URL(url).hostname
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+    } catch {
+      return `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+    }
+  }
+
+  // Add custom search result
+  const addCustomSearchResult = (searchResultType, result) => {
+    const newResults = {
+      ...customSearchResults,
+      [searchResultType]: [
+        ...(customSearchResults[searchResultType] || []),
+        {
+          ...result,
+          id: Date.now().toString(),
+          favicon: getFaviconUrl(result.url),
+          createdAt: new Date().toISOString()
+        }
+      ]
+    }
+    setCustomSearchResults(newResults)
+  }
+
+  // Update custom search result
+  const updateCustomSearchResult = (searchResultType, resultId, updatedResult) => {
+    const newResults = {
+      ...customSearchResults,
+      [searchResultType]: (customSearchResults[searchResultType] || []).map(result =>
+        result.id === resultId 
+          ? { ...result, ...updatedResult, favicon: getFaviconUrl(updatedResult.url) }
+          : result
+      )
+    }
+    setCustomSearchResults(newResults)
+  }
+
+  // Remove custom search result
+  const removeCustomSearchResult = (searchResultType, resultId) => {
+    const newResults = {
+      ...customSearchResults,
+      [searchResultType]: (customSearchResults[searchResultType] || []).filter(result => result.id !== resultId)
+    }
+    setCustomSearchResults(newResults)
   }
 
   if (loading) {
@@ -600,6 +680,14 @@ export default function SearchResultsPage() {
             >
               <span className="material-symbols-outlined align-middle mr-1">settings</span>
               Manage Search Results
+            </button>
+            <button
+              className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-green-600 text-white"
+              onClick={() => setShowSearchResultsEditor(true)}
+              title="Add and edit custom search results"
+            >
+              <span className="material-symbols-outlined align-middle mr-1">add</span>
+              Edit Results
             </button>
             <button
               className="border rounded px-2 py-1 text-sm whitespace-nowrap"
@@ -832,6 +920,20 @@ export default function SearchResultsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Search Results Editor Modal */}
+      {showSearchResultsEditor && (
+        <SearchResultsEditorModal
+          isOpen={showSearchResultsEditor}
+          onClose={() => setShowSearchResultsEditor(false)}
+          searchType={searchType}
+          searchTypeName={displayNames[searchType]}
+          customResults={customSearchResults[searchType] || []}
+          onAddResult={(result) => addCustomSearchResult(searchType, result)}
+          onUpdateResult={(resultId, result) => updateCustomSearchResult(searchType, resultId, result)}
+          onRemoveResult={(resultId) => removeCustomSearchResult(searchType, resultId)}
+        />
       )}
 
       {/* Enhanced Paste Modal */}
@@ -1379,6 +1481,17 @@ export default function SearchResultsPage() {
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">settings</span>
                   Manage Search Results
                 </button>
+                
+                <button
+                  className="w-full border rounded px-3 py-2 text-sm bg-green-600 text-white mb-2"
+                  onClick={() => {
+                    setShowProfileMenu(false)
+                    setShowSearchResultsEditor(true)
+                  }}
+                >
+                  <span className="material-symbols-outlined align-middle mr-2 text-sm">add</span>
+                  Edit Results
+                </button>
               </div>
               
               <div>
@@ -1419,6 +1532,312 @@ export default function SearchResultsPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Search Results Editor Modal Component
+function SearchResultsEditorModal({ 
+  isOpen, 
+  onClose, 
+  searchType, 
+  searchTypeName, 
+  customResults, 
+  onAddResult, 
+  onUpdateResult, 
+  onRemoveResult 
+}) {
+  const [editingResult, setEditingResult] = useState(null)
+  const [formData, setFormData] = useState({
+    title: '',
+    url: '',
+    snippet: ''
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!formData.title.trim() || !formData.url.trim() || !formData.snippet.trim()) {
+      alert('Please fill in all fields')
+      return
+    }
+
+    if (editingResult) {
+      onUpdateResult(editingResult.id, formData)
+    } else {
+      onAddResult(formData)
+    }
+
+    setFormData({ title: '', url: '', snippet: '' })
+    setEditingResult(null)
+  }
+
+  const handleEdit = (result) => {
+    setEditingResult(result)
+    setFormData({
+      title: result.title,
+      url: result.url,
+      snippet: result.snippet
+    })
+  }
+
+  const handleCancel = () => {
+    setFormData({ title: '', url: '', snippet: '' })
+    setEditingResult(null)
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '0px',
+      left: '0px',
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      zIndex: 999999,
+      pointerEvents: 'all'
+    }} onClick={onClose}>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '90%',
+        maxWidth: '900px',
+        backgroundColor: 'var(--card-bg)',
+        border: '1px solid var(--border)',
+        borderRadius: '8px',
+        zIndex: 1000000,
+        pointerEvents: 'all',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+        maxHeight: '90vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }} onClick={(e) => e.stopPropagation()}>
+        
+        {/* Header */}
+        <div style={{ 
+          padding: '1rem', 
+          borderBottom: '1px solid var(--border)', 
+          backgroundColor: '#16a34a',
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexShrink: 0
+        }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+            Edit Search Results - {searchTypeName}
+          </h2>
+          <button 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              fontSize: '20px', 
+              cursor: 'pointer',
+              color: 'white'
+            }} 
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ 
+          padding: '1rem', 
+          backgroundColor: 'var(--card-bg)',
+          flex: 1,
+          overflow: 'auto'
+        }}>
+          {/* Add/Edit Form */}
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
+              {editingResult ? 'Edit Search Result' : 'Add New Search Result'}
+            </h3>
+            
+            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Enter the page title"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--card-bg)',
+                    color: 'var(--text)',
+                    fontSize: '14px'
+                  }}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                  URL *
+                </label>
+                <input
+                  type="url"
+                  value={formData.url}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  placeholder="https://example.com/page"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--card-bg)',
+                    color: 'var(--text)',
+                    fontSize: '14px'
+                  }}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                  Snippet *
+                </label>
+                <textarea
+                  value={formData.snippet}
+                  onChange={(e) => setFormData({ ...formData, snippet: e.target.value })}
+                  placeholder="Enter the description/snippet that appears under the title"
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--card-bg)',
+                    color: 'var(--text)',
+                    fontSize: '14px',
+                    resize: 'vertical'
+                  }}
+                  required
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    border: 'none',
+                    borderRadius: '4px',
+                    backgroundColor: '#16a34a',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  {editingResult ? 'Update Result' : 'Add Result'}
+                </button>
+                {editingResult && (
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '4px',
+                      backgroundColor: 'var(--card-bg)',
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          {/* Existing Results */}
+          <div>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
+              Custom Search Results ({customResults.length})
+            </h3>
+            
+            {customResults.length === 0 ? (
+              <p style={{ color: 'var(--muted)', fontStyle: 'italic' }}>
+                No custom search results yet. Add one above to get started.
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {customResults.map(result => (
+                  <div key={result.id} style={{
+                    padding: '1rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--card-bg)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                      <img 
+                        src={result.favicon} 
+                        alt="Favicon"
+                        style={{ width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }}
+                        onError={(e) => e.target.style.display = 'none'}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: '500', color: '#1a0dab' }}>
+                          {result.title}
+                        </h4>
+                        <p style={{ margin: '0 0 0.5rem 0', fontSize: '12px', color: '#006621' }}>
+                          {result.url}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '14px', color: 'var(--text)', lineHeight: '1.4' }}>
+                          {result.snippet}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                        <button
+                          onClick={() => handleEdit(result)}
+                          style={{
+                            padding: '0.5rem',
+                            border: '1px solid #2563eb',
+                            borderRadius: '4px',
+                            backgroundColor: '#2563eb',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => onRemoveResult(result.id)}
+                          style={{
+                            padding: '0.5rem',
+                            border: '1px solid #dc2626',
+                            borderRadius: '4px',
+                            backgroundColor: '#dc2626',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

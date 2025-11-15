@@ -78,7 +78,13 @@ function processContent(html) {
     return match // Return original if not an image
   })
   
-  // Step 3: Convert line breaks to proper HTML
+  // Step 3: Clean up problematic styling from pasted content
+  // Remove yellow highlights and replace with blue
+  processed = processed.replace(/style="[^"]*background[^"]*yellow[^"]*"/gi, 'style="background-color: rgba(26, 115, 232, 0.2);"')
+  processed = processed.replace(/style="[^"]*background-color:\s*#ffff00[^"]*"/gi, 'style="background-color: rgba(26, 115, 232, 0.2);"')
+  processed = processed.replace(/style="[^"]*background:\s*yellow[^"]*"/gi, 'style="background-color: rgba(26, 115, 232, 0.2);"')
+  
+  // Step 4: Convert line breaks to proper HTML
   // First, handle existing HTML content properly
   if (processed.includes('<') && processed.includes('>')) {
     // This looks like HTML content, preserve it but ensure line breaks work
@@ -99,7 +105,7 @@ function processContent(html) {
       .join('')
   }
   
-  // Step 4: Replace placeholders with actual content
+  // Step 5: Replace placeholders with actual content
   placeholders.forEach((content, placeholder) => {
     processed = processed.replace(placeholder, content)
   })
