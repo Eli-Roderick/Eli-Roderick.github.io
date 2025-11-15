@@ -883,287 +883,30 @@ export default function SearchResultsPage() {
         )}
       </main>
 
-      {/* Search Management Modal */}
+      {/* Enhanced Search Management Modal */}
       {showSearchManagement && (
-        <div style={{
-          position: 'fixed',
-          top: '0px',
-          left: '0px',
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          zIndex: 999999,
-          pointerEvents: 'all'
-        }} onClick={() => setShowSearchManagement(false)}>
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '90%',
-            maxWidth: '800px',
-            backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            zIndex: 1000000,
-            pointerEvents: 'all',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-            maxHeight: '85vh',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-          }} onClick={(e) => e.stopPropagation()}>
-            
-            {/* Header */}
-            <div style={{ 
-              padding: '1rem', 
-              borderBottom: '1px solid var(--border)', 
-              backgroundColor: '#8b5cf6',
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexShrink: 0
-            }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
-                Manage Search Results & AI Overviews
-              </h2>
-              <button 
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  fontSize: '20px', 
-                  cursor: 'pointer',
-                  color: 'white'
-                }} 
-                onClick={() => setShowSearchManagement(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Body */}
-            <div style={{ 
-              padding: '1rem', 
-              backgroundColor: 'var(--card-bg)',
-              flex: 1,
-              overflow: 'auto'
-            }}>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
-                  Search Result Types
-                </h3>
-                <p style={{ margin: '0 0 1rem 0', fontSize: '14px', color: 'var(--muted)' }}>
-                  Assign AI overviews to search result types. When someone visits a search result, it will automatically show the assigned AI overview.
-                </p>
-                
-                <div style={{ display: 'grid', gap: '1rem' }}>
-                  {/* Built-in search types */}
-                  {Object.entries(displayNames).map(([key, name]) => (
-                    <div key={key} style={{
-                      padding: '1rem',
-                      border: `2px solid ${searchType === key ? '#8b5cf6' : 'var(--border)'}`,
-                      borderRadius: '8px',
-                      backgroundColor: searchType === key ? 'color-mix(in hsl, #8b5cf6, transparent 95%)' : 'var(--card-bg)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
-                            {name}
-                            {searchType === key && <span style={{ color: '#8b5cf6', marginLeft: '0.5rem' }}>(Current)</span>}
-                          </h4>
-                          <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
-                            URL: /search/{key}
-                          </p>
-                        </div>
-                        <button
-                          style={{
-                            padding: '6px 12px',
-                            border: 'none',
-                            borderRadius: '4px',
-                            backgroundColor: '#8b5cf6',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
-                          onClick={() => {
-                            setShowSearchManagement(false)
-                            const queryParam = Object.keys(queryToConfig).find(q => queryToConfig[q].key === key)
-                            navigate(`/search?q=${queryParam}&oq=${queryParam}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
-                          }}
-                        >
-                          View
-                        </button>
-                      </div>
-                      
-                      <div style={{ marginTop: '0.75rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
-                          Assigned AI Overview:
-                        </label>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <select
-                            style={{
-                              flex: 1,
-                              padding: '0.5rem',
-                              border: '1px solid var(--border)',
-                              borderRadius: '4px',
-                              backgroundColor: 'var(--card-bg)',
-                              color: 'var(--text)',
-                              fontSize: '14px'
-                            }}
-                            value={searchResultAssignments[key] || ''}
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                assignAIOverviewToSearch(key, e.target.value)
-                              } else {
-                                removeAIOverviewFromSearch(key)
-                              }
-                            }}
-                          >
-                            <option value="">No AI Overview</option>
-                            {aiOverviews.map(overview => (
-                              <option key={overview.id} value={overview.id}>
-                                {overview.title}
-                              </option>
-                            ))}
-                          </select>
-                          {searchResultAssignments[key] && (
-                            <button
-                              style={{
-                                padding: '0.5rem',
-                                border: '1px solid #dc3545',
-                                borderRadius: '4px',
-                                backgroundColor: '#dc3545',
-                                color: 'white',
-                                cursor: 'pointer',
-                                fontSize: '12px'
-                              }}
-                              onClick={() => removeAIOverviewFromSearch(key)}
-                              title="Remove assignment"
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* Custom search pages */}
-                  {Object.entries(customSearchPages).map(([queryKey, page]) => (
-                    <div key={queryKey} style={{
-                      padding: '1rem',
-                      border: `2px solid ${searchType === page.key ? '#3b82f6' : 'var(--border)'}`,
-                      borderRadius: '8px',
-                      backgroundColor: searchType === page.key ? 'color-mix(in hsl, #3b82f6, transparent 95%)' : 'var(--card-bg)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
-                            {page.displayName}
-                            {searchType === page.key && <span style={{ color: '#3b82f6', marginLeft: '0.5rem' }}>(Current)</span>}
-                            <span style={{ color: '#3b82f6', marginLeft: '0.5rem', fontSize: '12px', fontWeight: 'normal' }}>(Custom)</span>
-                          </h4>
-                          <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
-                            URL: /search?q={queryKey}
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            style={{
-                              padding: '6px 12px',
-                              border: 'none',
-                              borderRadius: '4px',
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                            onClick={() => {
-                              setShowSearchManagement(false)
-                              navigate(`/search?q=${queryKey}&oq=${queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
-                            }}
-                          >
-                            View
-                          </button>
-                          <button
-                            style={{
-                              padding: '6px 12px',
-                              border: '1px solid #dc2626',
-                              borderRadius: '4px',
-                              backgroundColor: '#dc2626',
-                              color: 'white',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                            onClick={() => {
-                              if (confirm(`Delete "${page.displayName}" page and all its search results?`)) {
-                                removeCustomSearchPage(queryKey)
-                              }
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div style={{ marginTop: '0.75rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
-                          Assigned AI Overview:
-                        </label>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <select
-                            style={{
-                              flex: 1,
-                              padding: '0.5rem',
-                              border: '1px solid var(--border)',
-                              borderRadius: '4px',
-                              backgroundColor: 'var(--card-bg)',
-                              color: 'var(--text)',
-                              fontSize: '14px'
-                            }}
-                            value={searchResultAssignments[page.key] || ''}
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                assignAIOverviewToSearch(page.key, e.target.value)
-                              } else {
-                                removeAIOverviewFromSearch(page.key)
-                              }
-                            }}
-                          >
-                            <option value="">No AI Overview</option>
-                            {aiOverviews.map(overview => (
-                              <option key={overview.id} value={overview.id}>
-                                {overview.title}
-                              </option>
-                            ))}
-                          </select>
-                          {searchResultAssignments[page.key] && (
-                            <button
-                              style={{
-                                padding: '0.5rem',
-                                border: '1px solid #dc3545',
-                                borderRadius: '4px',
-                                backgroundColor: '#dc3545',
-                                color: 'white',
-                                cursor: 'pointer',
-                                fontSize: '12px'
-                              }}
-                              onClick={() => removeAIOverviewFromSearch(page.key)}
-                              title="Remove assignment"
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <EnhancedSearchManagementModal
+          isOpen={showSearchManagement}
+          onClose={() => setShowSearchManagement(false)}
+          currentSearchType={searchType}
+          displayNames={displayNames}
+          customSearchPages={customSearchPages}
+          customSearchResults={customSearchResults}
+          searchResultAssignments={searchResultAssignments}
+          aiOverviews={aiOverviews}
+          onNavigate={(queryKey) => {
+            setShowSearchManagement(false)
+            navigate(`/search?q=${queryKey}&oq=${queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
+          }}
+          onAssignAI={assignAIOverviewToSearch}
+          onRemoveAI={removeAIOverviewFromSearch}
+          onDeletePage={removeCustomSearchPage}
+          onEditResults={(searchType) => {
+            setShowSearchManagement(false)
+            setShowSearchResultsEditor(true)
+          }}
+          queryToConfig={queryToConfig}
+        />
       )}
 
       {/* Search Results Editor Modal */}
@@ -2318,6 +2061,527 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
           </form>
         </div>
       </div>
+    </div>
+  )
+}
+
+// FIXED Search Management Modal - ONLY 2 TABS
+function EnhancedSearchManagementModal({ 
+  isOpen, 
+  onClose, 
+  currentSearchType,
+  displayNames,
+  customSearchPages,
+  customSearchResults,
+  searchResultAssignments,
+  aiOverviews,
+  onNavigate,
+  onAssignAI,
+  onRemoveAI,
+  onDeletePage,
+  onEditResults,
+  queryToConfig
+}) {
+  const [activeTab, setActiveTab] = useState('pages')
+  const [selectedPageForResults, setSelectedPageForResults] = useState(null)
+
+  if (!isOpen) return null
+
+  // Combine built-in and custom pages for unified view
+  const allPages = [
+    ...Object.entries(displayNames).map(([key, name]) => ({
+      key,
+      name,
+      type: 'built-in',
+      queryKey: Object.keys(queryToConfig).find(q => queryToConfig[q].key === key),
+      customResultCount: customSearchResults[key]?.length || 0
+    })),
+    ...Object.entries(customSearchPages).map(([queryKey, page]) => ({
+      key: page.key,
+      name: page.displayName,
+      type: 'custom',
+      queryKey,
+      customResultCount: customSearchResults[page.key]?.length || 0
+    }))
+  ]
+
+  // ONLY TWO TABS - NO OVERVIEW TAB
+  const TABS_ONLY_TWO = [
+    { id: 'pages', label: 'Pages & Results', icon: '📄' },
+    { id: 'ai-assignments', label: 'AI Assignments', icon: '🤖' }
+  ]
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '0px',
+      left: '0px',
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      zIndex: 999999,
+      pointerEvents: 'all'
+    }} onClick={onClose}>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '95%',
+        maxWidth: '1400px',
+        backgroundColor: 'var(--card-bg)',
+        border: '1px solid var(--border)',
+        borderRadius: '12px',
+        zIndex: 1000000,
+        pointerEvents: 'all',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        maxHeight: '90vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }} onClick={(e) => e.stopPropagation()}>
+        
+        {/* Header */}
+        <div style={{ 
+          padding: '1.5rem', 
+          borderBottom: '1px solid var(--border)', 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexShrink: 0
+        }}>
+          <div>
+            <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '24px', fontWeight: '700' }}>
+              🎯 FIXED - Only 2 Tabs
+            </h2>
+            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>
+              NO OVERVIEW TAB - Just Pages & AI Assignments
+            </p>
+          </div>
+          <button 
+            style={{ 
+              background: 'rgba(255,255,255,0.2)', 
+              border: 'none', 
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '18px', 
+              cursor: 'pointer',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }} 
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* ONLY 2 TABS - Navigation */}
+        <div style={{ 
+          padding: '0 1.5rem',
+          borderBottom: '1px solid var(--border)',
+          backgroundColor: 'var(--card-bg)',
+          display: 'flex',
+          gap: '0.5rem'
+        }}>
+          {TABS_ONLY_TWO.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '1rem 1.5rem',
+                border: 'none',
+                borderBottom: activeTab === tab.id ? '3px solid #667eea' : '3px solid transparent',
+                backgroundColor: activeTab === tab.id ? 'rgba(102, 126, 234, 0.1)' : 'transparent',
+                color: activeTab === tab.id ? '#667eea' : 'var(--text)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: activeTab === tab.id ? '600' : '500',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Body */}
+        <div style={{ 
+          padding: '1.5rem', 
+          backgroundColor: 'var(--card-bg)',
+          flex: 1,
+          overflow: 'auto'
+        }}>
+          {activeTab === 'pages' && !selectedPageForResults && (
+            <div>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
+                📄 All Search Pages
+              </h3>
+              
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {allPages.map(page => {
+                  const pageResults = customSearchResults[page.key] || []
+                  return (
+                    <div key={page.key} style={{
+                      padding: '1.5rem',
+                      border: `2px solid ${currentSearchType === page.key ? '#667eea' : 'var(--border)'}`,
+                      borderRadius: '8px',
+                      backgroundColor: currentSearchType === page.key ? 'rgba(102, 126, 234, 0.05)' : 'var(--card-bg)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onClick={() => setSelectedPageForResults(page)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '18px', fontWeight: '600', color: 'var(--text)' }}>
+                            {page.name}
+                            {currentSearchType === page.key && <span style={{ color: '#667eea', marginLeft: '0.5rem' }}>(Current)</span>}
+                            <span style={{ 
+                              marginLeft: '0.5rem', 
+                              fontSize: '12px', 
+                              fontWeight: 'normal',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '12px',
+                              backgroundColor: page.type === 'custom' ? '#3b82f6' : '#8b5cf6',
+                              color: 'white'
+                            }}>
+                              {page.type === 'custom' ? 'Custom' : 'Built-in'}
+                            </span>
+                          </h4>
+                          <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
+                            {pageResults.length} custom results • {searchResultAssignments[page.key] ? 'AI assigned' : 'No AI assigned'}
+                          </p>
+                          {page.type === 'custom' && (
+                            <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)' }}>
+                              URL: /search?q={page.queryKey}
+                            </p>
+                          )}
+                          <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', color: '#667eea', fontWeight: '500' }}>
+                            👆 Click to view and edit search results
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => onNavigate(page.queryKey)}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              border: 'none',
+                              borderRadius: '4px',
+                              backgroundColor: '#667eea',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '12px'
+                            }}
+                          >
+                            Visit Page
+                          </button>
+                          {page.type === 'custom' && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`Delete "${page.name}" page and all its search results?`)) {
+                                  onDeletePage(page.queryKey)
+                                }
+                              }}
+                              style={{
+                                padding: '0.5rem 1rem',
+                                border: '1px solid #dc2626',
+                                borderRadius: '4px',
+                                backgroundColor: '#dc2626',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                              }}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'pages' && selectedPageForResults && (
+            <PageResultsView 
+              page={selectedPageForResults}
+              pageResults={customSearchResults[selectedPageForResults.key] || []}
+              onBack={() => setSelectedPageForResults(null)}
+              onEditResult={() => onEditResults(selectedPageForResults.key)}
+              onAddResult={() => onEditResults(selectedPageForResults.key)}
+              onDeleteResult={() => {
+                setSelectedPageForResults({...selectedPageForResults})
+              }}
+            />
+          )}
+          
+          {activeTab === 'ai-assignments' && (
+            <div>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
+                🤖 AI Overview Assignments
+              </h3>
+              
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {allPages.map(page => (
+                  <div key={page.key} style={{
+                    padding: '1.5rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--card-bg)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div>
+                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
+                          {page.name}
+                          <span style={{ 
+                            marginLeft: '0.5rem', 
+                            fontSize: '12px', 
+                            fontWeight: 'normal',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '12px',
+                            backgroundColor: page.type === 'custom' ? '#3b82f6' : '#8b5cf6',
+                            color: 'white'
+                          }}>
+                            {page.type === 'custom' ? 'Custom' : 'Built-in'}
+                          </span>
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
+                          {searchResultAssignments[page.key] ? 'AI Overview assigned' : 'No AI Overview assigned'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <select
+                        style={{
+                          flex: 1,
+                          padding: '0.75rem',
+                          border: '1px solid var(--border)',
+                          borderRadius: '4px',
+                          backgroundColor: 'var(--card-bg)',
+                          color: 'var(--text)',
+                          fontSize: '14px'
+                        }}
+                        value={searchResultAssignments[page.key] || ''}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            onAssignAI(page.key, e.target.value)
+                          } else {
+                            onRemoveAI(page.key)
+                          }
+                        }}
+                      >
+                        <option value="">No AI Overview</option>
+                        {aiOverviews.map(overview => (
+                          <option key={overview.id} value={overview.id}>
+                            {overview.title}
+                          </option>
+                        ))}
+                      </select>
+                      {searchResultAssignments[page.key] && (
+                        <button
+                          style={{
+                            padding: '0.75rem',
+                            border: '1px solid #dc3545',
+                            borderRadius: '4px',
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                          onClick={() => onRemoveAI(page.key)}
+                          title="Remove assignment"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Page Results View Component
+function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult, onDeleteResult }) {
+  return (
+    <div>
+      {/* Header with back button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+        <button
+          onClick={onBack}
+          style={{
+            padding: '0.5rem',
+            border: '1px solid var(--border)',
+            borderRadius: '4px',
+            backgroundColor: 'var(--card-bg)',
+            color: 'var(--text)',
+            cursor: 'pointer',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          ← Back to All Pages
+        </button>
+        <div>
+          <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
+            {page.name} - Search Results
+            <span style={{ 
+              marginLeft: '0.5rem', 
+              fontSize: '12px', 
+              fontWeight: 'normal',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '12px',
+              backgroundColor: page.type === 'custom' ? '#3b82f6' : '#8b5cf6',
+              color: 'white'
+            }}>
+              {page.type === 'custom' ? 'Custom' : 'Built-in'}
+            </span>
+          </h3>
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
+            {pageResults.length} search results
+          </p>
+        </div>
+      </div>
+
+      {/* Add New Result Button */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <button
+          onClick={onAddResult}
+          style={{
+            padding: '0.75rem 1.5rem',
+            border: 'none',
+            borderRadius: '6px',
+            backgroundColor: '#16a34a',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          + Add New Search Result
+        </button>
+      </div>
+
+      {/* Results List */}
+      {pageResults.length > 0 ? (
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          {pageResults.map((result, index) => (
+            <div key={result.id} style={{
+              padding: '1.5rem',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              backgroundColor: 'var(--card-bg)',
+              transition: 'all 0.2s ease'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <img 
+                  src={result.favicon} 
+                  alt="Favicon"
+                  style={{ width: '20px', height: '20px', marginTop: '2px', flexShrink: 0 }}
+                  onError={(e) => e.target.style.display = 'none'}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: '500', color: '#1a0dab', lineHeight: '1.3' }}>
+                    {result.title}
+                  </h4>
+                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: '#006621', wordBreak: 'break-all' }}>
+                    {result.url}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text)', lineHeight: '1.5' }}>
+                    {result.snippet}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '600' }}>
+                    #{index + 1}
+                  </div>
+                  <button
+                    onClick={() => onEditResult(result)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: '1px solid #2563eb',
+                      borderRadius: '4px',
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Delete this search result?')) {
+                        onDeleteResult(result.id)
+                      }
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: '1px solid #dc2626',
+                      borderRadius: '4px',
+                      backgroundColor: '#dc2626',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ 
+          padding: '3rem', 
+          textAlign: 'center', 
+          border: '2px dashed var(--border)', 
+          borderRadius: '8px',
+          backgroundColor: 'rgba(0,0,0,0.02)'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '18px', fontWeight: '600', color: 'var(--text)' }}>
+            No Search Results Yet
+          </h4>
+          <p style={{ margin: '0 0 1.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
+            This page doesn't have any custom search results. Add some to get started!
+          </p>
+          <button
+            onClick={onAddResult}
+            style={{
+              padding: '0.75rem 1.5rem',
+              border: 'none',
+              borderRadius: '6px',
+              backgroundColor: '#16a34a',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Add First Search Result
+          </button>
+        </div>
+      )}
     </div>
   )
 }
