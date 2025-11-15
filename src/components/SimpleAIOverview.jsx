@@ -22,7 +22,7 @@ function processContent(html) {
   // Function to create image row
   const createImageRow = (imageMatches) => {
     const containerId = `image-row-${Math.random().toString(36).substr(2, 9)}`
-    let row = `<div class="image-row-container" style="clear: both; margin: 0.1rem 0;">
+    let row = `<div class="image-row-container" style="clear: both; margin: 0;">
       <div class="image-row" id="${containerId}" style="display: flex !important; flex-direction: row !important; gap: 0.5rem !important; overflow-x: auto !important; scroll-behavior: smooth !important;">`
     
     let hasValidImages = false
@@ -73,7 +73,7 @@ function processContent(html) {
   processed = processed.replace(/\[([^\]]+)\]/g, (match, url) => {
     // Check if it's an image URL
     if (/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?.*)?$/i.test(url)) {
-      return `<div style="clear: both; margin: 0.1rem 0;"><img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; border-radius: 0.5rem; display: block;" /></div>`
+      return `<div style="clear: both; margin: 0;"><img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; border-radius: 0.5rem; display: block;" /></div>`
     }
     return match // Return original if not an image
   })

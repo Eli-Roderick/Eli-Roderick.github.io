@@ -84,6 +84,15 @@ export default function SearchResultsPage() {
       return null
     }
   })
+  const [searchResultAssignments, setSearchResultAssignments] = useState(() => {
+    try {
+      const saved = localStorage.getItem('search_result_assignments')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+  const [showSearchManagement, setShowSearchManagement] = useState(false)
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(() => {
     try {
       const saved = localStorage.getItem('ai_overview_enabled')
@@ -125,24 +134,24 @@ export default function SearchResultsPage() {
       .finally(() => setLoading(false))
   }, [searchType])
 
-  // Handle AI overview URL parameter
+  // Load assigned AI overview for current search type
   useEffect(() => {
-    const aiParam = searchParams.get('ai')
-    if (aiParam && aiOverviews.length > 0) {
-      // Look for AI overview by ID or title (case-insensitive)
-      const targetOverview = aiOverviews.find(overview => 
-        overview.id === aiParam || 
-        overview.title.toLowerCase().replace(/\s+/g, '-') === aiParam.toLowerCase() ||
-        overview.title.toLowerCase() === aiParam.toLowerCase()
-      )
-      
-      if (targetOverview) {
-        setSelectedAIOverviewId(targetOverview.id)
-        setUserAIText(targetOverview.text)
-        setAIOverviewEnabled(true)
+    if (searchType && aiOverviews.length > 0) {
+      const assignedOverviewId = searchResultAssignments[searchType]
+      if (assignedOverviewId) {
+        const assignedOverview = aiOverviews.find(overview => overview.id === assignedOverviewId)
+        if (assignedOverview) {
+          setSelectedAIOverviewId(assignedOverview.id)
+          setUserAIText(assignedOverview.text)
+          setAIOverviewEnabled(true)
+        }
+      } else {
+        // No assignment, clear AI overview
+        setSelectedAIOverviewId(null)
+        setUserAIText('')
       }
     }
-  }, [searchParams, aiOverviews])
+  }, [searchType, aiOverviews, searchResultAssignments])
 
   const query = config?.query ?? displayNames[searchType] ?? ''
 
@@ -352,6 +361,15 @@ export default function SearchResultsPage() {
     }
   }, [aiOverviewEnabled])
 
+  // Save search result assignments to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('search_result_assignments', JSON.stringify(searchResultAssignments))
+    } catch (error) {
+      console.warn('Failed to save search result assignments to localStorage:', error)
+    }
+  }, [searchResultAssignments])
+
   // Update userAIText when selected AI overview changes
   useEffect(() => {
     if (selectedAIOverviewId) {
@@ -419,21 +437,35 @@ export default function SearchResultsPage() {
     return `${baseUrl}?ai=${slug}`
   }
 
-  // Copy shareable URL to clipboard
-  const copyShareableURL = async (overviewId = null) => {
-    const url = generateShareableURL(overviewId)
-    try {
-      await navigator.clipboard.writeText(url)
-      alert('Shareable URL copied to clipboard!')
-    } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea')
-      textArea.value = url
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
-      alert('Shareable URL copied to clipboard!')
+  // Assign AI overview to search result type
+  const assignAIOverviewToSearch = (searchResultType, overviewId) => {
+    const newAssignments = {
+      ...searchResultAssignments,
+      [searchResultType]: overviewId
+    }
+    setSearchResultAssignments(newAssignments)
+    
+    // If we're assigning to the current search type, update immediately
+    if (searchResultType === searchType) {
+      const overview = aiOverviews.find(o => o.id === overviewId)
+      if (overview) {
+        setSelectedAIOverviewId(overviewId)
+        setUserAIText(overview.text)
+        setAIOverviewEnabled(true)
+      }
+    }
+  }
+
+  // Remove AI overview assignment from search result type
+  const removeAIOverviewFromSearch = (searchResultType) => {
+    const newAssignments = { ...searchResultAssignments }
+    delete newAssignments[searchResultType]
+    setSearchResultAssignments(newAssignments)
+    
+    // If we're removing from current search type, clear immediately
+    if (searchResultType === searchType) {
+      setSelectedAIOverviewId(null)
+      setUserAIText('')
     }
   }
 
@@ -537,16 +569,15 @@ export default function SearchResultsPage() {
 
           {/* Experimenter controls - desktop only */}
           <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-            {/* Navigation between search types */}
-            <select 
-              className="select-primary" 
-              value={searchType} 
-              onChange={(e) => navigate(`/search/${e.target.value}`)}
+            {/* Search Management Button */}
+            <button
+              className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-purple-500 text-white"
+              onClick={() => setShowSearchManagement(true)}
+              title="Manage search results and AI overviews"
             >
-              <option value="hiking-boots">Best hiking boots</option>
-              <option value="breakfast-ideas">Healthy breakfast ideas</option>
-              <option value="electric-cars">Electric cars 2025</option>
-            </select>
+              <span className="material-symbols-outlined align-middle mr-1">settings</span>
+              Manage Search Results
+            </button>
             <button
               className="border rounded px-2 py-1 text-sm whitespace-nowrap"
               onClick={openPasteModal}
@@ -608,6 +639,176 @@ export default function SearchResultsPage() {
           />
         )}
       </main>
+
+      {/* Search Management Modal */}
+      {showSearchManagement && (
+        <div style={{
+          position: 'fixed',
+          top: '0px',
+          left: '0px',
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 999999,
+          pointerEvents: 'all'
+        }} onClick={() => setShowSearchManagement(false)}>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '90%',
+            maxWidth: '800px',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            zIndex: 1000000,
+            pointerEvents: 'all',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            maxHeight: '85vh',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            {/* Header */}
+            <div style={{ 
+              padding: '1rem', 
+              borderBottom: '1px solid var(--border)', 
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexShrink: 0
+            }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                Manage Search Results & AI Overviews
+              </h2>
+              <button 
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  fontSize: '20px', 
+                  cursor: 'pointer',
+                  color: 'white'
+                }} 
+                onClick={() => setShowSearchManagement(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ 
+              padding: '1rem', 
+              backgroundColor: 'var(--card-bg)',
+              flex: 1,
+              overflow: 'auto'
+            }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
+                  Search Result Types
+                </h3>
+                <p style={{ margin: '0 0 1rem 0', fontSize: '14px', color: 'var(--muted)' }}>
+                  Assign AI overviews to search result types. When someone visits a search result, it will automatically show the assigned AI overview.
+                </p>
+                
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {Object.entries(displayNames).map(([key, name]) => (
+                    <div key={key} style={{
+                      padding: '1rem',
+                      border: `2px solid ${searchType === key ? '#8b5cf6' : 'var(--border)'}`,
+                      borderRadius: '8px',
+                      backgroundColor: searchType === key ? 'color-mix(in hsl, #8b5cf6, transparent 95%)' : 'var(--card-bg)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
+                            {name}
+                            {searchType === key && <span style={{ color: '#8b5cf6', marginLeft: '0.5rem' }}>(Current)</span>}
+                          </h4>
+                          <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
+                            URL: /search/{key}
+                          </p>
+                        </div>
+                        <button
+                          style={{
+                            padding: '6px 12px',
+                            border: 'none',
+                            borderRadius: '4px',
+                            backgroundColor: '#8b5cf6',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                          onClick={() => {
+                            setShowSearchManagement(false)
+                            navigate(`/search/${key}`)
+                          }}
+                        >
+                          View
+                        </button>
+                      </div>
+                      
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                          Assigned AI Overview:
+                        </label>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <select
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              backgroundColor: 'var(--card-bg)',
+                              color: 'var(--text)',
+                              fontSize: '14px'
+                            }}
+                            value={searchResultAssignments[key] || ''}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                assignAIOverviewToSearch(key, e.target.value)
+                              } else {
+                                removeAIOverviewFromSearch(key)
+                              }
+                            }}
+                          >
+                            <option value="">No AI Overview</option>
+                            {aiOverviews.map(overview => (
+                              <option key={overview.id} value={overview.id}>
+                                {overview.title}
+                              </option>
+                            ))}
+                          </select>
+                          {searchResultAssignments[key] && (
+                            <button
+                              style={{
+                                padding: '0.5rem',
+                                border: '1px solid #dc3545',
+                                borderRadius: '4px',
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                              }}
+                              onClick={() => removeAIOverviewFromSearch(key)}
+                              title="Remove assignment"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Enhanced Paste Modal */}
       {showPasteModal && (
@@ -846,13 +1047,12 @@ export default function SearchResultsPage() {
                             border: `1px solid ${selectedAIOverviewId === overview.id ? 'var(--primary)' : 'var(--border)'}`,
                             borderRadius: '8px',
                             marginBottom: '0.75rem',
-                            background: selectedAIOverviewId === overview.id ? 'color-mix(in hsl, var(--primary), transparent 95%)' : 'var(--card-bg)'
+                            background: selectedAIOverviewId === overview.id ? 'color-mix(in hsl, var(--primary), transparent 95%)' : 'var(--card-bg)',
+                            cursor: 'pointer'
                           }}
+                          onClick={() => handleSelectFromList(overview)}
                         >
-                          <div 
-                            style={{ flex: 1, cursor: 'pointer' }}
-                            onClick={() => handleSelectFromList(overview)}
-                          >
+                          <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>{overview.title}</h3>
                               <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
@@ -871,31 +1071,6 @@ export default function SearchResultsPage() {
                                 : overview.text}
                             </p>
                           </div>
-                          
-                          {/* Share button */}
-                          <button
-                            style={{
-                              padding: '6px 12px',
-                              border: '1px solid #28a745',
-                              borderRadius: '4px',
-                              backgroundColor: '#28a745',
-                              color: 'white',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              flexShrink: 0
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              copyShareableURL(overview.id)
-                            }}
-                            title="Copy shareable URL for this AI overview"
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>share</span>
-                            Share
-                          </button>
                         </div>
                       ))
                     )}
@@ -911,76 +1086,49 @@ export default function SearchResultsPage() {
                 borderTop: '1px solid var(--border)', 
                 backgroundColor: 'var(--card-bg)',
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                justifyContent: 'flex-end',
                 gap: '8px',
                 flexShrink: 0
               }}>
-                {/* Share URL button - left side */}
-                {selectedAIOverviewId && (
-                  <button 
-                    style={{ 
-                      padding: '8px 16px', 
-                      border: '1px solid #28a745',
-                      borderRadius: '4px',
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }} 
-                    onClick={() => copyShareableURL()}
-                    title="Copy shareable URL for this AI overview"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>share</span>
-                    Copy Share URL
-                  </button>
-                )}
-                
-                {/* Action buttons - right side */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    style={{ 
-                      padding: '8px 16px', 
-                      border: '1px solid var(--border)',
-                      borderRadius: '4px',
-                      backgroundColor: 'var(--card-bg)',
-                      color: 'var(--text)',
-                      cursor: 'pointer'
-                    }} 
-                    onClick={clearAIOverview}
-                  >
-                    Clear
-                  </button>
-                  <button 
-                    style={{ 
-                      padding: '8px 16px', 
-                      border: '1px solid var(--border)',
-                      borderRadius: '4px',
-                      backgroundColor: 'var(--card-bg)',
-                      color: 'var(--text)',
-                      cursor: 'pointer'
-                    }} 
-                    onClick={() => setShowPasteModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    style={{ 
-                      padding: '8px 16px', 
-                      border: 'none',
-                      borderRadius: '4px',
-                      backgroundColor: '#007bff',
-                      color: 'white',
-                      cursor: 'pointer'
-                    }} 
-                    onClick={savePasteModal}
-                  >
-                    Save
-                  </button>
-                </div>
+                <button 
+                  style={{ 
+                    padding: '8px 16px', 
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--card-bg)',
+                    color: 'var(--text)',
+                    cursor: 'pointer'
+                  }} 
+                  onClick={clearAIOverview}
+                >
+                  Clear
+                </button>
+                <button 
+                  style={{ 
+                    padding: '8px 16px', 
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--card-bg)',
+                    color: 'var(--text)',
+                    cursor: 'pointer'
+                  }} 
+                  onClick={() => setShowPasteModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  style={{ 
+                    padding: '8px 16px', 
+                    border: 'none',
+                    borderRadius: '4px',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    cursor: 'pointer'
+                  }} 
+                  onClick={savePasteModal}
+                >
+                  Save
+                </button>
               </div>
             )}
           </div>
@@ -1197,16 +1345,16 @@ export default function SearchResultsPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Search Type</label>
-                <select 
-                  className="w-full border rounded px-3 py-2 text-sm" 
-                  value={searchType} 
-                  onChange={(e) => navigate(`/search/${e.target.value}`)}
+                <button
+                  className="w-full border rounded px-3 py-2 text-sm bg-purple-600 text-white mb-2"
+                  onClick={() => {
+                    setShowProfileMenu(false)
+                    setShowSearchManagement(true)
+                  }}
                 >
-                  <option value="hiking-boots">Best hiking boots</option>
-                  <option value="breakfast-ideas">Healthy breakfast ideas</option>
-                  <option value="electric-cars">Electric cars 2025</option>
-                </select>
+                  <span className="material-symbols-outlined align-middle mr-2 text-sm">settings</span>
+                  Manage Search Results
+                </button>
               </div>
               
               <div>
