@@ -90,7 +90,7 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
     margin-bottom: 0.15rem; 
   }
 }
-.ai-body { padding: 0.1rem 0; font-size: 16px; line-height: 1.7; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; white-space: pre-wrap; }
+.ai-body { padding: 0.1rem 0; font-size: 16px; line-height: 1.7; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; white-space: normal; }
 
 /* AI overview links - dotted underline instead of blue */
 .ai-body a {
@@ -178,10 +178,20 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 .ai-body img { 
   max-width: 300px; 
   height: auto; 
-  margin: 0; 
+  margin: 0.25rem 0; 
   border-radius: 0.5rem; 
   display: block;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Ensure proper spacing for image containers */
+.ai-body .image-row-container {
+  margin: 0.5rem 0;
+}
+
+/* But remove extra spacing when images are adjacent to each other */
+.ai-body .image-row-container + .image-row-container {
+  margin-top: 0.25rem;
 }
 
 /* AI Overview image rows with scroll indicators */

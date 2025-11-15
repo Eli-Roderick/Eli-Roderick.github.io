@@ -11,14 +11,17 @@ import { loadConfigByPath } from '../utils/config'
 
 const logger = new ClickLogger()
 
-// URL slug to config path mapping
-const configMapping = {
-  'hiking-boots': '/configs/query1.json',
-  'breakfast-ideas': '/configs/query2.json', 
-  'electric-cars': '/configs/query3.json'
+// Query to config path mapping
+const queryToConfig = {
+  'best hiking boots': { path: '/configs/query1.json', key: 'hiking-boots' },
+  'best+hiking+boots': { path: '/configs/query1.json', key: 'hiking-boots' },
+  'healthy breakfast ideas': { path: '/configs/query2.json', key: 'breakfast-ideas' },
+  'healthy+breakfast+ideas': { path: '/configs/query2.json', key: 'breakfast-ideas' },
+  'electric cars 2025': { path: '/configs/query3.json', key: 'electric-cars' },
+  'electric+cars+2025': { path: '/configs/query3.json', key: 'electric-cars' }
 }
 
-// URL slug to display name mapping
+// Display name mapping
 const displayNames = {
   'hiking-boots': 'Best hiking boots',
   'breakfast-ideas': 'Healthy breakfast ideas',
@@ -35,9 +38,13 @@ function shuffle(arr) {
 }
 
 export default function SearchResultsPage() {
-  const { searchType } = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  
+  // Get search query from URL parameters
+  const searchQuery = searchParams.get('q') || 'best+hiking+boots'
+  const searchConfig = queryToConfig[searchQuery.toLowerCase()] || queryToConfig['best+hiking+boots']
+  const searchType = searchConfig.key
   
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -118,11 +125,11 @@ export default function SearchResultsPage() {
     } catch {}
   }, [])
 
-  // Load config based on URL parameter
+  // Load config based on search query
   useEffect(() => {
-    const configPath = configMapping[searchType]
+    const configPath = searchConfig.path
     if (!configPath) {
-      setError('Search type not found')
+      setError('Search query not found')
       setLoading(false)
       return
     }
@@ -132,7 +139,7 @@ export default function SearchResultsPage() {
       .then(setConfig)
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
-  }, [searchType])
+  }, [searchConfig.path])
 
   // Load assigned AI overview for current search type
   useEffect(() => {
@@ -153,7 +160,7 @@ export default function SearchResultsPage() {
     }
   }, [searchType, aiOverviews, searchResultAssignments])
 
-  const query = config?.query ?? displayNames[searchType] ?? ''
+  const displayQuery = searchQuery.replace(/\+/g, ' ') // Convert + back to spaces for display
 
   const handleResultClick = ({ query, url }) => {
     logger.log({ query, url })
@@ -535,7 +542,7 @@ export default function SearchResultsPage() {
             <div className="search-bar hidden md:flex">
               <input
                 className="flex-1 outline-none text-[16px]"
-                value={query}
+                value={displayQuery}
                 readOnly
                 onPaste={handlePaste}
                 placeholder="Paste text here to set AI Overview"
@@ -553,7 +560,7 @@ export default function SearchResultsPage() {
               <button className="material-symbols-outlined icon-plain mr-2" aria-label="Search" title="Search">search</button>
               <input
                 className="flex-1 outline-none text-[16px]"
-                value={query}
+                value={displayQuery}
                 readOnly
                 onPaste={handlePaste}
                 placeholder="Paste text here to set AI Overview"
@@ -744,7 +751,8 @@ export default function SearchResultsPage() {
                           }}
                           onClick={() => {
                             setShowSearchManagement(false)
-                            navigate(`/search/${key}`)
+                            const queryParam = Object.keys(queryToConfig).find(q => queryToConfig[q].key === key)
+                            navigate(`/search?q=${queryParam}&oq=${queryParam}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
                           }}
                         >
                           View

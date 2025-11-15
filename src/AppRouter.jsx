@@ -6,11 +6,16 @@ export default function AppRouter() {
   return (
     <Router>
       <Routes>
+        {/* Google-style search URL */}
+        <Route path="/search" element={<SearchResultsPage />} />
         {/* Default to hiking boots search */}
-        <Route path="/" element={<Navigate to="/search/hiking-boots" replace />} />
-        <Route path="/search/:searchType" element={<SearchResultsPage />} />
-        {/* Fallback route - also redirect to hiking boots */}
-        <Route path="*" element={<Navigate to="/search/hiking-boots" replace />} />
+        <Route path="/" element={<Navigate to="/search?q=best+hiking+boots&oq=best+hiking+boots&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8" replace />} />
+        {/* Legacy routes - redirect to Google-style URLs */}
+        <Route path="/search/hiking-boots" element={<Navigate to="/search?q=best+hiking+boots&oq=best+hiking+boots&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8" replace />} />
+        <Route path="/search/breakfast-ideas" element={<Navigate to="/search?q=healthy+breakfast+ideas&oq=healthy+breakfast+ideas&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8" replace />} />
+        <Route path="/search/electric-cars" element={<Navigate to="/search?q=electric+cars+2025&oq=electric+cars+2025&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8" replace />} />
+        {/* Fallback route */}
+        <Route path="*" element={<Navigate to="/search?q=best+hiking+boots&oq=best+hiking+boots&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8" replace />} />
       </Routes>
     </Router>
   )
