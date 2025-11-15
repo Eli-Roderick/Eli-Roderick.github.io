@@ -21,6 +21,17 @@ export default function SearchPage({
       <div className="w-full">
         <div className="w-full max-w-[580px] px-0">
           {/* AI Overview */}
+          {(() => {
+            console.log('SearchPage AI Overview DEBUG:')
+            console.log('- aiOverview:', aiOverview)
+            console.log('- aiOverview?.show:', aiOverview?.show)
+            console.log('- aiOverviewEnabled:', aiOverviewEnabled)
+            console.log('- userAIText:', userAIText)
+            console.log('- aiOverview.text:', aiOverview?.text)
+            console.log('- Final content:', userAIText || aiOverview?.text)
+            console.log('- Should show:', aiOverview?.show && aiOverviewEnabled && (userAIText || aiOverview?.text))
+            return null
+          })()}
           {aiOverview?.show && aiOverviewEnabled && (userAIText || aiOverview.text) && (
             <div className="mt-0 md:mt-4 mb-4">
               <SimpleAIOverview htmlContent={userAIText || aiOverview.text} />

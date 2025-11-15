@@ -158,7 +158,15 @@ function updateScrollIndicators(containerId) {
 }
 
 export default function SimpleAIOverview({ htmlContent }) {
-  if (!htmlContent) return null
+  console.log('SimpleAIOverview DEBUG:')
+  console.log('- htmlContent:', htmlContent)
+  console.log('- htmlContent type:', typeof htmlContent)
+  console.log('- htmlContent length:', htmlContent?.length)
+  
+  if (!htmlContent) {
+    console.log('- No htmlContent, returning null')
+    return null
+  }
   
   const [expanded, setExpanded] = useState(false)
   const [feedback, setFeedback] = useState(null) // 'up', 'down', or null
