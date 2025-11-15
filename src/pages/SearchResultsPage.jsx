@@ -79,7 +79,11 @@ export default function SearchResultsPage() {
     }
     
     if (!config) {
-      config = queryToConfig['best+hiking+boots'] // Default fallback
+      // For unknown queries, create an empty config instead of falling back to hiking boots
+      config = {
+        path: null,
+        key: searchQuery.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      }
     }
     
     return config
@@ -193,8 +197,14 @@ export default function SearchResultsPage() {
       return
     }
     
+    // Handle unknown queries (no config file, not a saved custom page)
     if (!configPath) {
-      setError('Search query not found')
+      setConfig({
+        query: searchQuery.replace(/\+/g, ' '), // Display the actual search query
+        results: [],
+        ads: [],
+        aiOverview: { show: true, text: '' }
+      })
       setLoading(false)
       return
     }
