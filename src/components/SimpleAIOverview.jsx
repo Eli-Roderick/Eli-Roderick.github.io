@@ -15,8 +15,25 @@ function cleanGoogleHTML(html) {
   // Remove StartFragment and EndFragment markers
   let cleaned = html.replace(/<!--StartFragment-->|<!--EndFragment-->/g, '')
   
-  // Remove all inline styles that might conflict with our theme
-  cleaned = cleaned.replace(/style="[^"]*"/g, '')
+  // Remove problematic inline styles but keep formatting ones
+  // Remove background colors, theme colors, and layout styles but keep text formatting
+  cleaned = cleaned.replace(/style="[^"]*(?:background-color|color|font-family)[^"]*"/g, (match) => {
+    // Keep font-weight, font-size, text-decoration, etc. but remove colors and backgrounds
+    let style = match.match(/style="([^"]*)"/)[1]
+    
+    // Keep only formatting-related styles
+    const keepStyles = []
+    const styleProps = style.split(';')
+    
+    for (let prop of styleProps) {
+      const trimmed = prop.trim()
+      if (trimmed.match(/^(font-weight|font-size|text-decoration|margin|padding|line-height|text-align)/)) {
+        keepStyles.push(trimmed)
+      }
+    }
+    
+    return keepStyles.length > 0 ? `style="${keepStyles.join('; ')}"` : ''
+  })
   
   // Remove Google-specific attributes and classes that might cause issues
   cleaned = cleaned.replace(/(?:data-[^=]*="[^"]*"|jsaction="[^"]*"|jscontroller="[^"]*"|jsuid="[^"]*"|data-hveid="[^"]*"|data-ved="[^"]*"|data-wiz-[^=]*="[^"]*"|data-amic="[^"]*"|data-icl-uuid="[^"]*"|tabindex="[^"]*"|aria-label="[^"]*"|data-animation-[^=]*="[^"]*")/g, '')
@@ -24,8 +41,13 @@ function cleanGoogleHTML(html) {
   // Remove complex interactive elements like buttons with lots of attributes
   cleaned = cleaned.replace(/<button[^>]*>.*?<\/button>/gs, '')
   
-  // Remove empty spans and divs that might be left over
+  // Remove empty spans and divs that might be left over, but preserve ones with content
   cleaned = cleaned.replace(/<(span|div)[^>]*>\s*<\/(span|div)>/g, '')
+  
+  // Preserve important HTML formatting elements by converting them to simpler versions
+  // Convert <mark> tags to <strong> with highlight class for our CSS to style
+  cleaned = cleaned.replace(/<mark[^>]*>/g, '<strong class="highlight">')
+  cleaned = cleaned.replace(/<\/mark>/g, '</strong>')
   
   // Clean up multiple spaces and newlines
   cleaned = cleaned.replace(/\s+/g, ' ').trim()
