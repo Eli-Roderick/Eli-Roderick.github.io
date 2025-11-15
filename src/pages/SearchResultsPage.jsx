@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import SimpleAIOverview from '../components/SimpleAIOverview'
 import SearchResult from '../components/SearchResult'
 import AdResult from '../components/AdResult'
@@ -37,6 +37,7 @@ function shuffle(arr) {
 export default function SearchResultsPage() {
   const { searchType } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -123,6 +124,25 @@ export default function SearchResultsPage() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
   }, [searchType])
+
+  // Handle AI overview URL parameter
+  useEffect(() => {
+    const aiParam = searchParams.get('ai')
+    if (aiParam && aiOverviews.length > 0) {
+      // Look for AI overview by ID or title (case-insensitive)
+      const targetOverview = aiOverviews.find(overview => 
+        overview.id === aiParam || 
+        overview.title.toLowerCase().replace(/\s+/g, '-') === aiParam.toLowerCase() ||
+        overview.title.toLowerCase() === aiParam.toLowerCase()
+      )
+      
+      if (targetOverview) {
+        setSelectedAIOverviewId(targetOverview.id)
+        setUserAIText(targetOverview.text)
+        setAIOverviewEnabled(true)
+      }
+    }
+  }, [searchParams, aiOverviews])
 
   const query = config?.query ?? displayNames[searchType] ?? ''
 
@@ -378,6 +398,43 @@ export default function SearchResultsPage() {
         : overview
     )
     setAIOverviews(updatedOverviews)
+  }
+
+  // Generate shareable URL for current AI overview
+  const generateShareableURL = (overviewId = null) => {
+    const targetId = overviewId || selectedAIOverviewId
+    if (!targetId) return window.location.origin + window.location.pathname
+    
+    const overview = aiOverviews.find(o => o.id === targetId)
+    if (!overview) return window.location.origin + window.location.pathname
+    
+    // Create URL-friendly slug from title
+    const slug = overview.title.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .trim('-') // Remove leading/trailing hyphens
+    
+    const baseUrl = `${window.location.origin}/search/${searchType}`
+    return `${baseUrl}?ai=${slug}`
+  }
+
+  // Copy shareable URL to clipboard
+  const copyShareableURL = async (overviewId = null) => {
+    const url = generateShareableURL(overviewId)
+    try {
+      await navigator.clipboard.writeText(url)
+      alert('Shareable URL copied to clipboard!')
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = url
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      alert('Shareable URL copied to clipboard!')
+    }
   }
 
   if (loading) {
@@ -789,12 +846,13 @@ export default function SearchResultsPage() {
                             border: `1px solid ${selectedAIOverviewId === overview.id ? 'var(--primary)' : 'var(--border)'}`,
                             borderRadius: '8px',
                             marginBottom: '0.75rem',
-                            background: selectedAIOverviewId === overview.id ? 'color-mix(in hsl, var(--primary), transparent 95%)' : 'var(--card-bg)',
-                            cursor: 'pointer'
+                            background: selectedAIOverviewId === overview.id ? 'color-mix(in hsl, var(--primary), transparent 95%)' : 'var(--card-bg)'
                           }}
-                          onClick={() => handleSelectFromList(overview)}
                         >
-                          <div style={{ flex: 1 }}>
+                          <div 
+                            style={{ flex: 1, cursor: 'pointer' }}
+                            onClick={() => handleSelectFromList(overview)}
+                          >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>{overview.title}</h3>
                               <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
@@ -813,6 +871,31 @@ export default function SearchResultsPage() {
                                 : overview.text}
                             </p>
                           </div>
+                          
+                          {/* Share button */}
+                          <button
+                            style={{
+                              padding: '6px 12px',
+                              border: '1px solid #28a745',
+                              borderRadius: '4px',
+                              backgroundColor: '#28a745',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              flexShrink: 0
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              copyShareableURL(overview.id)
+                            }}
+                            title="Copy shareable URL for this AI overview"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>share</span>
+                            Share
+                          </button>
                         </div>
                       ))
                     )}
@@ -828,49 +911,76 @@ export default function SearchResultsPage() {
                 borderTop: '1px solid var(--border)', 
                 backgroundColor: 'var(--card-bg)',
                 display: 'flex',
-                justifyContent: 'flex-end',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 gap: '8px',
                 flexShrink: 0
               }}>
-                <button 
-                  style={{ 
-                    padding: '8px 16px', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '4px',
-                    backgroundColor: 'var(--card-bg)',
-                    color: 'var(--text)',
-                    cursor: 'pointer'
-                  }} 
-                  onClick={clearAIOverview}
-                >
-                  Clear
-                </button>
-                <button 
-                  style={{ 
-                    padding: '8px 16px', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '4px',
-                    backgroundColor: 'var(--card-bg)',
-                    color: 'var(--text)',
-                    cursor: 'pointer'
-                  }} 
-                  onClick={() => setShowPasteModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  style={{ 
-                    padding: '8px 16px', 
-                    border: 'none',
-                    borderRadius: '4px',
-                    backgroundColor: '#007bff',
-                    color: 'white',
-                    cursor: 'pointer'
-                  }} 
-                  onClick={savePasteModal}
-                >
-                  Save
-                </button>
+                {/* Share URL button - left side */}
+                {selectedAIOverviewId && (
+                  <button 
+                    style={{ 
+                      padding: '8px 16px', 
+                      border: '1px solid #28a745',
+                      borderRadius: '4px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }} 
+                    onClick={() => copyShareableURL()}
+                    title="Copy shareable URL for this AI overview"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>share</span>
+                    Copy Share URL
+                  </button>
+                )}
+                
+                {/* Action buttons - right side */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    style={{ 
+                      padding: '8px 16px', 
+                      border: '1px solid var(--border)',
+                      borderRadius: '4px',
+                      backgroundColor: 'var(--card-bg)',
+                      color: 'var(--text)',
+                      cursor: 'pointer'
+                    }} 
+                    onClick={clearAIOverview}
+                  >
+                    Clear
+                  </button>
+                  <button 
+                    style={{ 
+                      padding: '8px 16px', 
+                      border: '1px solid var(--border)',
+                      borderRadius: '4px',
+                      backgroundColor: 'var(--card-bg)',
+                      color: 'var(--text)',
+                      cursor: 'pointer'
+                    }} 
+                    onClick={() => setShowPasteModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    style={{ 
+                      padding: '8px 16px', 
+                      border: 'none',
+                      borderRadius: '4px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      cursor: 'pointer'
+                    }} 
+                    onClick={savePasteModal}
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
             )}
           </div>
