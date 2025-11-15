@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { mdiStarFourPoints } from '@mdi/js'
 import Icon from '@mdi/react'
 
@@ -9,12 +9,160 @@ function stripTags(html) {
   return tmp.textContent || tmp.innerText || ''
 }
 
+function processContent(html) {
+  if (!html) return ''
+  let processed = html
+  
+  // Use placeholders to prevent double processing
+  const placeholders = new Map()
+  let placeholderCounter = 0
+  
+  // Step 1: Handle curly brace grouped images - check for HTML encoded braces too
+  
+  // Function to create image row
+  const createImageRow = (imageMatches) => {
+    const containerId = `image-row-${Math.random().toString(36).substr(2, 9)}`
+    let row = `<div class="image-row-container" style="clear: both; margin: 1rem 0;">
+      <div class="image-row" id="${containerId}" style="display: flex !important; flex-direction: row !important; gap: 0.5rem !important; overflow-x: auto !important; scroll-behavior: smooth !important;">`
+    
+    let hasValidImages = false
+    imageMatches.forEach(bracketedUrl => {
+      const url = bracketedUrl.slice(1, -1) // Remove [ and ]
+      // Check if it's an image URL
+      if (/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?.*)?$/i.test(url)) {
+        row += `<img src="${url}" alt="User provided image" style="min-width: 200px !important; max-width: 200px !important; width: 200px !important; height: auto !important; border-radius: 0.5rem !important; flex-shrink: 0 !important; object-fit: cover !important;" />`
+        hasValidImages = true
+      }
+    })
+    
+    row += `</div>
+      <div class="scroll-indicator-left" style="display: none;" onclick="scrollImageRow('${containerId}', -200)"></div>
+      <div class="scroll-indicator-right" style="display: none;" onclick="scrollImageRow('${containerId}', 200)"></div>
+    </div>`
+    
+    if (hasValidImages) {
+      const placeholder = `__IMAGE_ROW_PLACEHOLDER_${placeholderCounter++}__`
+      placeholders.set(placeholder, row)
+      return placeholder
+    }
+    return null
+  }
+
+  // Try normal curly braces first
+  processed = processed.replace(/\{(\[[^\]]+\])+\}/g, (match) => {
+    const imageMatches = match.match(/\[([^\]]+)\]/g) || []
+    const result = createImageRow(imageMatches)
+    return result || match
+  })
+  
+  // Try HTML encoded curly braces
+  processed = processed.replace(/&#123;(\[[^\]]+\])+&#125;/g, (match) => {
+    const imageMatches = match.match(/\[([^\]]+)\]/g) || []
+    const result = createImageRow(imageMatches)
+    return result || match
+  })
+  
+  // Try &lbrace; and &rbrace;
+  processed = processed.replace(/&lbrace;(\[[^\]]+\])+&rbrace;/g, (match) => {
+    const imageMatches = match.match(/\[([^\]]+)\]/g) || []
+    const result = createImageRow(imageMatches)
+    return result || match
+  })
+  
+  // Step 2: Handle individual bracketed images [image]
+  processed = processed.replace(/\[([^\]]+)\]/g, (match, url) => {
+    // Check if it's an image URL
+    if (/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?.*)?$/i.test(url)) {
+      return `<div style="clear: both; margin: 1rem 0;"><img src="${url}" alt="User provided image" style="max-width: 200px; height: auto; border-radius: 0.5rem; display: block;" /></div>`
+    }
+    return match // Return original if not an image
+  })
+  
+  // Step 3: Convert line breaks to proper HTML
+  // First, handle existing HTML content properly
+  if (processed.includes('<') && processed.includes('>')) {
+    // This looks like HTML content, preserve it but ensure line breaks work
+    processed = processed.replace(/\n/g, '<br>')
+  } else {
+    // This is plain text, convert to proper HTML with paragraphs and line breaks
+    processed = processed
+      .split('\n\n') // Split on double line breaks for paragraphs
+      .map(paragraph => {
+        if (paragraph.trim()) {
+          // Convert single line breaks within paragraphs to <br>
+          const withBreaks = paragraph.replace(/\n/g, '<br>')
+          return `<p>${withBreaks}</p>`
+        }
+        return ''
+      })
+      .filter(p => p) // Remove empty paragraphs
+      .join('')
+  }
+  
+  // Step 4: Replace placeholders with actual content
+  placeholders.forEach((content, placeholder) => {
+    processed = processed.replace(placeholder, content)
+  })
+  
+  return processed
+}
+
+// Global function for scroll indicators
+if (typeof window !== 'undefined') {
+  window.scrollImageRow = function(containerId, scrollAmount) {
+    const container = document.getElementById(containerId)
+    if (container) {
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+      // Update scroll indicators after scrolling
+      setTimeout(() => updateScrollIndicators(containerId), 300)
+    }
+  }
+}
+
+function updateScrollIndicators(containerId) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  
+  const leftIndicator = container.parentElement.querySelector('.scroll-indicator-left')
+  const rightIndicator = container.parentElement.querySelector('.scroll-indicator-right')
+  
+  if (leftIndicator && rightIndicator) {
+    // Get scroll measurements
+    const scrollWidth = container.scrollWidth
+    const clientWidth = container.clientWidth
+    const scrollLeft = container.scrollLeft
+    
+    // Check if scrolling is needed at all
+    const needsScrolling = scrollWidth > clientWidth
+    
+    if (!needsScrolling) {
+      // If no scrolling needed, hide both indicators
+      leftIndicator.style.display = 'none'
+      rightIndicator.style.display = 'none'
+      return
+    }
+    
+    // If scrolling is needed, show/hide based on scroll position
+    const canScrollLeft = scrollLeft > 0
+    const canScrollRight = scrollLeft < (scrollWidth - clientWidth - 1) // Add 1px tolerance
+    
+    leftIndicator.style.display = canScrollLeft ? 'flex' : 'none'
+    rightIndicator.style.display = canScrollRight ? 'flex' : 'none'
+  }
+}
+
 export default function SimpleAIOverview({ htmlContent }) {
   if (!htmlContent) return null
   
   const [expanded, setExpanded] = useState(false)
   const [feedback, setFeedback] = useState(null) // 'up', 'down', or null
   const limit = 750
+
+  // Process the content to handle formatting and images
+  const processedContent = useMemo(() => {
+    if (!htmlContent) return ''
+    return processContent(htmlContent)
+  }, [htmlContent])
 
   // Check if text needs truncation
   const wasTruncated = useMemo(() => {
@@ -24,15 +172,63 @@ export default function SimpleAIOverview({ htmlContent }) {
 
   // Create truncated version
   const truncatedContent = useMemo(() => {
-    if (!wasTruncated || expanded) return htmlContent
+    if (!wasTruncated || expanded) return processedContent
     
     const plain = stripTags(htmlContent)
-    if (plain.length <= limit) return htmlContent
+    if (plain.length <= limit) return processedContent
     
-    // Simple truncation - just cut at character limit
-    const truncated = plain.substring(0, limit)
-    return truncated.replace(/\n/g, '<br>')
-  }, [htmlContent, wasTruncated, expanded, limit])
+    // Simple truncation - just cut at character limit and then process
+    const truncated = htmlContent.substring(0, limit * 2) // Give more room for HTML tags
+    return processContent(truncated)
+  }, [htmlContent, processedContent, wasTruncated, expanded, limit])
+
+  // Update scroll indicators when component mounts or content changes
+  useEffect(() => {
+    const containers = document.querySelectorAll('.image-row')
+    containers.forEach(container => {
+      if (container.id) {
+        // Initial check - wait for images to load
+        const checkIndicators = () => updateScrollIndicators(container.id)
+        
+        // Check immediately
+        checkIndicators()
+        
+        // Check after images load
+        setTimeout(checkIndicators, 100)
+        setTimeout(checkIndicators, 500)
+        setTimeout(checkIndicators, 1000)
+        
+        // Add scroll event listener to update indicators
+        const scrollHandler = () => updateScrollIndicators(container.id)
+        container.addEventListener('scroll', scrollHandler)
+        
+        // Add resize observer to handle window resize
+        const resizeObserver = new ResizeObserver(() => {
+          checkIndicators()
+        })
+        resizeObserver.observe(container)
+        
+        // Store handlers for cleanup
+        container._scrollHandler = scrollHandler
+        container._resizeObserver = resizeObserver
+      }
+    })
+    
+    return () => {
+      containers.forEach(container => {
+        if (container.id) {
+          if (container._scrollHandler) {
+            container.removeEventListener('scroll', container._scrollHandler)
+            delete container._scrollHandler
+          }
+          if (container._resizeObserver) {
+            container._resizeObserver.disconnect()
+            delete container._resizeObserver
+          }
+        }
+      })
+    }
+  }, [processedContent])
 
   // Handle feedback clicks
   const handleFeedback = (type) => {
@@ -55,7 +251,7 @@ export default function SimpleAIOverview({ htmlContent }) {
       
       <div
         className={`ai-body ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
-        dangerouslySetInnerHTML={{ __html: expanded ? htmlContent : truncatedContent }}
+        dangerouslySetInnerHTML={{ __html: expanded ? processedContent : truncatedContent }}
       />
 
       {/* Show more control */}
