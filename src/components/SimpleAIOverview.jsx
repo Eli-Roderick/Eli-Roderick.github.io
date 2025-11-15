@@ -9,9 +9,35 @@ function stripTags(html) {
   return tmp.textContent || tmp.innerText || ''
 }
 
+function cleanGoogleHTML(html) {
+  if (!html) return ''
+  
+  // Remove StartFragment and EndFragment markers
+  let cleaned = html.replace(/<!--StartFragment-->|<!--EndFragment-->/g, '')
+  
+  // Remove all inline styles that might conflict with our theme
+  cleaned = cleaned.replace(/style="[^"]*"/g, '')
+  
+  // Remove Google-specific attributes and classes that might cause issues
+  cleaned = cleaned.replace(/(?:data-[^=]*="[^"]*"|jsaction="[^"]*"|jscontroller="[^"]*"|jsuid="[^"]*"|data-hveid="[^"]*"|data-ved="[^"]*"|data-wiz-[^=]*="[^"]*"|data-amic="[^"]*"|data-icl-uuid="[^"]*"|tabindex="[^"]*"|aria-label="[^"]*"|data-animation-[^=]*="[^"]*")/g, '')
+  
+  // Remove complex interactive elements like buttons with lots of attributes
+  cleaned = cleaned.replace(/<button[^>]*>.*?<\/button>/gs, '')
+  
+  // Remove empty spans and divs that might be left over
+  cleaned = cleaned.replace(/<(span|div)[^>]*>\s*<\/(span|div)>/g, '')
+  
+  // Clean up multiple spaces and newlines
+  cleaned = cleaned.replace(/\s+/g, ' ').trim()
+  
+  return cleaned
+}
+
 function processContent(html) {
   if (!html) return ''
-  let processed = html
+  
+  // First clean the Google HTML
+  let processed = cleanGoogleHTML(html)
   
   // Use placeholders to prevent double processing
   const placeholders = new Map()
@@ -175,7 +201,10 @@ export default function SimpleAIOverview({ htmlContent }) {
   // Process the content to handle formatting and images
   const processedContent = useMemo(() => {
     if (!htmlContent) return ''
-    return processContent(htmlContent)
+    const processed = processContent(htmlContent)
+    console.log('- processedContent:', processed)
+    console.log('- processedContent length:', processed.length)
+    return processed
   }, [htmlContent])
 
   // Check if text needs truncation
