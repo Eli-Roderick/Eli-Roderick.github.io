@@ -232,10 +232,23 @@ export default function SimpleAIOverview({ htmlContent }) {
   // Check if text needs truncation
   const wasTruncated = useMemo(() => {
     const plain = stripTags(htmlContent)
-    const shouldTruncate = plain.trim().length > limit
-    console.log('- Checking truncation: plain text length =', plain.trim().length, 'limit =', limit, 'shouldTruncate =', shouldTruncate)
+    const cleanedPlain = stripTags(processedContent) // Also check processed content
+    const originalLength = plain.trim().length
+    const processedLength = cleanedPlain.trim().length
+    
+    // Use the longer of the two to determine truncation
+    const effectiveLength = Math.max(originalLength, processedLength)
+    const shouldTruncate = effectiveLength > limit
+    
+    console.log('- Checking truncation:')
+    console.log('  - Original plain text length:', originalLength)
+    console.log('  - Processed plain text length:', processedLength)
+    console.log('  - Effective length:', effectiveLength)
+    console.log('  - Limit:', limit)
+    console.log('  - Should truncate:', shouldTruncate)
+    
     return shouldTruncate
-  }, [htmlContent, limit])
+  }, [htmlContent, processedContent, limit])
 
   // Create truncated version
   const truncatedContent = useMemo(() => {
@@ -289,8 +302,19 @@ export default function SimpleAIOverview({ htmlContent }) {
     
     const finalTruncated = htmlContent.substring(0, breakPoint)
     const processed = processContent(finalTruncated)
-    console.log('- Truncated content length:', processed.length)
     
+    // Double-check that we actually truncated - if not, force truncation
+    const processedPlain = stripTags(processed)
+    if (processedPlain.trim().length > limit * 1.2) {
+      console.log('- Smart truncation failed, forcing character-based truncation')
+      // Force truncation at character limit
+      const forcedTruncated = htmlContent.substring(0, limit)
+      const forcedProcessed = processContent(forcedTruncated)
+      console.log('- Forced truncated content length:', stripTags(forcedProcessed).length)
+      return forcedProcessed
+    }
+    
+    console.log('- Final truncated content length:', processedPlain.length)
     return processed
   }, [htmlContent, processedContent, wasTruncated, expanded, limit])
 
@@ -351,6 +375,13 @@ export default function SimpleAIOverview({ htmlContent }) {
     }
     console.log(`AI Overview feedback: ${type === null ? 'removed' : type}`)
   }
+
+  console.log('- RENDER DEBUG:')
+  console.log('  - wasTruncated:', wasTruncated)
+  console.log('  - expanded:', expanded)
+  console.log('  - CSS class will be:', `ai-body ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`)
+  console.log('  - Content being rendered:', expanded ? 'processedContent' : 'truncatedContent')
+  console.log('  - Show more button will show:', (!expanded && wasTruncated))
 
   return (
     <section className="ai-card">
