@@ -1036,41 +1036,11 @@ input:checked + .toggle-slider:before {
   cursor: pointer;
 }
 
-.profile-icon-google {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.app-grid-icon {
-  width: 18px;
-  height: 18px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  gap: 2px;
-}
-
-.app-grid-icon::before,
-.app-grid-icon::after,
-.app-grid-icon div {
-  content: '';
-}
-
-.app-grid-icon div,
-.app-grid-icon::before,
-.app-grid-icon::after {
-  width: 3px;
-  height: 3px;
-  border-radius: 9999px;
-  background: #e8eaed;
-}
-
 .profile-avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 9999px;
-  padding: 2px;
+  padding: 3px; /* space between rainbow ring and inner circle */
   background:
     conic-gradient(
       #ea4335 0deg 90deg,
@@ -1088,8 +1058,12 @@ input:checked + .toggle-slider:before {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.profile-avatar-initial {
   color: #e8eaed;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
 }
 

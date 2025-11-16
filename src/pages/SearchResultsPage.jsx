@@ -781,10 +781,9 @@ export default function SearchResultsPage() {
             </div>
           ) : (
             <div className="profile-menu-wrapper" onClick={() => setShowProfileMenu((open) => !open)}>
-              <div className="profile-icon-google">
-                <div className="app-grid-icon" />
-                <div className="profile-avatar">
-                  <div className="profile-avatar-inner">E</div>
+              <div className="profile-avatar">
+                <div className="profile-avatar-inner">
+                  <span className="profile-avatar-initial">E</span>
                 </div>
               </div>
               {showProfileMenu && (
@@ -884,10 +883,9 @@ export default function SearchResultsPage() {
           ) : (
             <div className="hidden md:flex items-center gap-4 flex-shrink-0">
               <div className="profile-menu-wrapper" onClick={() => setShowProfileMenu((open) => !open)}>
-                <div className="profile-icon-google">
-                  <div className="app-grid-icon" />
-                  <div className="profile-avatar">
-                    <div className="profile-avatar-inner">E</div>
+                <div className="profile-avatar">
+                  <div className="profile-avatar-inner">
+                    <span className="profile-avatar-initial">E</span>
                   </div>
                 </div>
                 {showProfileMenu && (
