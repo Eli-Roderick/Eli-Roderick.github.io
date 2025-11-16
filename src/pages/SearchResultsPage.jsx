@@ -265,7 +265,6 @@ export default function SearchResultsPage() {
   const effectiveConfig = useMemo(() => {
     if (!config) return null
     
-    // Merge default results with custom results
     const defaultResults = config.results || []
     const customResults = customSearchResults[searchType] || []
     
@@ -284,10 +283,12 @@ export default function SearchResultsPage() {
     
     return {
       ...config,
-      // Preserve the explicit ordering configured in Manage Search Results > View Results
-      // Default results keep their original order from the config file, and
-      // customResults use the order maintained in custom_search_results (including any reordering).
-      results: [...defaultResults, ...formattedCustomResults],
+      // If there are custom results for this search type, use ONLY those in the
+      // exact order configured in "Manage Search Results > View Results".
+      // Otherwise, fall back to the built-in config results.
+      results: formattedCustomResults.length > 0
+        ? formattedCustomResults
+        : defaultResults,
       aiOverview: { 
         ...(config.aiOverview || {}), 
         show: true, // Always show AI Overview section when aiOverviewEnabled is true
@@ -641,6 +642,28 @@ export default function SearchResultsPage() {
     }
   }
 
+  // Seed editable custom results from built-in config results when none exist yet
+  useEffect(() => {
+    if (!config || !config.results || !config.results.length || !searchType) return
+    const existing = customSearchResults[searchType]
+    if (existing && existing.length > 0) return
+
+    const seeded = config.results.map((r) => ({
+      id: `${Date.now().toString()}-${Math.random().toString(36).slice(2)}`,
+      title: r.title,
+      url: r.url,
+      snippet: r.snippet,
+      favicon: getFaviconUrl(r.url),
+      createdAt: new Date().toISOString(),
+    }))
+
+    const newResults = {
+      ...customSearchResults,
+      [searchType]: seeded,
+    }
+    setCustomSearchResults(newResults)
+  }, [config, searchType])
+
   // Add custom search result
   const addCustomSearchResult = (searchResultType, result) => {
     const newResults = {
@@ -727,15 +750,9 @@ export default function SearchResultsPage() {
     localStorage.setItem('custom_search_results', JSON.stringify(updatedResults))
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading search results...</p>
-        </div>
-      </div>
-    )
+  // Do not render a dedicated loading screen; allow the page shell to appear immediately.
+  if (loading && !config) {
+    return null
   }
 
   if (error) {
@@ -921,9 +938,8 @@ export default function SearchResultsPage() {
 
       {/* Content */}
       <main className="px-4 md:pl-52 md:pr-6 py-1 md:py-6">
-        {loading && <div>Loading…</div>}
         {error && <div className="text-red-600">{error}</div>}
-        {!loading && !error && effectiveConfig && (
+        {!error && effectiveConfig && (
           <SearchPage 
             config={effectiveConfig} 
             onResultClick={handleResultClick}
