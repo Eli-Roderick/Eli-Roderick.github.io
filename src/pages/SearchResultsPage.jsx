@@ -250,29 +250,14 @@ export default function SearchResultsPage() {
           setUserAIText(assignedOverview.text)
           setAIOverviewEnabled(true)
         }
-      } else {
-        // No assignment, clear AI overview
-        setSelectedAIOverviewId(null)
-        setUserAIText('')
       }
-    } else if (searchType) {
-      // Clear AI overview for pages without assignments
-      setSelectedAIOverviewId(null)
-      setUserAIText('')
+      // Don't clear AI overview if there's no assignment - user might have manually set text
     }
+    // Don't clear AI overview for pages without assignments - preserve user's manual text
   }, [searchType, aiOverviews, searchResultAssignments])
 
-  // Clear AI text when navigating to a new custom page (no assignment)
-  useEffect(() => {
-    // Check if this is a custom page with no AI assignment
-    const isCustomPage = customSearchPages[searchQuery.toLowerCase()]
-    const hasAssignment = searchResultAssignments[searchType]
-    
-    if (isCustomPage && !hasAssignment) {
-      setUserAIText('')
-      setSelectedAIOverviewId(null)
-    }
-  }, [searchQuery, searchType, customSearchPages, searchResultAssignments])
+  // Note: Removed the useEffect that was clearing AI text for custom pages without assignments
+  // This was causing user's manually set AI text to be deleted on refresh
 
   const displayQuery = searchQuery.replace(/\+/g, ' ') // Convert + back to spaces for display
 
@@ -377,6 +362,35 @@ export default function SearchResultsPage() {
     setDraftTitle('')
     setDraftAIText('')
     setSelectedAIOverviewId(null)
+  }
+
+  const handleDeleteOverview = (overviewId) => {
+    if (confirm('Are you sure you want to delete this AI Overview? This action cannot be undone.')) {
+      // Remove from aiOverviews array
+      const updatedOverviews = aiOverviews.filter(overview => overview.id !== overviewId)
+      setAIOverviews(updatedOverviews)
+      
+      // Update localStorage
+      localStorage.setItem('ai_overviews', JSON.stringify(updatedOverviews))
+      
+      // If this was the selected overview, clear it
+      if (selectedAIOverviewId === overviewId) {
+        setSelectedAIOverviewId(null)
+        setUserAIText('')
+        localStorage.removeItem('selected_ai_overview_id')
+        localStorage.removeItem('ai_overview_text')
+      }
+      
+      // Remove any assignments to this overview
+      const updatedAssignments = { ...searchResultAssignments }
+      Object.keys(updatedAssignments).forEach(key => {
+        if (updatedAssignments[key] === overviewId) {
+          delete updatedAssignments[key]
+        }
+      })
+      setSearchResultAssignments(updatedAssignments)
+      localStorage.setItem('search_result_assignments', JSON.stringify(updatedAssignments))
+    }
   }
 
   const handleImagesUpdate = (resultUrl, images) => {
@@ -1200,15 +1214,41 @@ export default function SearchResultsPage() {
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>{overview.title}</h3>
-                              <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                                {new Date(overview.createdAt).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                                  {new Date(overview.createdAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleDeleteOverview(overview.id)
+                                  }}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#dc2626',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    borderRadius: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '16px',
+                                    transition: 'background-color 0.2s ease'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(220, 38, 38, 0.1)'}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                                  title="Delete AI Overview"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
                             </div>
                             <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.4', color: 'var(--text-secondary)' }}>
                               {overview.text.length > 150 
