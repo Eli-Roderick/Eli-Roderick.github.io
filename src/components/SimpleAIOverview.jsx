@@ -232,100 +232,21 @@ export default function SimpleAIOverview({ htmlContent }) {
     return processed
   }, [htmlContent])
 
-  // Check if text needs truncation
+  // Check if text needs truncation - simplified to work with CSS line-clamp
   const wasTruncated = useMemo(() => {
-    const plain = stripTags(htmlContent)
-    const cleanedPlain = stripTags(processedContent) // Also check processed content
-    const originalLength = plain.trim().length
-    const processedLength = cleanedPlain.trim().length
+    const plain = stripTags(processedContent)
+    const shouldTruncate = plain.trim().length > limit
     
-    // Use the longer of the two to determine truncation
-    const effectiveLength = Math.max(originalLength, processedLength)
-    const shouldTruncate = effectiveLength > limit
-    
-    console.log('- Checking truncation:')
-    console.log('  - Original plain text length:', originalLength)
-    console.log('  - Processed plain text length:', processedLength)
-    console.log('  - Effective length:', effectiveLength)
+    console.log('- Checking truncation (simplified):')
+    console.log('  - Plain text length:', plain.trim().length)
     console.log('  - Limit:', limit)
     console.log('  - Should truncate:', shouldTruncate)
     
     return shouldTruncate
-  }, [htmlContent, processedContent, limit])
+  }, [processedContent, limit])
 
-  // Create truncated version
-  const truncatedContent = useMemo(() => {
-    if (!wasTruncated || expanded) {
-      console.log('- Not truncating: wasTruncated =', wasTruncated, 'expanded =', expanded)
-      return processedContent
-    }
-    
-    const plain = stripTags(htmlContent)
-    console.log('- Plain text length:', plain.length, 'limit:', limit)
-    
-    if (plain.length <= limit) {
-      console.log('- Content within limit, returning full content')
-      return processedContent
-    }
-    
-    // Better truncation - find a good breaking point based on plain text length
-    const plainText = stripTags(htmlContent)
-    const targetPlainLength = limit
-    
-    // Find approximately where we should cut in the HTML to get the target plain text length
-    let estimatedHtmlPosition = Math.floor((targetPlainLength / plainText.length) * htmlContent.length)
-    
-    // Look for good breaking points around this position
-    const searchStart = Math.max(0, estimatedHtmlPosition - 500)
-    const searchEnd = Math.min(htmlContent.length, estimatedHtmlPosition + 500)
-    const searchArea = htmlContent.substring(searchStart, searchEnd)
-    
-    // Try to find good breaking points in order of preference
-    const lastSentence = searchArea.lastIndexOf('. ')
-    const lastParagraph = searchArea.lastIndexOf('</p>')
-    const lastListItem = searchArea.lastIndexOf('</li>')
-    const lastHeading = searchArea.lastIndexOf('</h')
-    
-    // Find the best breaking point
-    let breakPoint = estimatedHtmlPosition
-    
-    if (lastSentence > -1) {
-      breakPoint = searchStart + lastSentence + 2 // Include the '. '
-      console.log('- Truncating at sentence end:', breakPoint)
-    } else if (lastParagraph > -1) {
-      breakPoint = searchStart + lastParagraph + 4 // Include the '</p>'
-      console.log('- Truncating at paragraph end:', breakPoint)
-    } else if (lastListItem > -1) {
-      breakPoint = searchStart + lastListItem + 5 // Include the '</li>'
-      console.log('- Truncating at list item end:', breakPoint)
-    } else if (lastHeading > -1) {
-      // Find the end of the heading tag
-      const headingEnd = htmlContent.indexOf('>', searchStart + lastHeading)
-      if (headingEnd > searchStart + lastHeading) {
-        breakPoint = headingEnd + 1
-        console.log('- Truncating at heading end:', breakPoint)
-      }
-    } else {
-      console.log('- Using estimated position truncation:', breakPoint)
-    }
-    
-    const finalTruncated = htmlContent.substring(0, breakPoint)
-    const processed = processContent(finalTruncated)
-    
-    // Double-check that we actually truncated - if not, force truncation
-    const processedPlain = stripTags(processed)
-    if (processedPlain.trim().length > limit * 1.2) {
-      console.log('- Smart truncation failed, forcing character-based truncation')
-      // Force truncation at character limit
-      const forcedTruncated = htmlContent.substring(0, limit)
-      const forcedProcessed = processContent(forcedTruncated)
-      console.log('- Forced truncated content length:', stripTags(forcedProcessed).length)
-      return forcedProcessed
-    }
-    
-    console.log('- Final truncated content length:', processedPlain.length)
-    return processed
-  }, [htmlContent, processedContent, wasTruncated, expanded, limit])
+  // No JavaScript truncation - let CSS line-clamp handle it
+  console.log('- Using CSS line-clamp for truncation, no JS truncation needed')
 
   // Update scroll indicators when component mounts or content changes
   useEffect(() => {
@@ -403,7 +324,7 @@ export default function SimpleAIOverview({ htmlContent }) {
       
       <div
         className={`ai-body ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
-        dangerouslySetInnerHTML={{ __html: expanded ? processedContent : truncatedContent }}
+        dangerouslySetInnerHTML={{ __html: processedContent }}
       />
 
       {/* Show more control */}

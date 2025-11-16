@@ -118,6 +118,8 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
   padding: 0px 2px !important;
   border-radius: 4px !important;
   font-weight: 600 !important; /* Make highlighted text bold */
+  display: inline !important; /* Ensure highlights don't break line flow for line-clamp */
+  box-decoration-break: clone !important; /* Handle line breaks properly */
 }
 
 /* Ensure consistent highlight styling for any highlight elements */
@@ -140,6 +142,10 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
   /* Use mask to fade the text itself so there is no hard cutoff */
   -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 85%, rgba(0,0,0,0));
           mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 85%, rgba(0,0,0,0));
+  
+  /* Ensure highlights don't break line-clamp */
+  word-wrap: break-word;
+  word-break: break-word;
 }
 .ai-showmore { margin-top: 0; }
 .ai-showmore-btn {

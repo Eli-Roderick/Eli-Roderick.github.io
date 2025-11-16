@@ -134,14 +134,7 @@ export default function SearchResultsPage() {
       return []
     }
   })
-  const [selectedAIOverviewId, setSelectedAIOverviewId] = useState(() => {
-    try {
-      const saved = localStorage.getItem('selected_ai_overview_id')
-      return saved || null
-    } catch {
-      return null
-    }
-  })
+  const [selectedAIOverviewId, setSelectedAIOverviewId] = useState(null)
   const [searchResultAssignments, setSearchResultAssignments] = useState(() => {
     try {
       const saved = localStorage.getItem('search_result_assignments')
@@ -333,6 +326,7 @@ export default function SearchResultsPage() {
       updateAIOverview(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
     } else if (modalView === 'editor' && draftAIText !== userAIText) {
       const newId = createAIOverview(draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
+      // Only select the new overview if we're creating it for the current context
       setSelectedAIOverviewId(newId)
     }
     setUserAIText(draftAIText)
@@ -377,7 +371,6 @@ export default function SearchResultsPage() {
       if (selectedAIOverviewId === overviewId) {
         setSelectedAIOverviewId(null)
         setUserAIText('')
-        localStorage.removeItem('selected_ai_overview_id')
         localStorage.removeItem('ai_overview_text')
       }
       
@@ -496,18 +489,7 @@ export default function SearchResultsPage() {
     }
   }, [aiOverviews])
 
-  // Save selected AI overview ID to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      if (selectedAIOverviewId) {
-        localStorage.setItem('selected_ai_overview_id', selectedAIOverviewId)
-      } else {
-        localStorage.removeItem('selected_ai_overview_id')
-      }
-    } catch (error) {
-      console.warn('Failed to save selected AI overview ID to localStorage:', error)
-    }
-  }, [selectedAIOverviewId])
+  // Note: Removed localStorage persistence for selectedAIOverviewId to prevent jumping between overviews
 
   // Save AI overview enabled state to localStorage whenever it changes
   useEffect(() => {
@@ -566,7 +548,7 @@ export default function SearchResultsPage() {
     
     const updatedOverviews = [...aiOverviews, newOverview]
     setAIOverviews(updatedOverviews)
-    setSelectedAIOverviewId(newOverview.id)
+    // Don't automatically select the new overview - let user explicitly choose
     return newOverview.id
   }
 
@@ -719,18 +701,25 @@ export default function SearchResultsPage() {
   }
 
   // Remove custom search page
-  const removeCustomSearchPage = (queryKey) => {
-    const newPages = { ...customSearchPages }
-    const pageKey = newPages[queryKey]?.key
-    delete newPages[queryKey]
-    setCustomSearchPages(newPages)
+  const removeCustomSearchPage = (pageKey) => {
+    const updatedPages = { ...customSearchPages }
+    delete updatedPages[pageKey]
+    setCustomSearchPages(updatedPages)
+    localStorage.setItem('custom_search_pages', JSON.stringify(updatedPages))
+  }
+
+  const reorderSearchResults = (searchType, fromIndex, toIndex) => {
+    const results = [...(customSearchResults[searchType] || [])]
+    const [movedItem] = results.splice(fromIndex, 1)
+    results.splice(toIndex, 0, movedItem)
     
-    // Also remove its custom results
-    if (pageKey) {
-      const newResults = { ...customSearchResults }
-      delete newResults[pageKey]
-      setCustomSearchResults(newResults)
+    const updatedResults = {
+      ...customSearchResults,
+      [searchType]: results
     }
+    
+    setCustomSearchResults(updatedResults)
+    localStorage.setItem('custom_search_results', JSON.stringify(updatedResults))
   }
 
   if (loading) {
@@ -934,6 +923,7 @@ export default function SearchResultsPage() {
             setShowSearchManagement(false)
             setShowSearchResultsEditor(true)
           }}
+          onReorderResults={reorderSearchResults}
           queryToConfig={queryToConfig}
         />
       )}
@@ -2127,6 +2117,7 @@ function EnhancedSearchManagementModal({
   onRemoveAI,
   onDeletePage,
   onEditResults,
+  onReorderResults,
   queryToConfig
 }) {
   const [activeTab, setActiveTab] = useState('pages')
@@ -2201,10 +2192,10 @@ function EnhancedSearchManagementModal({
         }}>
           <div>
             <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '24px', fontWeight: '700' }}>
-              🎯 FIXED - Only 2 Tabs
+              Manage Search Results
             </h2>
             <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>
-              NO OVERVIEW TAB - Just Pages & AI Assignments
+              Manage pages, results, and AI assignments
             </p>
           </div>
           <button 
@@ -2376,6 +2367,7 @@ function EnhancedSearchManagementModal({
               onDeleteResult={() => {
                 setSelectedPageForResults({...selectedPageForResults})
               }}
+              onReorderResults={(fromIndex, toIndex) => onReorderResults(selectedPageForResults.key, fromIndex, toIndex)}
             />
           )}
           
@@ -2472,7 +2464,7 @@ function EnhancedSearchManagementModal({
 }
 
 // Page Results View Component
-function PageResultsView({ page, pageResults, allCustomResults, onBack, onEditResult, onAddResult, onDeleteResult }) {
+function PageResultsView({ page, pageResults, allCustomResults, onBack, onEditResult, onAddResult, onDeleteResult, onReorderResults }) {
   console.log('PageResultsView DEBUG:')
   console.log('- page:', page)
   console.log('- page.key:', page?.key)
@@ -2517,7 +2509,7 @@ function PageResultsView({ page, pageResults, allCustomResults, onBack, onEditRe
             </span>
           </h3>
           <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
-            {pageResults.length} search results
+            {pageResults.length} search results • Drag and drop to reorder
           </p>
         </div>
       </div>
@@ -2548,14 +2540,63 @@ function PageResultsView({ page, pageResults, allCustomResults, onBack, onEditRe
       {pageResults.length > 0 ? (
         <div style={{ display: 'grid', gap: '1rem' }}>
           {pageResults.map((result, index) => (
-            <div key={result.id} style={{
-              padding: '1.5rem',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              backgroundColor: 'var(--card-bg)',
-              transition: 'all 0.2s ease'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <div 
+              key={result.id} 
+              draggable={true}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', index.toString())
+                e.currentTarget.style.opacity = '0.5'
+              }}
+              onDragEnd={(e) => {
+                e.currentTarget.style.opacity = '1'
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.currentTarget.style.borderColor = '#3b82f6'
+                e.currentTarget.style.borderWidth = '2px'
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.borderWidth = '1px'
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.borderWidth = '1px'
+                
+                const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'))
+                const targetIndex = index
+                
+                if (draggedIndex !== targetIndex && onReorderResults) {
+                  onReorderResults(draggedIndex, targetIndex)
+                }
+              }}
+              style={{
+                padding: '1.5rem',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--card-bg)',
+                transition: 'all 0.2s ease',
+                cursor: 'grab',
+                position: 'relative'
+              }}
+              onMouseDown={(e) => e.currentTarget.style.cursor = 'grabbing'}
+              onMouseUp={(e) => e.currentTarget.style.cursor = 'grab'}
+            >
+              {/* Drag Handle */}
+              <div style={{ 
+                position: 'absolute', 
+                left: '8px', 
+                top: '50%', 
+                transform: 'translateY(-50%)',
+                color: 'var(--muted)',
+                fontSize: '16px',
+                cursor: 'grab'
+              }}>
+                ⋮⋮
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginLeft: '20px' }}>
                 <img 
                   src={result.favicon} 
                   alt="Favicon"
