@@ -265,39 +265,45 @@ export default function SimpleAIOverview({ htmlContent }) {
       return processedContent
     }
     
-    // Better truncation - try to cut at a sentence or paragraph boundary
-    let truncateAt = Math.min(limit * 1.8, htmlContent.length) // Give more room for HTML tags but don't exceed content
-    const truncated = htmlContent.substring(0, truncateAt)
+    // Better truncation - find a good breaking point based on plain text length
+    const plainText = stripTags(htmlContent)
+    const targetPlainLength = limit
+    
+    // Find approximately where we should cut in the HTML to get the target plain text length
+    let estimatedHtmlPosition = Math.floor((targetPlainLength / plainText.length) * htmlContent.length)
+    
+    // Look for good breaking points around this position
+    const searchStart = Math.max(0, estimatedHtmlPosition - 500)
+    const searchEnd = Math.min(htmlContent.length, estimatedHtmlPosition + 500)
+    const searchArea = htmlContent.substring(searchStart, searchEnd)
     
     // Try to find good breaking points in order of preference
-    const lastSentence = truncated.lastIndexOf('. ')
-    const lastParagraph = truncated.lastIndexOf('</p>')
-    const lastListItem = truncated.lastIndexOf('</li>')
-    const lastHeading = truncated.lastIndexOf('</h')
-    
-    const minLength = limit * 0.7 // Don't truncate too aggressively
+    const lastSentence = searchArea.lastIndexOf('. ')
+    const lastParagraph = searchArea.lastIndexOf('</p>')
+    const lastListItem = searchArea.lastIndexOf('</li>')
+    const lastHeading = searchArea.lastIndexOf('</h')
     
     // Find the best breaking point
-    let breakPoint = truncateAt
+    let breakPoint = estimatedHtmlPosition
     
-    if (lastSentence > minLength) {
-      breakPoint = lastSentence + 2 // Include the '. '
+    if (lastSentence > -1) {
+      breakPoint = searchStart + lastSentence + 2 // Include the '. '
       console.log('- Truncating at sentence end:', breakPoint)
-    } else if (lastParagraph > minLength) {
-      breakPoint = lastParagraph + 4 // Include the '</p>'
+    } else if (lastParagraph > -1) {
+      breakPoint = searchStart + lastParagraph + 4 // Include the '</p>'
       console.log('- Truncating at paragraph end:', breakPoint)
-    } else if (lastListItem > minLength) {
-      breakPoint = lastListItem + 5 // Include the '</li>'
+    } else if (lastListItem > -1) {
+      breakPoint = searchStart + lastListItem + 5 // Include the '</li>'
       console.log('- Truncating at list item end:', breakPoint)
-    } else if (lastHeading > minLength) {
+    } else if (lastHeading > -1) {
       // Find the end of the heading tag
-      const headingEnd = htmlContent.indexOf('>', lastHeading)
-      if (headingEnd > lastHeading) {
+      const headingEnd = htmlContent.indexOf('>', searchStart + lastHeading)
+      if (headingEnd > searchStart + lastHeading) {
         breakPoint = headingEnd + 1
         console.log('- Truncating at heading end:', breakPoint)
       }
     } else {
-      console.log('- Using character limit truncation:', breakPoint)
+      console.log('- Using estimated position truncation:', breakPoint)
     }
     
     const finalTruncated = htmlContent.substring(0, breakPoint)
