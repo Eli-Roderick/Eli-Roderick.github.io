@@ -11,21 +11,15 @@ import { loadConfigByPath } from '../utils/config'
 
 const logger = new ClickLogger()
 
-// Query to config path mapping
+// Query to config path mapping (only keep hiking boots page as built-in)
 const queryToConfig = {
   'best hiking boots': { path: '/configs/query1.json', key: 'hiking-boots' },
-  'best+hiking+boots': { path: '/configs/query1.json', key: 'hiking-boots' },
-  'healthy breakfast ideas': { path: '/configs/query2.json', key: 'breakfast-ideas' },
-  'healthy+breakfast+ideas': { path: '/configs/query2.json', key: 'breakfast-ideas' },
-  'electric cars 2025': { path: '/configs/query3.json', key: 'electric-cars' },
-  'electric+cars+2025': { path: '/configs/query3.json', key: 'electric-cars' }
+  'best+hiking+boots': { path: '/configs/query1.json', key: 'hiking-boots' }
 }
 
-// Display name mapping
+// Display name mapping for built-in pages
 const displayNames = {
-  'hiking-boots': 'Best hiking boots',
-  'breakfast-ideas': 'Healthy breakfast ideas',
-  'electric-cars': 'Electric cars 2025'
+  'hiking-boots': 'Best hiking boots'
 }
 
 function shuffle(arr) {
@@ -83,6 +77,11 @@ export default function SearchResultsPage() {
       }
     }
     
+    // Check if this is a deleted built-in page
+    if (config && deletedBuiltinPages.includes(config.key)) {
+      config = null // Treat as if it doesn't exist
+    }
+    
     if (!config) {
       // For unknown queries, create an empty config instead of falling back to hiking boots
       config = {
@@ -94,7 +93,7 @@ export default function SearchResultsPage() {
     
     console.log('Final searchConfig:', config)
     return config
-  }, [searchQuery, customSearchPages])
+  }, [searchQuery, customSearchPages, deletedBuiltinPages])
   
   const searchType = searchConfig.key
   
@@ -171,6 +170,14 @@ export default function SearchResultsPage() {
       return {}
     }
   })
+  const [deletedBuiltinPages, setDeletedBuiltinPages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('deleted_builtin_pages')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
 
   // Load persisted AI text on mount
   useEffect(() => {
@@ -231,7 +238,7 @@ export default function SearchResultsPage() {
         setError(String(e))
       })
       .finally(() => setLoading(false))
-  }, [searchConfig.path, searchQuery, customSearchPages])
+  }, [searchConfig.path, searchQuery, customSearchPages, deletedBuiltinPages])
 
   // Load assigned AI overview for current search type
   useEffect(() => {
@@ -533,6 +540,15 @@ export default function SearchResultsPage() {
     }
   }, [customSearchPages])
 
+  // Save deleted built-in pages to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('deleted_builtin_pages', JSON.stringify(deletedBuiltinPages))
+    } catch (error) {
+      console.warn('Failed to save deleted built-in pages to localStorage:', error)
+    }
+  }, [deletedBuiltinPages])
+
   // Update userAIText when selected AI overview changes
   useEffect(() => {
     if (selectedAIOverviewId) {
@@ -748,6 +764,17 @@ export default function SearchResultsPage() {
     
     setCustomSearchResults(updatedResults)
     localStorage.setItem('custom_search_results', JSON.stringify(updatedResults))
+  }
+
+  // Delete built-in page
+  const deleteBuiltinPage = (pageKey) => {
+    const updatedDeleted = [...deletedBuiltinPages, pageKey]
+    setDeletedBuiltinPages(updatedDeleted)
+    
+    // Also remove any custom results for this page
+    const updatedCustomResults = { ...customSearchResults }
+    delete updatedCustomResults[pageKey]
+    setCustomSearchResults(updatedCustomResults)
   }
 
   // Do not render a dedicated loading screen; allow the page shell to appear immediately.
@@ -971,12 +998,14 @@ export default function SearchResultsPage() {
           onAssignAI={assignAIOverviewToSearch}
           onRemoveAI={removeAIOverviewFromSearch}
           onDeletePage={removeCustomSearchPage}
+          onDeleteBuiltinPage={deleteBuiltinPage}
           onEditResults={(searchType) => {
             setShowSearchManagement(false)
             setShowSearchResultsEditor(true)
           }}
           onReorderResults={reorderSearchResults}
           queryToConfig={queryToConfig}
+          deletedBuiltinPages={deletedBuiltinPages}
         />
       )}
 
@@ -2168,25 +2197,30 @@ function EnhancedSearchManagementModal({
   onAssignAI,
   onRemoveAI,
   onDeletePage,
+  onDeleteBuiltinPage,
   onEditResults,
   onReorderResults,
-  queryToConfig
+  queryToConfig,
+  deletedBuiltinPages
 }) {
   const [activeTab, setActiveTab] = useState('pages')
   const [selectedPageForResults, setSelectedPageForResults] = useState(null)
   const [builtinResults, setBuiltinResults] = useState({})
+  const [pageSearchQuery, setPageSearchQuery] = useState('')
 
   if (!isOpen) return null
 
-  // Combine built-in and custom pages for unified view
+  // Combine built-in and custom pages for unified view, excluding deleted built-in pages
   const allPages = [
-    ...Object.entries(displayNames).map(([key, name]) => ({
-      key,
-      name,
-      type: 'built-in',
-      queryKey: Object.keys(queryToConfig).find(q => queryToConfig[q].key === key),
-      customResultCount: customSearchResults[key]?.length || 0
-    })),
+    ...Object.entries(displayNames)
+      .filter(([key]) => !deletedBuiltinPages.includes(key))
+      .map(([key, name]) => ({
+        key,
+        name,
+        type: 'built-in',
+        queryKey: Object.keys(queryToConfig).find(q => queryToConfig[q].key === key),
+        customResultCount: customSearchResults[key]?.length || 0
+      })),
     ...Object.entries(customSearchPages).map(([queryKey, page]) => ({
       key: page.key,
       name: page.displayName,
@@ -2228,6 +2262,40 @@ function EnhancedSearchManagementModal({
 
     loadBuiltinResults()
   }, [isOpen, queryToConfig, displayNames, customSearchPages])
+
+  // Seed built-in results into customSearchResults so they become editable
+  useEffect(() => {
+    if (!isOpen || Object.keys(builtinResults).length === 0) return
+
+    const updatedCustomResults = { ...customSearchResults }
+    let hasChanges = false
+
+    Object.entries(builtinResults).forEach(([pageKey, results]) => {
+      const existing = customSearchResults[pageKey]
+      if (!existing || existing.length === 0) {
+        const seeded = results.map((r, index) => ({
+          id: `builtin-${pageKey}-${index}-${Date.now()}`,
+          title: r.title,
+          url: r.url,
+          snippet: r.snippet,
+          favicon: `https://www.google.com/s2/favicons?domain=${new URL(r.url).hostname}&sz=32`,
+          createdAt: new Date().toISOString(),
+        }))
+        updatedCustomResults[pageKey] = seeded
+        hasChanges = true
+      }
+    })
+
+    if (hasChanges) {
+      setCustomSearchResults(updatedCustomResults)
+    }
+  }, [isOpen, builtinResults, customSearchResults, setCustomSearchResults])
+
+  // Filter pages based on search query
+  const filteredPages = allPages.filter(page => 
+    page.name.toLowerCase().includes(pageSearchQuery.toLowerCase()) ||
+    (page.queryKey && page.queryKey.toLowerCase().includes(pageSearchQuery.toLowerCase()))
+  )
 
   // ONLY TWO TABS - NO OVERVIEW TAB
   const TABS_ONLY_TWO = [
@@ -2346,8 +2414,29 @@ function EnhancedSearchManagementModal({
                 📄 All Search Pages
               </h3>
               
+              {/* Search input */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="Search pages..."
+                  value={pageSearchQuery}
+                  onChange={(e) => setPageSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    maxWidth: '400px',
+                    padding: '0.75rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    backgroundColor: 'var(--card-bg)',
+                    color: 'var(--text)',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              
               <div style={{ display: 'grid', gap: '1rem' }}>
-                {allPages.map(page => {
+                {filteredPages.map(page => {
                   const pageResults = customSearchResults[page.key] || []
                   return (
                     <div key={page.key} style={{
@@ -2413,26 +2502,31 @@ function EnhancedSearchManagementModal({
                           >
                             View Results
                           </button>
-                          {page.type === 'custom' && (
-                            <button
-                              onClick={() => {
-                                if (confirm(`Delete "${page.name}" page and all its search results?`)) {
+                          <button
+                            onClick={() => {
+                              const confirmMessage = page.type === 'custom' 
+                                ? `Delete "${page.name}" page and all its search results?`
+                                : `Delete "${page.name}" built-in page? This will remove it from the interface but can be restored by refreshing the page data.`
+                              if (confirm(confirmMessage)) {
+                                if (page.type === 'custom') {
                                   onDeletePage(page.queryKey)
+                                } else {
+                                  onDeleteBuiltinPage(page.key)
                                 }
-                              }}
-                              style={{
-                                padding: '0.5rem 1rem',
-                                border: '1px solid #dc2626',
-                                borderRadius: '4px',
-                                backgroundColor: '#dc2626',
-                                color: 'white',
-                                cursor: 'pointer',
-                                fontSize: '12px'
-                              }}
-                            >
-                              Delete
-                            </button>
-                          )}
+                              }
+                            }}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              border: '1px solid #dc2626',
+                              borderRadius: '4px',
+                              backgroundColor: '#dc2626',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '12px'
+                            }}
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -2445,12 +2539,12 @@ function EnhancedSearchManagementModal({
           {activeTab === 'pages' && selectedPageForResults && (
             <PageResultsView 
               page={selectedPageForResults}
-              builtinPageResults={builtinResults[selectedPageForResults.key] || []}
-              customPageResults={customSearchResults[selectedPageForResults.key] || []}
+              pageResults={customSearchResults[selectedPageForResults.key] || []}
               onBack={() => setSelectedPageForResults(null)}
               onEditResult={() => onEditResults(selectedPageForResults.key)}
               onAddResult={() => onEditResults(selectedPageForResults.key)}
-              onDeleteResult={() => {
+              onDeleteResult={(resultId) => {
+                removeCustomSearchResult(selectedPageForResults.key, resultId)
                 setSelectedPageForResults({ ...selectedPageForResults })
               }}
               onReorderResults={(fromIndex, toIndex) => onReorderResults(selectedPageForResults.key, fromIndex, toIndex)}
@@ -2550,13 +2644,12 @@ function EnhancedSearchManagementModal({
 }
 
 // Page Results View Component
-function PageResultsView({ page, builtinPageResults, customPageResults, onBack, onEditResult, onAddResult, onDeleteResult, onReorderResults }) {
+function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult, onDeleteResult, onReorderResults }) {
   console.log('PageResultsView DEBUG:')
   console.log('- page:', page)
   console.log('- page.key:', page?.key)
-  console.log('- builtinPageResults:', builtinPageResults)
-  console.log('- customPageResults:', customPageResults)
-  const totalResults = (builtinPageResults?.length || 0) + (customPageResults?.length || 0)
+  console.log('- pageResults:', pageResults)
+  const totalResults = pageResults?.length || 0
   
   return (
     <div>
@@ -2595,7 +2688,7 @@ function PageResultsView({ page, builtinPageResults, customPageResults, onBack, 
             </span>
           </h3>
           <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
-            {totalResults} search results • Drag and drop to reorder custom results
+            {totalResults} search results • Drag and drop to reorder
           </p>
         </div>
       </div>
@@ -2625,39 +2718,7 @@ function PageResultsView({ page, builtinPageResults, customPageResults, onBack, 
       {/* Results List */}
       {totalResults > 0 ? (
         <div style={{ display: 'grid', gap: '1rem' }}>
-          {/* Built-in results (read-only, non-draggable) */}
-          {builtinPageResults && builtinPageResults.map((result, index) => (
-            <div
-              key={`builtin-${index}`}
-              style={{
-                padding: '1.5rem',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                backgroundColor: 'var(--card-bg)',
-                position: 'relative'
-              }}
-            >
-              <div style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '11px', color: 'var(--muted)' }}>
-                Built-in
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: '500', color: '#1a0dab', lineHeight: '1.3' }}>
-                    {result.title}
-                  </h4>
-                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: '#006621', wordBreak: 'break-all' }}>
-                    {result.url}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text)', lineHeight: '1.5' }}>
-                    {result.snippet}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Custom results (draggable/editable) */}
-          {customPageResults && customPageResults.map((result, index) => (
+          {pageResults.map((result, index) => (
             <div 
               key={result.id} 
               draggable={true}
