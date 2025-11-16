@@ -221,7 +221,7 @@ export default function SimpleAIOverview({ htmlContent }) {
   
   const [expanded, setExpanded] = useState(false)
   const [feedback, setFeedback] = useState(null) // 'up', 'down', or null
-  const limit = 600 // Normal Google AI Overview length
+  const limit = 800 // Rough estimate for 10 lines of text (not used for actual truncation)
 
   // Process the content to handle formatting and images
   const processedContent = useMemo(() => {

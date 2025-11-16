@@ -131,11 +131,15 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
 .icon-btn:hover { background: color-mix(in hsl, var(--card-bg), black 4%); }
 /* AI Overview: truncated fade and show more button */
 .ai-body--truncated {
-  max-height: 25rem; /* Adjusted to match normal Google AI Overview length */
+  /* Use line-based truncation instead of character-based */
+  display: -webkit-box;
+  -webkit-line-clamp: 10; /* Show 10 lines before truncating */
+  line-clamp: 10; /* Standard property for compatibility */
+  -webkit-box-orient: vertical;
   overflow: hidden;
   /* Use mask to fade the text itself so there is no hard cutoff */
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0));
-          mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0));
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 85%, rgba(0,0,0,0));
+          mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 85%, rgba(0,0,0,0));
 }
 .ai-showmore { margin-top: 0; }
 .ai-showmore-btn {
