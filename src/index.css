@@ -131,7 +131,7 @@ img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9
 .icon-btn:hover { background: color-mix(in hsl, var(--card-bg), black 4%); }
 /* AI Overview: truncated fade and show more button */
 .ai-body--truncated {
-  max-height: 50rem; /* Further increased to accommodate longer truncation limit */
+  max-height: 25rem; /* Adjusted to match normal Google AI Overview length */
   overflow: hidden;
   /* Use mask to fade the text itself so there is no hard cutoff */
   -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0));

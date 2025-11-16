@@ -98,7 +98,9 @@ function processContent(html) {
 
   // Try normal curly braces first
   processed = processed.replace(/\{(\[[^\]]+\])+\}/g, (match) => {
+    console.log('- Processing curly brace group:', match)
     const imageMatches = match.match(/\[([^\]]+)\]/g) || []
+    console.log('- Found images in group:', imageMatches)
     const result = createImageRow(imageMatches)
     return result || match
   })
@@ -121,7 +123,8 @@ function processContent(html) {
   processed = processed.replace(/\[([^\]]+)\]/g, (match, url) => {
     // Check if it's an image URL
     if (/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?.*)?$/i.test(url)) {
-      return `<div class="image-row-container"><img src="${url}" alt="User provided image" /></div>`
+      console.log('- Processing individual image:', url)
+      return `<div class="image-row-container"><img src="${url}" alt="User provided image" style="max-width: 100%; height: auto; border-radius: 0.5rem; display: block;" /></div>`
     }
     return match // Return original if not an image
   })
@@ -218,7 +221,7 @@ export default function SimpleAIOverview({ htmlContent }) {
   
   const [expanded, setExpanded] = useState(false)
   const [feedback, setFeedback] = useState(null) // 'up', 'down', or null
-  const limit = 1500 // Increased limit to show more content before truncating
+  const limit = 600 // Normal Google AI Overview length
 
   // Process the content to handle formatting and images
   const processedContent = useMemo(() => {
