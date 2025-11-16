@@ -50,6 +50,16 @@ export default function SearchResultsPage() {
     }
   })
   
+  // Load deleted built-in pages (needed for searchConfig calculation)
+  const [deletedBuiltinPages, setDeletedBuiltinPages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('deleted_builtin_pages')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
+  
   // Find matching config - use useMemo to recalculate when customSearchPages changes
   const searchConfig = useMemo(() => {
     console.log('Calculating searchConfig for query:', searchQuery)
@@ -168,14 +178,6 @@ export default function SearchResultsPage() {
       return saved ? JSON.parse(saved) : {}
     } catch {
       return {}
-    }
-  })
-  const [deletedBuiltinPages, setDeletedBuiltinPages] = useState(() => {
-    try {
-      const saved = localStorage.getItem('deleted_builtin_pages')
-      return saved ? JSON.parse(saved) : []
-    } catch {
-      return []
     }
   })
 
