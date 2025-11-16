@@ -2323,8 +2323,8 @@ function EnhancedSearchManagementModal({
         transform: 'translate(-50%, -50%)',
         width: '95%',
         maxWidth: '1400px',
-        backgroundColor: 'var(--card-bg)',
-        border: '1px solid var(--border)',
+        backgroundColor: '#ffffff',
+        border: '1px solid #dadce0',
         borderRadius: '12px',
         zIndex: 1000000,
         pointerEvents: 'all',
@@ -2377,8 +2377,8 @@ function EnhancedSearchManagementModal({
         {/* ONLY 2 TABS - Navigation */}
         <div style={{ 
           padding: '0 1.5rem',
-          borderBottom: '1px solid var(--border)',
-          backgroundColor: 'var(--card-bg)',
+          borderBottom: '1px solid #dadce0',
+          backgroundColor: '#ffffff',
           display: 'flex',
           gap: '0.5rem'
         }}>
@@ -2391,7 +2391,7 @@ function EnhancedSearchManagementModal({
                 border: 'none',
                 borderBottom: activeTab === tab.id ? '3px solid #667eea' : '3px solid transparent',
                 backgroundColor: activeTab === tab.id ? 'rgba(102, 126, 234, 0.1)' : 'transparent',
-                color: activeTab === tab.id ? '#667eea' : 'var(--text)',
+                color: activeTab === tab.id ? '#667eea' : '#202124',
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: activeTab === tab.id ? '600' : '500',
@@ -2406,13 +2406,13 @@ function EnhancedSearchManagementModal({
         {/* Body */}
         <div style={{ 
           padding: '1.5rem', 
-          backgroundColor: 'var(--card-bg)',
+          backgroundColor: '#ffffff',
           flex: 1,
           overflow: 'auto'
         }}>
           {activeTab === 'pages' && !selectedPageForResults && (
             <div>
-              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '20px', fontWeight: '600', color: '#202124' }}>
                 📄 All Search Pages
               </h3>
               
@@ -2427,10 +2427,10 @@ function EnhancedSearchManagementModal({
                     width: '100%',
                     maxWidth: '400px',
                     padding: '0.75rem',
-                    border: '1px solid var(--border)',
+                    border: '1px solid #dadce0',
                     borderRadius: '6px',
-                    backgroundColor: 'var(--card-bg)',
-                    color: 'var(--text)',
+                    backgroundColor: '#ffffff',
+                    color: '#202124',
                     fontSize: '14px',
                     outline: 'none'
                   }}
