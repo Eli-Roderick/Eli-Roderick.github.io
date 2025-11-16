@@ -1040,7 +1040,7 @@ input:checked + .toggle-slider:before {
   width: 40px;
   height: 40px;
   border-radius: 9999px;
-  padding: 3px; /* space between rainbow ring and inner circle */
+  padding: 2px; /* thinner rainbow ring */
   background:
     conic-gradient(
       #ea4335 0deg 90deg,
@@ -1054,7 +1054,8 @@ input:checked + .toggle-slider:before {
   width: 100%;
   height: 100%;
   border-radius: 9999px;
-  background: #3c4043;
+  background: #5f6368; /* lighter grey inner avatar */
+  border: 2px solid var(--bg); /* separation ring matching background color */
   display: flex;
   align-items: center;
   justify-content: center;

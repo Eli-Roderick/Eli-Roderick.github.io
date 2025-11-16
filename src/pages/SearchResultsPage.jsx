@@ -284,7 +284,10 @@ export default function SearchResultsPage() {
     
     return {
       ...config,
-      results: shuffle([...defaultResults, ...formattedCustomResults]),
+      // Preserve the explicit ordering configured in Manage Search Results > View Results
+      // Default results keep their original order from the config file, and
+      // customResults use the order maintained in custom_search_results (including any reordering).
+      results: [...defaultResults, ...formattedCustomResults],
       aiOverview: { 
         ...(config.aiOverview || {}), 
         show: true, // Always show AI Overview section when aiOverviewEnabled is true
@@ -294,6 +297,7 @@ export default function SearchResultsPage() {
   }, [config, customSearchResults, searchType, userAIText, customSearchPages, searchQuery, searchResultAssignments, aiOverviewEnabled])
 
   const handlePaste = (e) => {
+    // ...
     const clipboard = e.clipboardData
     const html = clipboard?.getData('text/html') || ''
     const text = clipboard?.getData('text') || ''
@@ -2154,6 +2158,7 @@ function EnhancedSearchManagementModal({
 }) {
   const [activeTab, setActiveTab] = useState('pages')
   const [selectedPageForResults, setSelectedPageForResults] = useState(null)
+  const [builtinResults, setBuiltinResults] = useState({})
 
   if (!isOpen) return null
 
@@ -2174,6 +2179,39 @@ function EnhancedSearchManagementModal({
       customResultCount: customSearchResults[page.key]?.length || 0
     }))
   ]
+
+  // Load default (code-defined) results for built-in pages so they can be viewed in the
+  // "View Results" screen even before any custom results are added.
+  useEffect(() => {
+    if (!isOpen) return
+
+    const loadBuiltinResults = async () => {
+      const resultsMap = {}
+
+      const builtinPages = allPages.filter((page) => page.type === 'built-in')
+
+      await Promise.all(
+        builtinPages.map(async (page) => {
+          const configEntry = Object.entries(queryToConfig).find(
+            ([, cfg]) => cfg.key === page.key
+          )
+          const configPath = configEntry && configEntry[1] && configEntry[1].path
+          if (!configPath) return
+
+          try {
+            const cfg = await loadConfigByPath(configPath)
+            resultsMap[page.key] = cfg.results || []
+          } catch (error) {
+            console.warn('Failed to load built-in results for page', page.key, error)
+          }
+        })
+      )
+
+      setBuiltinResults(resultsMap)
+    }
+
+    loadBuiltinResults()
+  }, [isOpen, queryToConfig, displayNames, customSearchPages])
 
   // ONLY TWO TABS - NO OVERVIEW TAB
   const TABS_ONLY_TWO = [
@@ -2391,13 +2429,13 @@ function EnhancedSearchManagementModal({
           {activeTab === 'pages' && selectedPageForResults && (
             <PageResultsView 
               page={selectedPageForResults}
-              pageResults={customSearchResults[selectedPageForResults.key] || []}
-              allCustomResults={customSearchResults}
+              builtinPageResults={builtinResults[selectedPageForResults.key] || []}
+              customPageResults={customSearchResults[selectedPageForResults.key] || []}
               onBack={() => setSelectedPageForResults(null)}
               onEditResult={() => onEditResults(selectedPageForResults.key)}
               onAddResult={() => onEditResults(selectedPageForResults.key)}
               onDeleteResult={() => {
-                setSelectedPageForResults({...selectedPageForResults})
+                setSelectedPageForResults({ ...selectedPageForResults })
               }}
               onReorderResults={(fromIndex, toIndex) => onReorderResults(selectedPageForResults.key, fromIndex, toIndex)}
             />
@@ -2496,13 +2534,13 @@ function EnhancedSearchManagementModal({
 }
 
 // Page Results View Component
-function PageResultsView({ page, pageResults, allCustomResults, onBack, onEditResult, onAddResult, onDeleteResult, onReorderResults }) {
+function PageResultsView({ page, builtinPageResults, customPageResults, onBack, onEditResult, onAddResult, onDeleteResult, onReorderResults }) {
   console.log('PageResultsView DEBUG:')
   console.log('- page:', page)
   console.log('- page.key:', page?.key)
-  console.log('- pageResults:', pageResults)
-  console.log('- allCustomResults:', allCustomResults)
-  console.log('- allCustomResults[page.key]:', allCustomResults?.[page?.key])
+  console.log('- builtinPageResults:', builtinPageResults)
+  console.log('- customPageResults:', customPageResults)
+  const totalResults = (builtinPageResults?.length || 0) + (customPageResults?.length || 0)
   
   return (
     <div>
@@ -2541,7 +2579,7 @@ function PageResultsView({ page, pageResults, allCustomResults, onBack, onEditRe
             </span>
           </h3>
           <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
-            {pageResults.length} search results • Drag and drop to reorder
+            {totalResults} search results • Drag and drop to reorder custom results
           </p>
         </div>
       </div>
@@ -2569,9 +2607,41 @@ function PageResultsView({ page, pageResults, allCustomResults, onBack, onEditRe
       </div>
 
       {/* Results List */}
-      {pageResults.length > 0 ? (
+      {totalResults > 0 ? (
         <div style={{ display: 'grid', gap: '1rem' }}>
-          {pageResults.map((result, index) => (
+          {/* Built-in results (read-only, non-draggable) */}
+          {builtinPageResults && builtinPageResults.map((result, index) => (
+            <div
+              key={`builtin-${index}`}
+              style={{
+                padding: '1.5rem',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--card-bg)',
+                position: 'relative'
+              }}
+            >
+              <div style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '11px', color: 'var(--muted)' }}>
+                Built-in
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: '500', color: '#1a0dab', lineHeight: '1.3' }}>
+                    {result.title}
+                  </h4>
+                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: '#006621', wordBreak: 'break-all' }}>
+                    {result.url}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text)', lineHeight: '1.5' }}>
+                    {result.snippet}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Custom results (draggable/editable) */}
+          {customPageResults && customPageResults.map((result, index) => (
             <div 
               key={result.id} 
               draggable={true}
