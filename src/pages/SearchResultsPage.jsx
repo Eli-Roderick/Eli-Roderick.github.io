@@ -213,12 +213,14 @@ export default function SearchResultsPage() {
     // Handle unknown queries (no config file, not a saved custom page)
     if (!configPath) {
       console.log('- Loading unknown query config')
-      setConfig({
+      const config = {
         query: searchQuery.replace(/\+/g, ' '), // Display the actual search query
         results: [],
         ads: [],
         aiOverview: { show: true, text: '' }
-      })
+      }
+      console.log('- Setting config for unknown query:', config)
+      setConfig(config)
       setLoading(false)
       return
     }
@@ -306,7 +308,7 @@ export default function SearchResultsPage() {
       results: shuffle([...defaultResults, ...formattedCustomResults]),
       aiOverview: { 
         ...(config.aiOverview || {}), 
-        show: aiOverviewEnabled && (!!aiText || hasAssignment), 
+        show: true, // Always show AI Overview section when aiOverviewEnabled is true
         text: aiText 
       },
     }

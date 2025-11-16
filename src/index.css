@@ -205,7 +205,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 .ai-body img { 
   max-width: 300px; 
   height: auto; 
-  margin: 0.25rem 0; 
+  margin: 0; /* Remove margin from images to eliminate extra spacing */
   border-radius: 0.5rem; 
   display: block;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -213,7 +213,7 @@ body.light .ai-showmore-btn { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(
 
 /* Ensure proper spacing for image containers */
 .ai-body .image-row-container {
-  margin: 0.5rem 0;
+  margin: 0.25rem 0 0 0; /* Reduced bottom margin to eliminate extra space */
 }
 
 /* But remove extra spacing when images are adjacent to each other */
