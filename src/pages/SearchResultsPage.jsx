@@ -40,6 +40,7 @@ function shuffle(arr) {
 export default function SearchResultsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const isAdmin = typeof window !== 'undefined' && window.location.href.toLowerCase().endsWith('admin')
   
   // Get search query from URL parameters
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
@@ -768,16 +769,31 @@ export default function SearchResultsPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="search-header">
+      <header className="search-header relative">
         {/* Profile row - mobile only */}
         <div className="md:hidden flex justify-end px-4 pt-3 pb-2">
-          <div 
-            className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer" 
-            title="Profile"
-            onClick={() => setShowProfileMenu(true)}
-          >
-            <span className="text-white text-base font-medium">E</span>
-          </div>
+          {isAdmin ? (
+            <div 
+              className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center"
+              title="Profile"
+            >
+              <span className="text-white text-base font-medium">E</span>
+            </div>
+          ) : (
+            <div className="profile-menu-wrapper" onClick={() => setShowProfileMenu((open) => !open)}>
+              <div className="profile-icon-google">
+                <div className="app-grid-icon" />
+                <div className="profile-avatar">
+                  <div className="profile-avatar-inner">E</div>
+                </div>
+              </div>
+              {showProfileMenu && (
+                <div className="profile-dropdown">
+                  this feature is not available during the survey
+                </div>
+              )}
+            </div>
+          )}
         </div>
         
         {/* Top row: search bar + controls */}
@@ -820,50 +836,68 @@ export default function SearchResultsPage() {
             </div>
           </div>
 
-          {/* Experimenter controls - desktop only */}
-          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-            {/* Search Management Button */}
-            <button
-              className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-purple-500 text-white"
-              onClick={() => setShowSearchManagement(true)}
-              title="Manage search results and AI overviews"
-            >
-              <span className="material-symbols-outlined align-middle mr-1">settings</span>
-              Manage Search Results
-            </button>
-            <button
-              className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-blue-600 text-white"
-              onClick={() => setShowNewPageEditor(true)}
-              title="Create entirely new search pages"
-            >
-              <span className="material-symbols-outlined align-middle mr-1">add_circle</span>
-              New Page
-            </button>
-            <button
-              className="border rounded px-2 py-1 text-sm whitespace-nowrap"
-              onClick={openPasteModal}
-              title="Set AI Overview text"
-            >
-              <span className="material-symbols-outlined align-middle mr-1">edit</span>
-              Set AI Text
-            </button>
-            <button
-              className="border rounded px-2 py-1 text-sm whitespace-nowrap"
-              onClick={() => setShowImageManager(true)}
-              title="Manage images for search results"
-            >
-              <span className="material-symbols-outlined align-middle mr-1">image</span>
-              Manage Images
-            </button>
-            <button
-              className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-orange-500 text-white"
-              onClick={() => setShowClickTracker(true)}
-              title="Click tracking admin panel"
-            >
-              <span className="material-symbols-outlined align-middle mr-1">analytics</span>
-              Click Tracker
-            </button>
-          </div>
+          {/* Experimenter controls / profile icon - desktop only */}
+          {isAdmin ? (
+            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+              {/* Search Management Button */}
+              <button
+                className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-purple-500 text-white"
+                onClick={() => setShowSearchManagement(true)}
+                title="Manage search results and AI overviews"
+              >
+                <span className="material-symbols-outlined align-middle mr-1">settings</span>
+                Manage Search Results
+              </button>
+              <button
+                className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-blue-600 text-white"
+                onClick={() => setShowNewPageEditor(true)}
+                title="Create entirely new search pages"
+              >
+                <span className="material-symbols-outlined align-middle mr-1">add_circle</span>
+                New Page
+              </button>
+              <button
+                className="border rounded px-2 py-1 text-sm whitespace-nowrap"
+                onClick={openPasteModal}
+                title="Set AI Overview text"
+              >
+                <span className="material-symbols-outlined align-middle mr-1">edit</span>
+                Set AI Text
+              </button>
+              <button
+                className="border rounded px-2 py-1 text-sm whitespace-nowrap"
+                onClick={() => setShowImageManager(true)}
+                title="Manage images for search results"
+              >
+                <span className="material-symbols-outlined align-middle mr-1">image</span>
+                Manage Images
+              </button>
+              <button
+                className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-orange-500 text-white"
+                onClick={() => setShowClickTracker(true)}
+                title="Click tracking admin panel"
+              >
+                <span className="material-symbols-outlined align-middle mr-1">analytics</span>
+                Click Tracker
+              </button>
+            </div>
+          ) : (
+            <div className="hidden md:flex items-center gap-4 flex-shrink-0">
+              <div className="profile-menu-wrapper" onClick={() => setShowProfileMenu((open) => !open)}>
+                <div className="profile-icon-google">
+                  <div className="app-grid-icon" />
+                  <div className="profile-avatar">
+                    <div className="profile-avatar-inner">E</div>
+                  </div>
+                </div>
+                {showProfileMenu && (
+                  <div className="profile-dropdown">
+                    this feature is not available during the survey
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tabs row */}
