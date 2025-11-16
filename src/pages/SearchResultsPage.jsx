@@ -1130,7 +1130,7 @@ export default function SearchResultsPage() {
                     style={{
                       width: '100%',
                       padding: '0.75rem',
-                      background: 'var(--primary)',
+                      background: '#1a73e8',
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
@@ -1140,8 +1140,11 @@ export default function SearchResultsPage() {
                       gap: '0.5rem',
                       fontSize: '14px',
                       cursor: 'pointer',
-                      marginBottom: '1rem'
+                      marginBottom: '1rem',
+                      transition: 'background-color 0.2s ease'
                     }}
+                    onMouseEnter={(e) => e.target.style.background = '#1557b0'}
+                    onMouseLeave={(e) => e.target.style.background = '#1a73e8'}
                     onClick={handleCreateNew}
                   >
                     + Create New AI Overview

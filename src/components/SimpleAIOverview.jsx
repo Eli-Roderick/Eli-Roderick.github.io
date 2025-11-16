@@ -218,7 +218,7 @@ export default function SimpleAIOverview({ htmlContent }) {
   
   const [expanded, setExpanded] = useState(false)
   const [feedback, setFeedback] = useState(null) // 'up', 'down', or null
-  const limit = 1000 // Increased limit to show more content before truncating
+  const limit = 1500 // Increased limit to show more content before truncating
 
   // Process the content to handle formatting and images
   const processedContent = useMemo(() => {
@@ -232,31 +232,66 @@ export default function SimpleAIOverview({ htmlContent }) {
   // Check if text needs truncation
   const wasTruncated = useMemo(() => {
     const plain = stripTags(htmlContent)
-    return plain.trim().length > limit
+    const shouldTruncate = plain.trim().length > limit
+    console.log('- Checking truncation: plain text length =', plain.trim().length, 'limit =', limit, 'shouldTruncate =', shouldTruncate)
+    return shouldTruncate
   }, [htmlContent, limit])
 
   // Create truncated version
   const truncatedContent = useMemo(() => {
-    if (!wasTruncated || expanded) return processedContent
-    
-    const plain = stripTags(htmlContent)
-    if (plain.length <= limit) return processedContent
-    
-    // Better truncation - try to cut at a sentence or paragraph boundary
-    let truncateAt = limit * 1.5 // Give more room for HTML tags
-    const truncated = htmlContent.substring(0, truncateAt)
-    
-    // Try to find a good breaking point (sentence end)
-    const lastSentence = truncated.lastIndexOf('. ')
-    const lastParagraph = truncated.lastIndexOf('</p>')
-    
-    if (lastSentence > limit * 0.8) {
-      return processContent(htmlContent.substring(0, lastSentence + 1))
-    } else if (lastParagraph > limit * 0.8) {
-      return processContent(htmlContent.substring(0, lastParagraph + 4))
+    if (!wasTruncated || expanded) {
+      console.log('- Not truncating: wasTruncated =', wasTruncated, 'expanded =', expanded)
+      return processedContent
     }
     
-    return processContent(truncated)
+    const plain = stripTags(htmlContent)
+    console.log('- Plain text length:', plain.length, 'limit:', limit)
+    
+    if (plain.length <= limit) {
+      console.log('- Content within limit, returning full content')
+      return processedContent
+    }
+    
+    // Better truncation - try to cut at a sentence or paragraph boundary
+    let truncateAt = Math.min(limit * 1.8, htmlContent.length) // Give more room for HTML tags but don't exceed content
+    const truncated = htmlContent.substring(0, truncateAt)
+    
+    // Try to find good breaking points in order of preference
+    const lastSentence = truncated.lastIndexOf('. ')
+    const lastParagraph = truncated.lastIndexOf('</p>')
+    const lastListItem = truncated.lastIndexOf('</li>')
+    const lastHeading = truncated.lastIndexOf('</h')
+    
+    const minLength = limit * 0.7 // Don't truncate too aggressively
+    
+    // Find the best breaking point
+    let breakPoint = truncateAt
+    
+    if (lastSentence > minLength) {
+      breakPoint = lastSentence + 2 // Include the '. '
+      console.log('- Truncating at sentence end:', breakPoint)
+    } else if (lastParagraph > minLength) {
+      breakPoint = lastParagraph + 4 // Include the '</p>'
+      console.log('- Truncating at paragraph end:', breakPoint)
+    } else if (lastListItem > minLength) {
+      breakPoint = lastListItem + 5 // Include the '</li>'
+      console.log('- Truncating at list item end:', breakPoint)
+    } else if (lastHeading > minLength) {
+      // Find the end of the heading tag
+      const headingEnd = htmlContent.indexOf('>', lastHeading)
+      if (headingEnd > lastHeading) {
+        breakPoint = headingEnd + 1
+        console.log('- Truncating at heading end:', breakPoint)
+      }
+    } else {
+      console.log('- Using character limit truncation:', breakPoint)
+    }
+    
+    const finalTruncated = htmlContent.substring(0, breakPoint)
+    const processed = processContent(finalTruncated)
+    console.log('- Truncated content length:', processed.length)
+    
+    return processed
   }, [htmlContent, processedContent, wasTruncated, expanded, limit])
 
   // Update scroll indicators when component mounts or content changes
