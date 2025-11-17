@@ -302,21 +302,51 @@ export default function SearchResultsPage() {
     if (!currentUser) return false
     
     try {
-      // Decode using Unicode-safe method
-      const binary = atob(syncCode) // Base64 decode
+      console.log('=== IMPORT DEBUG ===')
+      console.log('Attempting to import sync code, length:', syncCode.length)
       
-      // Convert back to Uint8Array
-      const uint8Array = new Uint8Array(binary.length)
-      for (let i = 0; i < binary.length; i++) {
-        uint8Array[i] = binary.charCodeAt(i)
+      let importData
+      
+      try {
+        // First try the new Unicode-safe method
+        console.log('Trying new Unicode-safe decoding...')
+        const binary = atob(syncCode) // Base64 decode
+        
+        // Convert back to Uint8Array
+        const uint8Array = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) {
+          uint8Array[i] = binary.charCodeAt(i)
+        }
+        
+        // Decode using TextDecoder for proper Unicode support
+        const decoder = new TextDecoder()
+        const jsonString = decoder.decode(uint8Array)
+        importData = JSON.parse(jsonString)
+        console.log('✅ New method successful')
+      } catch (newMethodError) {
+        console.log('❌ New method failed:', newMethodError.message)
+        console.log('Trying legacy decoding method...')
+        
+        // Fallback to old method for backward compatibility
+        try {
+          const decoded = atob(syncCode)
+          importData = JSON.parse(decoded)
+          console.log('✅ Legacy method successful')
+        } catch (legacyError) {
+          console.log('❌ Legacy method also failed:', legacyError.message)
+          throw new Error('Both decoding methods failed')
+        }
       }
       
-      // Decode using TextDecoder for proper Unicode support
-      const decoder = new TextDecoder()
-      const jsonString = decoder.decode(uint8Array)
-      const importData = JSON.parse(jsonString)
+      if (!importData || !importData.data) {
+        console.log('❌ No valid data in import')
+        return false
+      }
       
-      if (!importData.data) return false
+      console.log('📊 Import data found:')
+      console.log('- User:', importData.user)
+      console.log('- Timestamp:', importData.timestamp)
+      console.log('- Data keys:', Object.keys(importData.data))
       
       // Import all the data
       const data = importData.data

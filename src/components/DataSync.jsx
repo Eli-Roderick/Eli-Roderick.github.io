@@ -25,13 +25,19 @@ export default function DataSync({ currentUser, onImportData, onExportData, onCl
 
   const handleImport = () => {
     if (importCode.trim()) {
-      const success = onImportData(importCode.trim())
-      if (success) {
-        alert('Data imported successfully! Your pages and settings are now synced.')
-        setImportCode('')
-        onClose && onClose()
-      } else {
-        alert('Invalid sync code. Please check the code and try again.')
+      try {
+        console.log('DataSync: Attempting import...')
+        const success = onImportData(importCode.trim())
+        if (success) {
+          alert('Data imported successfully! Your pages and settings are now synced.')
+          setImportCode('')
+          onClose && onClose()
+        } else {
+          alert('Invalid sync code. Please check the code and try again.\n\nTips:\n- Make sure you copied the entire code\n- Check for extra spaces or line breaks\n- Make sure you\'re logged in with the same username')
+        }
+      } catch (error) {
+        console.error('Import error:', error)
+        alert('Import failed: ' + error.message + '\n\nPlease check the browser console for more details.')
       }
     }
   }
