@@ -275,13 +275,25 @@ export default function SearchResultsPage() {
     try {
       // Encode the data as a shareable string
       const jsonString = JSON.stringify(exportData)
-      const encoded = btoa(jsonString) // Base64 encode
+      
+      // Use TextEncoder/TextDecoder for proper Unicode support
+      const encoder = new TextEncoder()
+      const decoder = new TextDecoder()
+      const uint8Array = encoder.encode(jsonString)
+      
+      // Convert to base64 using a Unicode-safe method
+      let binary = ''
+      uint8Array.forEach(byte => {
+        binary += String.fromCharCode(byte)
+      })
+      const encoded = btoa(binary)
       
       console.log('✅ Export successful, code length:', encoded.length)
+      console.log('✅ Original JSON length:', jsonString.length)
       return encoded
     } catch (error) {
       console.error('❌ Failed to encode export data:', error)
-      alert('Failed to generate sync code. Check console for details.')
+      alert('Failed to generate sync code. Error: ' + error.message)
       return null
     }
   }
@@ -290,8 +302,19 @@ export default function SearchResultsPage() {
     if (!currentUser) return false
     
     try {
-      const decoded = atob(syncCode) // Base64 decode
-      const importData = JSON.parse(decoded)
+      // Decode using Unicode-safe method
+      const binary = atob(syncCode) // Base64 decode
+      
+      // Convert back to Uint8Array
+      const uint8Array = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) {
+        uint8Array[i] = binary.charCodeAt(i)
+      }
+      
+      // Decode using TextDecoder for proper Unicode support
+      const decoder = new TextDecoder()
+      const jsonString = decoder.decode(uint8Array)
+      const importData = JSON.parse(jsonString)
       
       if (!importData.data) return false
       
