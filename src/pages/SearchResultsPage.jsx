@@ -221,11 +221,13 @@ export default function SearchResultsPage() {
 
   // Data sync functions
   const handleExportData = () => {
+    console.log('=== EXPORT DEBUG ===')
     console.log('handleExportData called')
     console.log('currentUser:', currentUser)
     
     if (!currentUser) {
-      console.log('No current user, returning null')
+      console.log('❌ No current user, returning null')
+      alert('Please log in first to sync your data. Click the user icon to log in.')
       return null
     }
     
@@ -241,7 +243,28 @@ export default function SearchResultsPage() {
       result_images: resultImages
     }
     
-    console.log('User data to export:', allUserData)
+    console.log('📊 User data to export:')
+    console.log('- custom_search_pages:', Object.keys(customSearchPages).length, 'pages')
+    console.log('- deleted_builtin_pages:', deletedBuiltinPages.length, 'deleted')
+    console.log('- ai_overviews:', aiOverviews.length, 'overviews')
+    console.log('- custom_search_results:', Object.keys(customSearchResults).length, 'result sets')
+    console.log('- ai_overview_text length:', userAIText.length)
+    console.log('- result_images:', Object.keys(resultImages).length, 'image sets')
+    console.log('Full data:', allUserData)
+    
+    // Check if there's actually any meaningful data
+    const hasData = Object.keys(customSearchPages).length > 0 || 
+                   deletedBuiltinPages.length > 0 || 
+                   aiOverviews.length > 0 || 
+                   Object.keys(customSearchResults).length > 0 || 
+                   userAIText.length > 0 || 
+                   Object.keys(resultImages).length > 0
+    
+    if (!hasData) {
+      console.log('❌ No meaningful data found to export')
+      alert('No data to sync found. Make sure you have:\n- Created custom pages\n- Added AI overviews\n- Customized search results\n\nThen try syncing again.')
+      return null
+    }
     
     const exportData = {
       user: currentUser,
@@ -254,10 +277,11 @@ export default function SearchResultsPage() {
       const jsonString = JSON.stringify(exportData)
       const encoded = btoa(jsonString) // Base64 encode
       
-      console.log('Export successful, code length:', encoded.length)
+      console.log('✅ Export successful, code length:', encoded.length)
       return encoded
     } catch (error) {
-      console.error('Failed to encode export data:', error)
+      console.error('❌ Failed to encode export data:', error)
+      alert('Failed to generate sync code. Check console for details.')
       return null
     }
   }
@@ -1094,7 +1118,7 @@ export default function SearchResultsPage() {
               )}
               
               {/* Data Sync Button */}
-              {currentUser && (
+              {currentUser ? (
                 <button
                   onClick={() => setShowDataSync(true)}
                   style={{
@@ -1113,6 +1137,26 @@ export default function SearchResultsPage() {
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>sync</span>
                   Sync Devices
+                </button>
+              ) : (
+                <button
+                  onClick={() => alert(`Debug Info:\n- Current User: ${currentUser || 'NOT LOGGED IN'}\n- Custom Pages: ${Object.keys(customSearchPages).length}\n- AI Overviews: ${aiOverviews.length}\n\nYou need to log in first!`)}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: '#ff6b6b',
+                    border: '1px solid #ff5252',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                  title="You need to log in first"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
+                  Login Required
                 </button>
               )}
               
