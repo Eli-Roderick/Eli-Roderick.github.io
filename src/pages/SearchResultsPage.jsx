@@ -7,6 +7,7 @@ import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
 import UserLogin from '../components/UserLogin'
+import DataSync from '../components/DataSync'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
 import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
@@ -216,6 +217,68 @@ export default function SearchResultsPage() {
       setResultImages(getUserData('result_images', {}))
     }
   }, [currentUser])
+
+  // Data sync functions
+  const handleExportData = () => {
+    if (!currentUser) return null
+    
+    const allUserData = {
+      custom_search_pages: customSearchPages,
+      deleted_builtin_pages: deletedBuiltinPages,
+      ai_overviews: aiOverviews,
+      search_result_assignments: searchResultAssignments,
+      custom_search_results: customSearchResults,
+      ai_overview_text: userAIText,
+      ai_overview_enabled: aiOverviewEnabled,
+      page_ai_overview_settings: pageAIOverviewSettings,
+      result_images: resultImages
+    }
+    
+    const exportData = {
+      user: currentUser,
+      data: allUserData,
+      timestamp: new Date().toISOString()
+    }
+    
+    // Encode the data as a shareable string
+    const jsonString = JSON.stringify(exportData)
+    const encoded = btoa(jsonString) // Base64 encode
+    
+    return encoded
+  }
+  
+  const handleImportData = (syncCode) => {
+    if (!currentUser) return false
+    
+    try {
+      const decoded = atob(syncCode) // Base64 decode
+      const importData = JSON.parse(decoded)
+      
+      if (!importData.data) return false
+      
+      // Import all the data
+      const data = importData.data
+      setCustomSearchPages(data.custom_search_pages || {})
+      setDeletedBuiltinPages(data.deleted_builtin_pages || [])
+      setAIOverviews(data.ai_overviews || [])
+      setSearchResultAssignments(data.search_result_assignments || {})
+      setCustomSearchResults(data.custom_search_results || {})
+      setUserAIText(data.ai_overview_text || '')
+      setAIOverviewEnabled(data.ai_overview_enabled !== undefined ? data.ai_overview_enabled : true)
+      setPageAIOverviewSettings(data.page_ai_overview_settings || {})
+      setResultImages(data.result_images || {})
+      
+      // Save to user data storage
+      Object.entries(data).forEach(([key, value]) => {
+        setUserData(key, value)
+      })
+      
+      return true
+    } catch (error) {
+      console.error('Failed to import data:', error)
+      return false
+    }
+  }
 
   // AI text is now loaded through user data system
 
@@ -935,7 +998,7 @@ export default function SearchResultsPage() {
             <div className="profile-menu-wrapper" onClick={() => setShowProfileMenu((open) => !open)}>
               <div className="profile-avatar">
                 <div className="profile-avatar-inner">
-                  <span className="profile-avatar-initial">E</span>
+                  <span className="profile-avatar-initial">{currentUser ? currentUser.charAt(0).toUpperCase() : 'U'}</span>
                 </div>
               </div>
             </div>
@@ -943,7 +1006,7 @@ export default function SearchResultsPage() {
             <div className="profile-menu-wrapper">
               <div className="profile-avatar">
                 <div className="profile-avatar-inner">
-                  <span className="profile-avatar-initial">E</span>
+                  <span className="profile-avatar-initial">{currentUser ? currentUser.charAt(0).toUpperCase() : 'U'}</span>
                 </div>
               </div>
             </div>
@@ -999,6 +1062,15 @@ export default function SearchResultsPage() {
                   currentUser={currentUser}
                   onLogin={handleUserLogin}
                   onLogout={handleUserLogout}
+                />
+              )}
+              
+              {/* Data Sync */}
+              {currentUser && (
+                <DataSync
+                  currentUser={currentUser}
+                  onExportData={handleExportData}
+                  onImportData={handleImportData}
                 />
               )}
               
