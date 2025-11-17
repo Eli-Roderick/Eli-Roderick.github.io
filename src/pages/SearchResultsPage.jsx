@@ -44,7 +44,6 @@ export default function SearchResultsPage() {
   
   // Get search query from URL parameters
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
-  console.log('SearchResultsPage loading with query:', searchQuery)
   
   // Load custom search pages first (needed for searchConfig calculation)
   const [customSearchPages, setCustomSearchPages] = useState(() => {
@@ -68,8 +67,6 @@ export default function SearchResultsPage() {
   
   // Find matching config - use useMemo to recalculate when customSearchPages changes
   const searchConfig = useMemo(() => {
-    console.log('Calculating searchConfig for query:', searchQuery)
-    console.log('Available customSearchPages:', Object.keys(customSearchPages))
     
     // Try built-in first
     let config = queryToConfig[searchQuery.toLowerCase()]
@@ -86,7 +83,6 @@ export default function SearchResultsPage() {
     // Check custom pages
     if (!config && customSearchPages[searchQuery.toLowerCase()]) {
       const customPage = customSearchPages[searchQuery.toLowerCase()]
-      console.log('Found custom page:', customPage)
       config = {
         path: null, // Custom pages don't have config files
         key: customPage.key
@@ -104,10 +100,8 @@ export default function SearchResultsPage() {
         path: null,
         key: searchQuery.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
       }
-      console.log('Created default config for unknown query:', config)
     }
     
-    console.log('Final searchConfig:', config)
     return config
   }, [searchQuery, customSearchPages, deletedBuiltinPages])
   
@@ -205,18 +199,11 @@ export default function SearchResultsPage() {
 
   // Load config based on search query
   useEffect(() => {
-    console.log('Loading config useEffect triggered')
-    console.log('- searchConfig:', searchConfig)
-    console.log('- searchQuery:', searchQuery)
-    console.log('- customSearchPages keys:', Object.keys(customSearchPages))
-    
     const configPath = searchConfig.path
-    console.log('- configPath:', configPath)
     
     // Handle custom pages (no config file)
     if (!configPath && customSearchPages[searchQuery.toLowerCase()]) {
       const customPage = customSearchPages[searchQuery.toLowerCase()]
-      console.log('- Loading custom page:', customPage)
       setConfig({
         query: customPage.displayName,
         results: [],
@@ -229,24 +216,20 @@ export default function SearchResultsPage() {
     
     // Handle unknown queries (no config file, not a saved custom page)
     if (!configPath) {
-      console.log('- Loading unknown query config')
       const config = {
         query: searchQuery.replace(/\+/g, ' '), // Display the actual search query
         results: [],
         ads: [],
         aiOverview: { show: true, text: '' }
       }
-      console.log('- Setting config for unknown query:', config)
       setConfig(config)
       setLoading(false)
       return
     }
 
-    console.log('- Loading config from path:', configPath)
     setLoading(true)
     loadConfigByPath(configPath)
       .then((loadedConfig) => {
-        console.log('- Config loaded successfully:', loadedConfig)
         setConfig(loadedConfig)
       })
       .catch((e) => {
@@ -2352,14 +2335,6 @@ function EnhancedSearchManagementModal({
 
   if (!isOpen) return null
 
-  console.log('EnhancedSearchManagementModal rendering with props:', {
-    currentSearchType,
-    hasDisplayNames: !!displayNames,
-    hasCustomSearchPages: !!customSearchPages,
-    hasToggleFunction: typeof togglePageAIOverview === 'function',
-    hasEnabledFunction: typeof isPageAIOverviewEnabled === 'function'
-  })
-
   try {
     // Combine built-in and custom pages for unified view, excluding deleted built-in pages
   const allPages = [
@@ -2987,10 +2962,6 @@ function EnhancedSearchManagementModal({
 
 // Page Results View Component
 function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult, onDeleteResult, onReorderResults }) {
-  console.log('PageResultsView DEBUG:')
-  console.log('- page:', page)
-  console.log('- page.key:', page?.key)
-  console.log('- pageResults:', pageResults)
   const totalResults = pageResults?.length || 0
   
   return (

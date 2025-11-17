@@ -98,9 +98,7 @@ function processContent(html) {
 
   // Try normal curly braces first
   processed = processed.replace(/\{(\[[^\]]+\])+\}/g, (match) => {
-    console.log('- Processing curly brace group:', match)
     const imageMatches = match.match(/\[([^\]]+)\]/g) || []
-    console.log('- Found images in group:', imageMatches)
     const result = createImageRow(imageMatches)
     return result || match
   })
@@ -123,7 +121,6 @@ function processContent(html) {
   processed = processed.replace(/\[([^\]]+)\]/g, (match, url) => {
     // Check if it's an image URL
     if (/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp)(?:\?.*)?$/i.test(url)) {
-      console.log('- Processing individual image:', url)
       return `<div class="image-row-container"><img src="${url}" alt="User provided image" style="max-width: 100%; height: auto; border-radius: 0.5rem; display: block;" /></div>`
     }
     return match // Return original if not an image
@@ -209,13 +206,7 @@ function updateScrollIndicators(containerId) {
 }
 
 export default function SimpleAIOverview({ htmlContent }) {
-  console.log('SimpleAIOverview DEBUG:')
-  console.log('- htmlContent:', htmlContent)
-  console.log('- htmlContent type:', typeof htmlContent)
-  console.log('- htmlContent length:', htmlContent?.length)
-  
   if (!htmlContent) {
-    console.log('- No htmlContent, returning null')
     return null
   }
   
@@ -227,8 +218,6 @@ export default function SimpleAIOverview({ htmlContent }) {
   const processedContent = useMemo(() => {
     if (!htmlContent) return ''
     const processed = processContent(htmlContent)
-    console.log('- processedContent:', processed)
-    console.log('- processedContent length:', processed.length)
     return processed
   }, [htmlContent])
 
@@ -236,17 +225,10 @@ export default function SimpleAIOverview({ htmlContent }) {
   const wasTruncated = useMemo(() => {
     const plain = stripTags(processedContent)
     const shouldTruncate = plain.trim().length > limit
-    
-    console.log('- Checking truncation (simplified):')
-    console.log('  - Plain text length:', plain.trim().length)
-    console.log('  - Limit:', limit)
-    console.log('  - Should truncate:', shouldTruncate)
-    
     return shouldTruncate
   }, [processedContent, limit])
 
   // No JavaScript truncation - let CSS line-clamp handle it
-  console.log('- Using CSS line-clamp for truncation, no JS truncation needed')
 
   // Update scroll indicators when component mounts or content changes
   useEffect(() => {
@@ -303,15 +285,8 @@ export default function SimpleAIOverview({ htmlContent }) {
     } else {
       setFeedback(type)
     }
-    console.log(`AI Overview feedback: ${type === null ? 'removed' : type}`)
   }
 
-  console.log('- RENDER DEBUG:')
-  console.log('  - wasTruncated:', wasTruncated)
-  console.log('  - expanded:', expanded)
-  console.log('  - CSS class will be:', `ai-body ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`)
-  console.log('  - Content being rendered:', expanded ? 'processedContent' : 'truncatedContent')
-  console.log('  - Show more button will show:', (!expanded && wasTruncated))
 
   return (
     <section className="ai-card">
