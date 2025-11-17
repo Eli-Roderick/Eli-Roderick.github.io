@@ -1,14 +1,26 @@
 import React, { useState } from 'react'
 
-export default function DataSync({ currentUser, onImportData, onExportData }) {
-  const [showSync, setShowSync] = useState(false)
+export default function DataSync({ currentUser, onImportData, onExportData, onClose }) {
+  const [showSync, setShowSync] = useState(true)
   const [shareCode, setShareCode] = useState('')
   const [importCode, setImportCode] = useState('')
   const [exportedCode, setExportedCode] = useState('')
 
   const handleExport = () => {
-    const code = onExportData()
-    setExportedCode(code)
+    try {
+      console.log('Attempting to export data...')
+      const code = onExportData()
+      console.log('Export function returned:', code ? 'Success' : 'No data')
+      if (code) {
+        setExportedCode(code)
+        console.log('Export code set successfully')
+      } else {
+        alert('No data to export. Please make sure you are logged in and have some data to sync.')
+      }
+    } catch (error) {
+      console.error('Export failed:', error)
+      alert('Failed to generate sync code. Please try again.')
+    }
   }
 
   const handleImport = () => {
@@ -17,7 +29,7 @@ export default function DataSync({ currentUser, onImportData, onExportData }) {
       if (success) {
         alert('Data imported successfully! Your pages and settings are now synced.')
         setImportCode('')
-        setShowSync(false)
+        onClose && onClose()
       } else {
         alert('Invalid sync code. Please check the code and try again.')
       }
@@ -37,30 +49,6 @@ export default function DataSync({ currentUser, onImportData, onExportData }) {
       document.body.removeChild(textArea)
       alert('Sync code copied to clipboard!')
     })
-  }
-
-  if (!showSync) {
-    return (
-      <button
-        onClick={() => setShowSync(true)}
-        style={{
-          padding: '0.5rem 0.75rem',
-          backgroundColor: 'var(--card-bg)',
-          border: '1px solid var(--border)',
-          borderRadius: '6px',
-          fontSize: '12px',
-          color: 'var(--text)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}
-        title="Sync data across devices"
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>sync</span>
-        Sync Devices
-      </button>
-    )
   }
 
   return (
@@ -100,7 +88,7 @@ export default function DataSync({ currentUser, onImportData, onExportData }) {
             Sync Data Across Devices
           </h2>
           <button
-            onClick={() => setShowSync(false)}
+            onClick={() => onClose && onClose()}
             style={{
               background: 'none',
               border: 'none',

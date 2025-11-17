@@ -157,6 +157,7 @@ export default function SearchResultsPage() {
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(true)
   const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState({})
   const [resultImages, setResultImages] = useState({})
+  const [showDataSync, setShowDataSync] = useState(false)
 
   // User login/logout handlers
   const handleUserLogin = (username) => {
@@ -220,7 +221,13 @@ export default function SearchResultsPage() {
 
   // Data sync functions
   const handleExportData = () => {
-    if (!currentUser) return null
+    console.log('handleExportData called')
+    console.log('currentUser:', currentUser)
+    
+    if (!currentUser) {
+      console.log('No current user, returning null')
+      return null
+    }
     
     const allUserData = {
       custom_search_pages: customSearchPages,
@@ -234,17 +241,25 @@ export default function SearchResultsPage() {
       result_images: resultImages
     }
     
+    console.log('User data to export:', allUserData)
+    
     const exportData = {
       user: currentUser,
       data: allUserData,
       timestamp: new Date().toISOString()
     }
     
-    // Encode the data as a shareable string
-    const jsonString = JSON.stringify(exportData)
-    const encoded = btoa(jsonString) // Base64 encode
-    
-    return encoded
+    try {
+      // Encode the data as a shareable string
+      const jsonString = JSON.stringify(exportData)
+      const encoded = btoa(jsonString) // Base64 encode
+      
+      console.log('Export successful, code length:', encoded.length)
+      return encoded
+    } catch (error) {
+      console.error('Failed to encode export data:', error)
+      return null
+    }
   }
   
   const handleImportData = (syncCode) => {
@@ -988,6 +1003,19 @@ export default function SearchResultsPage() {
     )
   }
 
+  // Show login modal if no user is logged in
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <UserLogin 
+          currentUser={currentUser}
+          onLogin={handleUserLogin}
+          onLogout={handleUserLogout}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -1062,15 +1090,6 @@ export default function SearchResultsPage() {
                   currentUser={currentUser}
                   onLogin={handleUserLogin}
                   onLogout={handleUserLogout}
-                />
-              )}
-              
-              {/* Data Sync */}
-              {currentUser && (
-                <DataSync
-                  currentUser={currentUser}
-                  onExportData={handleExportData}
-                  onImportData={handleImportData}
                 />
               )}
               
@@ -1793,6 +1812,43 @@ export default function SearchResultsPage() {
               </button>
             </div>
             
+            {/* User Info Section */}
+            {currentUser && (
+              <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">{currentUser.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">User: {currentUser}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false)
+                      handleUserLogout()
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    Switch
+                  </button>
+                </div>
+                
+                {/* Sync Button */}
+                <button
+                  className="w-full border rounded px-3 py-2 text-sm bg-green-600 text-white flex items-center justify-center gap-2"
+                  onClick={() => {
+                    setShowProfileMenu(false)
+                    setShowDataSync(true)
+                  }}
+                >
+                  <span className="material-symbols-outlined text-sm">sync</span>
+                  Sync Devices
+                </button>
+              </div>
+            )}
+            
             <div className="space-y-4">
               <div>
                 <button
@@ -1855,6 +1911,16 @@ export default function SearchResultsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Data Sync Modal */}
+      {showDataSync && (
+        <DataSync
+          currentUser={currentUser}
+          onExportData={handleExportData}
+          onImportData={handleImportData}
+          onClose={() => setShowDataSync(false)}
+        />
       )}
     </div>
   )
