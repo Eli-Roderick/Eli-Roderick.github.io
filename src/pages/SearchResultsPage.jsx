@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import React, { useState, useEffect, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import ErrorBoundary from '../components/ErrorBoundary'
+import { safeCall, safeGet, safeLocalStorageGet, safeLocalStorageSet, validateProps, safeEventHandler, logError } from '../utils/safeUtils'
 import SimpleAIOverview from '../components/SimpleAIOverview'
 import SearchResult from '../components/SearchResult'
 import AdResult from '../components/AdResult'
@@ -178,14 +180,9 @@ export default function SearchResultsPage() {
       return true
     }
   })
-  const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('page_ai_overview_settings')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
+  const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState(() => 
+    safeLocalStorageGet('page_ai_overview_settings', {})
+  )
   const [resultImages, setResultImages] = useState(() => {
     try {
       const saved = localStorage.getItem('result_images')
@@ -551,10 +548,8 @@ export default function SearchResultsPage() {
 
   // Save page AI overview settings to localStorage whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem('page_ai_overview_settings', JSON.stringify(pageAIOverviewSettings))
-    } catch (error) {
-      console.warn('Failed to save page AI overview settings to localStorage:', error)
+    if (!safeLocalStorageSet('page_ai_overview_settings', pageAIOverviewSettings)) {
+      logError(new Error('Failed to save page AI overview settings'), 'localStorage', { key: 'page_ai_overview_settings' })
     }
   }, [pageAIOverviewSettings])
 
@@ -695,23 +690,38 @@ export default function SearchResultsPage() {
 
   // Toggle AI Overview for a specific page
   const togglePageAIOverview = (pageKey, enabled) => {
-    if (!pageKey) return
-    
-    const currentSettings = pageAIOverviewSettings || {}
-    const newSettings = {
-      ...currentSettings,
-      [pageKey]: enabled
+    try {
+      if (!pageKey || typeof pageKey !== 'string') {
+        console.warn('togglePageAIOverview: Invalid pageKey', { pageKey, enabled })
+        return
+      }
+      
+      const currentSettings = pageAIOverviewSettings || {}
+      const newSettings = {
+        ...currentSettings,
+        [pageKey]: Boolean(enabled)
+      }
+      setPageAIOverviewSettings(newSettings)
+    } catch (error) {
+      console.error('Error in togglePageAIOverview:', error)
     }
-    setPageAIOverviewSettings(newSettings)
   }
 
   // Check if AI Overview is enabled for a specific page
   const isPageAIOverviewEnabled = (pageKey) => {
-    // If no specific setting exists, default to true (enabled)
-    if (!pageAIOverviewSettings || typeof pageAIOverviewSettings !== 'object') {
-      return true
+    try {
+      // If no specific setting exists, default to true (enabled)
+      if (!pageKey || typeof pageKey !== 'string') {
+        return true
+      }
+      if (!pageAIOverviewSettings || typeof pageAIOverviewSettings !== 'object') {
+        return true
+      }
+      return pageAIOverviewSettings[pageKey] !== false
+    } catch (error) {
+      console.error('Error in isPageAIOverviewEnabled:', error)
+      return true // Safe default
     }
-    return pageAIOverviewSettings[pageKey] !== false
   }
 
   // Generate favicon URL from domain
@@ -1074,7 +1084,11 @@ export default function SearchResultsPage() {
 
       {/* Enhanced Search Management Modal */}
       {showSearchManagement && (
-        <EnhancedSearchManagementModal
+        <ErrorBoundary 
+          componentName="EnhancedSearchManagementModal"
+          onRetry={() => setShowSearchManagement(false)}
+        >
+          <EnhancedSearchManagementModal
           isOpen={showSearchManagement}
           onClose={() => setShowSearchManagement(false)}
           currentSearchType={searchType}
@@ -1105,6 +1119,7 @@ export default function SearchResultsPage() {
           queryToConfig={queryToConfig}
           deletedBuiltinPages={deletedBuiltinPages}
         />
+        </ErrorBoundary>
       )}
 
       {/* Search Results Editor Modal */}
@@ -2288,31 +2303,57 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
 }
 
 // FIXED Search Management Modal - ONLY 2 TABS
-function EnhancedSearchManagementModal({ 
-  isOpen, 
-  onClose, 
-  currentSearchType,
-  displayNames,
-  customSearchPages,
-  customSearchResults,
-  setCustomSearchResults,
-  searchResultAssignments,
-  aiOverviews,
-  onNavigate,
-  onAssignAI,
-  onRemoveAI,
-  onDeletePage,
-  onDeleteBuiltinPage,
-  onEditResults,
-  onReorderResults,
-  removeCustomSearchResult,
-  updatePageDisplayName,
-  pageAIOverviewSettings,
-  togglePageAIOverview,
-  isPageAIOverviewEnabled,
-  queryToConfig,
-  deletedBuiltinPages
-}) {
+function EnhancedSearchManagementModal(props) {
+  // Validate and provide defaults for all props
+  const {
+    isOpen,
+    onClose,
+    currentSearchType,
+    displayNames,
+    customSearchPages,
+    customSearchResults,
+    setCustomSearchResults,
+    searchResultAssignments,
+    aiOverviews,
+    onNavigate,
+    onAssignAI,
+    onRemoveAI,
+    onDeletePage,
+    onDeleteBuiltinPage,
+    onEditResults,
+    onReorderResults,
+    removeCustomSearchResult,
+    updatePageDisplayName,
+    pageAIOverviewSettings,
+    togglePageAIOverview,
+    isPageAIOverviewEnabled,
+    queryToConfig,
+    deletedBuiltinPages
+  } = validateProps(props, {
+    isOpen: { type: 'boolean', default: false },
+    onClose: { type: 'function', default: () => {} },
+    currentSearchType: { type: 'string', default: '' },
+    displayNames: { type: 'object', default: {} },
+    customSearchPages: { type: 'object', default: {} },
+    customSearchResults: { type: 'object', default: {} },
+    setCustomSearchResults: { type: 'function', default: () => {} },
+    searchResultAssignments: { type: 'object', default: {} },
+    aiOverviews: { type: 'array', default: [] },
+    onNavigate: { type: 'function', default: () => {} },
+    onAssignAI: { type: 'function', default: () => {} },
+    onRemoveAI: { type: 'function', default: () => {} },
+    onDeletePage: { type: 'function', default: () => {} },
+    onDeleteBuiltinPage: { type: 'function', default: () => {} },
+    onEditResults: { type: 'function', default: () => {} },
+    onReorderResults: { type: 'function', default: () => {} },
+    removeCustomSearchResult: { type: 'function', default: () => {} },
+    updatePageDisplayName: { type: 'function', default: () => {} },
+    pageAIOverviewSettings: { type: 'object', default: {} },
+    togglePageAIOverview: { type: 'function', default: () => {} },
+    isPageAIOverviewEnabled: { type: 'function', default: () => true },
+    queryToConfig: { type: 'object', default: {} },
+    deletedBuiltinPages: { type: 'array', default: [] }
+  })
   const [activeTab, setActiveTab] = useState('pages')
   const [selectedPageForResults, setSelectedPageForResults] = useState(null)
   const [builtinResults, setBuiltinResults] = useState({})
@@ -2322,7 +2363,16 @@ function EnhancedSearchManagementModal({
 
   if (!isOpen) return null
 
-  // Combine built-in and custom pages for unified view, excluding deleted built-in pages
+  console.log('EnhancedSearchManagementModal rendering with props:', {
+    currentSearchType,
+    hasDisplayNames: !!displayNames,
+    hasCustomSearchPages: !!customSearchPages,
+    hasToggleFunction: typeof togglePageAIOverview === 'function',
+    hasEnabledFunction: typeof isPageAIOverviewEnabled === 'function'
+  })
+
+  try {
+    // Combine built-in and custom pages for unified view, excluding deleted built-in pages
   const allPages = [
     ...Object.entries(displayNames)
       .filter(([key]) => !deletedBuiltinPages.includes(key))
@@ -2782,63 +2832,70 @@ function EnhancedSearchManagementModal({
                       </div>
                       
                       {/* AI Overview Toggle Switch */}
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.75rem',
-                        padding: '0.5rem 0.75rem',
-                        backgroundColor: 'var(--bg)',
-                        borderRadius: '6px',
-                        border: '1px solid var(--border)',
-                        flexShrink: 0
-                      }}>
-                        <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: '500' }}>AI Overview</span>
-                        <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                          <input
-                            type="checkbox"
-                            checked={isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true}
-                            onChange={(e) => {
-                              if (togglePageAIOverview) {
-                                togglePageAIOverview(page.key, e.target.checked)
-                              }
-                            }}
-                            style={{ opacity: 0, width: 0, height: 0 }}
-                          />
-                          <span style={{
-                            position: 'absolute',
-                            cursor: 'pointer',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor: (isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? '#007bff' : '#ccc',
-                            transition: '0.3s',
-                            borderRadius: '24px',
-                            boxShadow: (isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? '0 0 0 2px rgba(0, 123, 255, 0.25)' : 'none'
+                      {(() => {
+                        // Compute the enabled state once to avoid multiple function calls
+                        const pageAIEnabled = isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true
+                        
+                        return (
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.75rem',
+                            padding: '0.5rem 0.75rem',
+                            backgroundColor: 'var(--bg)',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border)',
+                            flexShrink: 0
                           }}>
-                            <span style={{
-                              position: 'absolute',
-                              content: '""',
-                              height: '18px',
-                              width: '18px',
-                              left: (isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? '23px' : '3px',
-                              bottom: '3px',
-                              backgroundColor: 'white',
-                              transition: '0.3s',
-                              borderRadius: '50%',
-                              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-                            }}></span>
-                          </span>
-                        </label>
-                        <span style={{ 
-                          fontSize: '12px', 
-                          color: (isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? '#007bff' : 'var(--muted)',
-                          fontWeight: '500',
-                          minWidth: '24px'
-                        }}>
-                          {(isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? 'ON' : 'OFF'}
-                        </span>
-                      </div>
+                            <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: '500' }}>AI Overview</span>
+                            <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                              <input
+                                type="checkbox"
+                                checked={pageAIEnabled}
+                                onChange={(e) => {
+                                  if (togglePageAIOverview) {
+                                    togglePageAIOverview(page.key, e.target.checked)
+                                  }
+                                }}
+                                style={{ opacity: 0, width: 0, height: 0 }}
+                              />
+                              <span style={{
+                                position: 'absolute',
+                                cursor: 'pointer',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: pageAIEnabled ? '#007bff' : '#ccc',
+                                transition: '0.3s',
+                                borderRadius: '24px',
+                                boxShadow: pageAIEnabled ? '0 0 0 2px rgba(0, 123, 255, 0.25)' : 'none'
+                              }}>
+                                <span style={{
+                                  position: 'absolute',
+                                  content: '""',
+                                  height: '18px',
+                                  width: '18px',
+                                  left: pageAIEnabled ? '23px' : '3px',
+                                  bottom: '3px',
+                                  backgroundColor: 'white',
+                                  transition: '0.3s',
+                                  borderRadius: '50%',
+                                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                                }}></span>
+                              </span>
+                            </label>
+                            <span style={{ 
+                              fontSize: '12px', 
+                              color: pageAIEnabled ? '#007bff' : 'var(--muted)',
+                              fontWeight: '500',
+                              minWidth: '24px'
+                            }}>
+                              {pageAIEnabled ? 'ON' : 'OFF'}
+                            </span>
+                          </div>
+                        )
+                      })()}
                     </div>
                     
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -2895,6 +2952,48 @@ function EnhancedSearchManagementModal({
       </div>
     </div>
   )
+  } catch (error) {
+    // Log the error and return a safe fallback
+    console.error('Error in EnhancedSearchManagementModal:', error)
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 999999
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '2rem',
+          borderRadius: '8px',
+          maxWidth: '400px',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ color: '#dc3545', marginBottom: '1rem' }}>Modal Error</h3>
+          <p style={{ marginBottom: '1rem' }}>The search management modal encountered an error and couldn't load properly.</p>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    )
+  }
 }
 
 // Page Results View Component

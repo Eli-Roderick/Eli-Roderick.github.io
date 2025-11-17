@@ -1,0 +1,5 @@
+[
+  { "label": "Best hiking boots", "path": "/configs/query1.json" },
+  { "label": "Healthy breakfast ideas", "path": "/configs/query2.json" },
+  { "label": "Electric cars 2025", "path": "/configs/query3.json" }
+]

@@ -1,0 +1,9 @@
+{
+  "query": "electric cars 2025",
+  "aiOverview": { "show": true, "text": "AI overview: Range, charging speed, and incentives vary by model and region." },
+  "results": [
+    { "title": "Best EVs of 2025", "url": "https://evmag.example/best-2025", "snippet": "Our guide to top electric vehicles.", "ad": false },
+    { "title": "Find Charging Near You", "url": "https://chargefinder.example/", "snippet": "Locate fast chargers on your route.", "ad": true },
+    { "title": "Tax Credits Explained", "url": "https://gov.example/ev-credits", "snippet": "Eligibility and how to claim.", "ad": false }
+  ]
+}
