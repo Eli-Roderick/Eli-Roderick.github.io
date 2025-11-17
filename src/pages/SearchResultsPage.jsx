@@ -927,13 +927,6 @@ export default function SearchResultsPage() {
 
   return (
     <div className="min-h-screen">
-      {/* User Login Modal */}
-      <UserLogin 
-        currentUser={currentUser}
-        onLogin={handleUserLogin}
-        onLogout={handleUserLogout}
-      />
-      
       {/* Header */}
       <header className="search-header relative">
         {/* Profile row - mobile only */}
@@ -1004,6 +997,15 @@ export default function SearchResultsPage() {
           {/* Experimenter controls / profile icon - desktop only */}
           {isAdmin ? (
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+              {/* User Indicator */}
+              {currentUser && (
+                <UserLogin 
+                  currentUser={currentUser}
+                  onLogin={handleUserLogin}
+                  onLogout={handleUserLogout}
+                />
+              )}
+              
               {/* Search Management Button */}
               <button
                 className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-purple-500 text-white"
