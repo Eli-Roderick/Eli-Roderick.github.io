@@ -36,6 +36,12 @@ export default function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const isAdmin = typeof window !== 'undefined' && window.location.href.toLowerCase().endsWith('admin')
   
+  // Helper function to preserve admin parameter in navigation
+  const navigateWithAdmin = (url) => {
+    const finalUrl = isAdmin ? `${url}admin` : url
+    navigate(finalUrl)
+  }
+  
   // Get search query from URL parameters
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
   console.log('SearchResultsPage loading with query:', searchQuery)
@@ -262,7 +268,24 @@ export default function SearchResultsPage() {
   // Note: Removed the useEffect that was clearing AI text for custom pages without assignments
   // This was causing user's manually set AI text to be deleted on refresh
 
-  const displayQuery = searchQuery.replace(/\+/g, ' ') // Convert + back to spaces for display
+  // Get display query - use custom display name if available, otherwise use search query
+  const getDisplayQuery = () => {
+    // Check if current page has a custom display name
+    if (displayNames[searchType]) {
+      return displayNames[searchType]
+    }
+    
+    // Check custom pages
+    const customPage = Object.values(customSearchPages).find(page => page.key === searchType)
+    if (customPage) {
+      return customPage.displayName
+    }
+    
+    // Fallback to search query
+    return searchQuery.replace(/\+/g, ' ')
+  }
+  
+  const displayQuery = getDisplayQuery()
 
   const handleResultClick = ({ query, url }) => {
     logger.log({ query, url })
@@ -746,6 +769,32 @@ export default function SearchResultsPage() {
     return queryKey
   }
 
+  // Update page display name (search bar text)
+  const updatePageDisplayName = (pageKey, pageType, newDisplayName) => {
+    if (pageType === 'custom') {
+      // Find the custom page by its key and update its displayName
+      const updatedPages = { ...customSearchPages }
+      Object.keys(updatedPages).forEach(queryKey => {
+        if (updatedPages[queryKey].key === pageKey) {
+          updatedPages[queryKey] = {
+            ...updatedPages[queryKey],
+            displayName: newDisplayName
+          }
+        }
+      })
+      setCustomSearchPages(updatedPages)
+    } else {
+      // For built-in pages, we'll store custom display names separately
+      const updatedDisplayNames = {
+        ...displayNames,
+        [pageKey]: newDisplayName
+      }
+      // Note: This won't persist across page reloads for built-in pages
+      // You might want to store this in localStorage if persistence is needed
+      Object.assign(displayNames, updatedDisplayNames)
+    }
+  }
+
   // Remove custom search page
   const removeCustomSearchPage = (pageKey) => {
     const updatedPages = { ...customSearchPages }
@@ -806,7 +855,7 @@ export default function SearchResultsPage() {
         <div className="text-center">
           <p className="text-gray-600 mb-4">Search query "{searchQuery}" not found</p>
           <button 
-            onClick={() => navigate('/search?q=best+hiking+boots&oq=best+hiking+boots&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8')} 
+            onClick={() => navigateWithAdmin('/search?q=best+hiking+boots&oq=best+hiking+boots&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8')} 
             className="text-blue-600 hover:underline"
           >
             ← Go to Hiking Boots Search
@@ -996,7 +1045,7 @@ export default function SearchResultsPage() {
           aiOverviews={aiOverviews}
           onNavigate={(queryKey) => {
             setShowSearchManagement(false)
-            navigate(`/search?q=${queryKey}&oq=${queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
+            navigateWithAdmin(`/search?q=${queryKey}&oq=${queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
           }}
           onAssignAI={assignAIOverviewToSearch}
           onRemoveAI={removeAIOverviewFromSearch}
@@ -1008,6 +1057,7 @@ export default function SearchResultsPage() {
           }}
           onReorderResults={reorderSearchResults}
           removeCustomSearchResult={removeCustomSearchResult}
+          updatePageDisplayName={updatePageDisplayName}
           queryToConfig={queryToConfig}
           deletedBuiltinPages={deletedBuiltinPages}
         />
@@ -1036,7 +1086,7 @@ export default function SearchResultsPage() {
             const queryKey = addCustomSearchPage(pageData)
             setShowNewPageEditor(false)
             // Navigate to the new page
-            navigate(`/search?q=${queryKey}&oq=${queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
+            navigateWithAdmin(`/search?q=${queryKey}&oq=${queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
           }}
         />
       )}
@@ -2206,6 +2256,7 @@ function EnhancedSearchManagementModal({
   onEditResults,
   onReorderResults,
   removeCustomSearchResult,
+  updatePageDisplayName,
   queryToConfig,
   deletedBuiltinPages
 }) {
@@ -2213,6 +2264,8 @@ function EnhancedSearchManagementModal({
   const [selectedPageForResults, setSelectedPageForResults] = useState(null)
   const [builtinResults, setBuiltinResults] = useState({})
   const [pageSearchQuery, setPageSearchQuery] = useState('')
+  const [editingPageName, setEditingPageName] = useState(null)
+  const [editingDisplayName, setEditingDisplayName] = useState('')
 
   if (!isOpen) return null
 
@@ -2302,6 +2355,25 @@ function EnhancedSearchManagementModal({
     page.name.toLowerCase().includes(pageSearchQuery.toLowerCase()) ||
     (page.queryKey && page.queryKey.toLowerCase().includes(pageSearchQuery.toLowerCase()))
   )
+
+  // Helper functions for editing page names
+  const startEditingPageName = (page) => {
+    setEditingPageName(page.key)
+    setEditingDisplayName(page.name)
+  }
+
+  const savePageNameEdit = (page) => {
+    if (editingDisplayName.trim()) {
+      updatePageDisplayName(page.key, page.type, editingDisplayName.trim())
+    }
+    setEditingPageName(null)
+    setEditingDisplayName('')
+  }
+
+  const cancelPageNameEdit = () => {
+    setEditingPageName(null)
+    setEditingDisplayName('')
+  }
 
   // ONLY TWO TABS - NO OVERVIEW TAB
   const TABS_ONLY_TWO = [
@@ -2455,11 +2527,75 @@ function EnhancedSearchManagementModal({
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ flex: 1 }}>
-                          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '18px', fontWeight: '600', color: 'var(--text)' }}>
-                            {page.name}
-                            {currentSearchType === page.key && <span style={{ color: '#667eea', marginLeft: '0.5rem' }}>(Current)</span>}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            {editingPageName === page.key ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                                <input
+                                  type="text"
+                                  value={editingDisplayName}
+                                  onChange={(e) => setEditingDisplayName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') savePageNameEdit(page)
+                                    if (e.key === 'Escape') cancelPageNameEdit()
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    padding: '0.5rem',
+                                    border: '1px solid #667eea',
+                                    borderRadius: '4px',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    backgroundColor: 'var(--card-bg)',
+                                    color: 'var(--text)'
+                                  }}
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => savePageNameEdit(page)}
+                                  style={{
+                                    padding: '0.25rem 0.5rem',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    backgroundColor: '#16a34a',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '12px'
+                                  }}
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  onClick={cancelPageNameEdit}
+                                  style={{
+                                    padding: '0.25rem 0.5rem',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    backgroundColor: '#dc2626',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '12px'
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: 'var(--text)', cursor: 'pointer' }}
+                                  onClick={() => startEditingPageName(page)}
+                                  title="Click to edit search bar text">
+                                {page.name}
+                                <span style={{ 
+                                  marginLeft: '0.5rem', 
+                                  fontSize: '11px', 
+                                  color: 'var(--muted)',
+                                  fontWeight: 'normal'
+                                }}>
+                                  ✏️
+                                </span>
+                              </h4>
+                            )}
+                            {currentSearchType === page.key && <span style={{ color: '#667eea', fontSize: '14px', fontWeight: '500' }}>(Current)</span>}
                             <span style={{ 
-                              marginLeft: '0.5rem', 
                               fontSize: '12px', 
                               fontWeight: 'normal',
                               padding: '0.25rem 0.5rem',
@@ -2469,7 +2605,7 @@ function EnhancedSearchManagementModal({
                             }}>
                               {page.type === 'custom' ? 'Custom' : 'Built-in'}
                             </span>
-                          </h4>
+                          </div>
                           <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
                             {pageResults.length} custom results • {searchResultAssignments[page.key] ? 'AI assigned' : 'No AI assigned'}
                           </p>
