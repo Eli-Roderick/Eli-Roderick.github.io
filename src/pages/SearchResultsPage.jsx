@@ -932,24 +932,20 @@ export default function SearchResultsPage() {
         {/* Profile row - mobile only */}
         <div className="md:hidden flex justify-end px-4 pt-3 pb-2">
           {isAdmin ? (
-            <div 
-              className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center"
-              title="Profile"
-            >
-              <span className="text-white text-base font-medium">E</span>
-            </div>
-          ) : (
             <div className="profile-menu-wrapper" onClick={() => setShowProfileMenu((open) => !open)}>
               <div className="profile-avatar">
                 <div className="profile-avatar-inner">
                   <span className="profile-avatar-initial">E</span>
                 </div>
               </div>
-              {showProfileMenu && (
-                <div className="profile-dropdown">
-                  this feature is not available during the survey
+            </div>
+          ) : (
+            <div className="profile-menu-wrapper">
+              <div className="profile-avatar">
+                <div className="profile-avatar-inner">
+                  <span className="profile-avatar-initial">E</span>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
