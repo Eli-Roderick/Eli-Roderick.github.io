@@ -991,6 +991,7 @@ export default function SearchResultsPage() {
           displayNames={displayNames}
           customSearchPages={customSearchPages}
           customSearchResults={customSearchResults}
+          setCustomSearchResults={setCustomSearchResults}
           searchResultAssignments={searchResultAssignments}
           aiOverviews={aiOverviews}
           onNavigate={(queryKey) => {
@@ -1006,6 +1007,7 @@ export default function SearchResultsPage() {
             setShowSearchResultsEditor(true)
           }}
           onReorderResults={reorderSearchResults}
+          removeCustomSearchResult={removeCustomSearchResult}
           queryToConfig={queryToConfig}
           deletedBuiltinPages={deletedBuiltinPages}
         />
@@ -2193,6 +2195,7 @@ function EnhancedSearchManagementModal({
   displayNames,
   customSearchPages,
   customSearchResults,
+  setCustomSearchResults,
   searchResultAssignments,
   aiOverviews,
   onNavigate,
@@ -2202,6 +2205,7 @@ function EnhancedSearchManagementModal({
   onDeleteBuiltinPage,
   onEditResults,
   onReorderResults,
+  removeCustomSearchResult,
   queryToConfig,
   deletedBuiltinPages
 }) {
