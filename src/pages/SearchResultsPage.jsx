@@ -1093,6 +1093,29 @@ export default function SearchResultsPage() {
                 />
               )}
               
+              {/* Data Sync Button */}
+              {currentUser && (
+                <button
+                  onClick={() => setShowDataSync(true)}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: 'var(--card-bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                  title="Sync data across devices"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>sync</span>
+                  Sync Devices
+                </button>
+              )}
+              
               {/* Search Management Button */}
               <button
                 className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-purple-500 text-white"
