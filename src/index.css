@@ -75,7 +75,34 @@
 .result-divider { height: 1px; background: var(--border-subtle); margin: 14px 0; }
 
 /* Circular favicons styled like profile chips */
-img.favicon { display: inline-block; width: 32px; height: 32px; border-radius: 9999px; background: var(--card-bg); border: 1px solid var(--border); object-fit: cover; }
+img.favicon { 
+  display: inline-block; 
+  width: 32px; 
+  height: 32px; 
+  border-radius: 9999px; 
+  background: var(--card-bg); 
+  border: 1px solid var(--border); 
+  object-fit: cover;
+  /* Improve favicon visibility in all themes */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  /* Ensure proper contrast */
+  filter: contrast(1.1) brightness(1.05);
+}
+
+/* Dark mode favicon adjustments */
+@media (prefers-color-scheme: dark) {
+  img.favicon {
+    /* Slightly brighten favicons in dark mode for better visibility */
+    filter: contrast(1.2) brightness(1.2);
+    box-shadow: 0 1px 3px rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Explicit dark theme class support */
+body.dark img.favicon {
+  filter: contrast(1.2) brightness(1.2);
+  box-shadow: 0 1px 3px rgba(255, 255, 255, 0.1);
+}
 
 .ad-badge { @apply inline-flex items-center px-1.5 py-0.5 rounded border text-xs font-semibold; }
 .ad-badge { background: color-mix(in hsl, var(--card-bg), black 6%); border-color: var(--border); color: var(--text); opacity: 0.8; }

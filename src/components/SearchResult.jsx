@@ -25,7 +25,18 @@ export default function SearchResult({
   }
   const displayUrl = url.replace(/^https?:\/\//, '')
   const domain = (() => { try { return new URL(url).hostname } catch { return displayUrl.split('/')[0] } })()
-  const favicon = `https://icons.duckduckgo.com/ip3/${domain}.ico`
+  
+  // Use Google's favicon service with fallback for better reliability and theme compatibility
+  const getFaviconUrl = (domain) => {
+    try {
+      // Google's favicon service is more reliable and handles different sizes better
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+    } catch {
+      return `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+    }
+  }
+  
+  const favicon = getFaviconUrl(domain)
   const companyName = (company && String(company).trim()) || domain.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ')
   const snippet150 = snippet && snippet.length > 150 ? `${snippet.slice(0, 150)}…` : snippet
   
@@ -61,7 +72,23 @@ export default function SearchResult({
         {/* Left side - Text content */}
         <div className="result-text-content">
           <div className="result-url mb-1 flex items-start gap-2">
-            <img className="favicon" src={favicon} alt="" width={32} height={32} loading="lazy" />
+            <img 
+              className="favicon" 
+              src={favicon} 
+              alt="" 
+              width={32} 
+              height={32} 
+              loading="lazy"
+              onError={(e) => {
+                // Fallback to a generic icon if favicon fails to load
+                if (e.target.src !== `https://www.google.com/s2/favicons?domain=example.com&sz=32`) {
+                  e.target.src = `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+                } else {
+                  // If even the fallback fails, hide the image
+                  e.target.style.display = 'none'
+                }
+              }}
+            />
             <div className="min-w-0">
               {companyName && <div className="company-name">{companyName}</div>}
               <div className="truncate">{displayUrl}</div>

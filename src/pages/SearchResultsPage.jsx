@@ -178,6 +178,14 @@ export default function SearchResultsPage() {
       return true
     }
   })
+  const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('page_ai_overview_settings')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
   const [resultImages, setResultImages] = useState(() => {
     try {
       const saved = localStorage.getItem('result_images')
@@ -313,6 +321,9 @@ export default function SearchResultsPage() {
     const hasAssignment = searchResultAssignments[searchType]
     const aiText = (isCustomPage && !hasAssignment && !userAIText.trim()) ? '' : userAIText
     
+    // Check if AI Overview is enabled for this specific page
+    const pageAIEnabled = isPageAIOverviewEnabled(searchType)
+    
     return {
       ...config,
       // If there are custom results for this search type, use ONLY those in the
@@ -323,11 +334,11 @@ export default function SearchResultsPage() {
         : defaultResults,
       aiOverview: { 
         ...(config.aiOverview || {}), 
-        show: true, // Always show AI Overview section when aiOverviewEnabled is true
+        show: pageAIEnabled, // Show AI Overview only if enabled for this page
         text: aiText 
       },
     }
-  }, [config, customSearchResults, searchType, userAIText, customSearchPages, searchQuery, searchResultAssignments, aiOverviewEnabled])
+  }, [config, customSearchResults, searchType, userAIText, customSearchPages, searchQuery, searchResultAssignments, aiOverviewEnabled, pageAIOverviewSettings])
 
   const handlePaste = (e) => {
     // ...
@@ -538,6 +549,15 @@ export default function SearchResultsPage() {
     }
   }, [aiOverviewEnabled])
 
+  // Save page AI overview settings to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('page_ai_overview_settings', JSON.stringify(pageAIOverviewSettings))
+    } catch (error) {
+      console.warn('Failed to save page AI overview settings to localStorage:', error)
+    }
+  }, [pageAIOverviewSettings])
+
   // Save search result assignments to localStorage whenever they change
   useEffect(() => {
     try {
@@ -671,6 +691,21 @@ export default function SearchResultsPage() {
       setSelectedAIOverviewId(null)
       setUserAIText('')
     }
+  }
+
+  // Toggle AI Overview for a specific page
+  const togglePageAIOverview = (pageKey, enabled) => {
+    const newSettings = {
+      ...pageAIOverviewSettings,
+      [pageKey]: enabled
+    }
+    setPageAIOverviewSettings(newSettings)
+  }
+
+  // Check if AI Overview is enabled for a specific page
+  const isPageAIOverviewEnabled = (pageKey) => {
+    // If no specific setting exists, default to true (enabled)
+    return pageAIOverviewSettings[pageKey] !== false
   }
 
   // Generate favicon URL from domain
@@ -1058,6 +1093,9 @@ export default function SearchResultsPage() {
           onReorderResults={reorderSearchResults}
           removeCustomSearchResult={removeCustomSearchResult}
           updatePageDisplayName={updatePageDisplayName}
+          pageAIOverviewSettings={pageAIOverviewSettings}
+          togglePageAIOverview={togglePageAIOverview}
+          isPageAIOverviewEnabled={isPageAIOverviewEnabled}
           queryToConfig={queryToConfig}
           deletedBuiltinPages={deletedBuiltinPages}
         />
@@ -1970,8 +2008,14 @@ function SearchResultsEditorModal({
                       <img 
                         src={result.favicon} 
                         alt="Favicon"
-                        style={{ width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }}
-                        onError={(e) => e.target.style.display = 'none'}
+                        style={{ width: '20px', height: '20px', marginTop: '2px', flexShrink: 0, borderRadius: '50%', border: '1px solid var(--border)' }}
+                        onError={(e) => {
+                          if (e.target.src !== `https://www.google.com/s2/favicons?domain=example.com&sz=32`) {
+                            e.target.src = `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+                          } else {
+                            e.target.style.display = 'none'
+                          }
+                        }}
                       />
                       <div style={{ flex: 1 }}>
                         <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: '500', color: '#1a0dab' }}>
@@ -2257,6 +2301,9 @@ function EnhancedSearchManagementModal({
   onReorderResults,
   removeCustomSearchResult,
   updatePageDisplayName,
+  pageAIOverviewSettings,
+  togglePageAIOverview,
+  isPageAIOverviewEnabled,
   queryToConfig,
   deletedBuiltinPages
 }) {
@@ -2707,8 +2754,8 @@ function EnhancedSearchManagementModal({
                     borderRadius: '8px',
                     backgroundColor: 'var(--card-bg)'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                      <div style={{ flex: 1 }}>
                         <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
                           {page.name}
                           <span style={{ 
@@ -2726,6 +2773,61 @@ function EnhancedSearchManagementModal({
                         <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
                           {searchResultAssignments[page.key] ? 'AI Overview assigned' : 'No AI Overview assigned'}
                         </p>
+                      </div>
+                      
+                      {/* AI Overview Toggle Switch */}
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.75rem',
+                        padding: '0.5rem 0.75rem',
+                        backgroundColor: 'var(--bg)',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border)',
+                        flexShrink: 0
+                      }}>
+                        <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: '500' }}>AI Overview</span>
+                        <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                          <input
+                            type="checkbox"
+                            checked={isPageAIOverviewEnabled(page.key)}
+                            onChange={(e) => togglePageAIOverview(page.key, e.target.checked)}
+                            style={{ opacity: 0, width: 0, height: 0 }}
+                          />
+                          <span style={{
+                            position: 'absolute',
+                            cursor: 'pointer',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: isPageAIOverviewEnabled(page.key) ? '#007bff' : '#ccc',
+                            transition: '0.3s',
+                            borderRadius: '24px',
+                            boxShadow: isPageAIOverviewEnabled(page.key) ? '0 0 0 2px rgba(0, 123, 255, 0.25)' : 'none'
+                          }}>
+                            <span style={{
+                              position: 'absolute',
+                              content: '""',
+                              height: '18px',
+                              width: '18px',
+                              left: isPageAIOverviewEnabled(page.key) ? '23px' : '3px',
+                              bottom: '3px',
+                              backgroundColor: 'white',
+                              transition: '0.3s',
+                              borderRadius: '50%',
+                              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                            }}></span>
+                          </span>
+                        </label>
+                        <span style={{ 
+                          fontSize: '12px', 
+                          color: isPageAIOverviewEnabled(page.key) ? '#007bff' : 'var(--muted)',
+                          fontWeight: '500',
+                          minWidth: '24px'
+                        }}>
+                          {isPageAIOverviewEnabled(page.key) ? 'ON' : 'OFF'}
+                        </span>
                       </div>
                     </div>
                     
@@ -2921,8 +3023,14 @@ function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult,
                 <img 
                   src={result.favicon} 
                   alt="Favicon"
-                  style={{ width: '20px', height: '20px', marginTop: '2px', flexShrink: 0 }}
-                  onError={(e) => e.target.style.display = 'none'}
+                  style={{ width: '20px', height: '20px', marginTop: '2px', flexShrink: 0, borderRadius: '50%', border: '1px solid var(--border)' }}
+                  onError={(e) => {
+                    if (e.target.src !== `https://www.google.com/s2/favicons?domain=example.com&sz=32`) {
+                      e.target.src = `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+                    } else {
+                      e.target.style.display = 'none'
+                    }
+                  }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: '500', color: '#1a0dab', lineHeight: '1.3' }}>
