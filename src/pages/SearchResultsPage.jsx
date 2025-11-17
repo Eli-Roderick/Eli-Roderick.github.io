@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import ErrorBoundary from '../components/ErrorBoundary'
-import { safeCall, safeGet, safeLocalStorageGet, safeLocalStorageSet, validateProps, safeEventHandler, logError } from '../utils/safeUtils'
 import SimpleAIOverview from '../components/SimpleAIOverview'
 import SearchResult from '../components/SearchResult'
 import AdResult from '../components/AdResult'
@@ -180,9 +178,14 @@ export default function SearchResultsPage() {
       return true
     }
   })
-  const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState(() => 
-    safeLocalStorageGet('page_ai_overview_settings', {})
-  )
+  const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('page_ai_overview_settings')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
   const [resultImages, setResultImages] = useState(() => {
     try {
       const saved = localStorage.getItem('result_images')
@@ -548,8 +551,10 @@ export default function SearchResultsPage() {
 
   // Save page AI overview settings to localStorage whenever they change
   useEffect(() => {
-    if (!safeLocalStorageSet('page_ai_overview_settings', pageAIOverviewSettings)) {
-      logError(new Error('Failed to save page AI overview settings'), 'localStorage', { key: 'page_ai_overview_settings' })
+    try {
+      localStorage.setItem('page_ai_overview_settings', JSON.stringify(pageAIOverviewSettings))
+    } catch (error) {
+      console.warn('Failed to save page AI overview settings to localStorage:', error)
     }
   }, [pageAIOverviewSettings])
 
@@ -1084,11 +1089,7 @@ export default function SearchResultsPage() {
 
       {/* Enhanced Search Management Modal */}
       {showSearchManagement && (
-        <ErrorBoundary 
-          componentName="EnhancedSearchManagementModal"
-          onRetry={() => setShowSearchManagement(false)}
-        >
-          <EnhancedSearchManagementModal
+        <EnhancedSearchManagementModal
           isOpen={showSearchManagement}
           onClose={() => setShowSearchManagement(false)}
           currentSearchType={searchType}
@@ -1119,7 +1120,6 @@ export default function SearchResultsPage() {
           queryToConfig={queryToConfig}
           deletedBuiltinPages={deletedBuiltinPages}
         />
-        </ErrorBoundary>
       )}
 
       {/* Search Results Editor Modal */}
@@ -2303,57 +2303,31 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
 }
 
 // FIXED Search Management Modal - ONLY 2 TABS
-function EnhancedSearchManagementModal(props) {
-  // Validate and provide defaults for all props
-  const {
-    isOpen,
-    onClose,
-    currentSearchType,
-    displayNames,
-    customSearchPages,
-    customSearchResults,
-    setCustomSearchResults,
-    searchResultAssignments,
-    aiOverviews,
-    onNavigate,
-    onAssignAI,
-    onRemoveAI,
-    onDeletePage,
-    onDeleteBuiltinPage,
-    onEditResults,
-    onReorderResults,
-    removeCustomSearchResult,
-    updatePageDisplayName,
-    pageAIOverviewSettings,
-    togglePageAIOverview,
-    isPageAIOverviewEnabled,
-    queryToConfig,
-    deletedBuiltinPages
-  } = validateProps(props, {
-    isOpen: { type: 'boolean', default: false },
-    onClose: { type: 'function', default: () => {} },
-    currentSearchType: { type: 'string', default: '' },
-    displayNames: { type: 'object', default: {} },
-    customSearchPages: { type: 'object', default: {} },
-    customSearchResults: { type: 'object', default: {} },
-    setCustomSearchResults: { type: 'function', default: () => {} },
-    searchResultAssignments: { type: 'object', default: {} },
-    aiOverviews: { type: 'array', default: [] },
-    onNavigate: { type: 'function', default: () => {} },
-    onAssignAI: { type: 'function', default: () => {} },
-    onRemoveAI: { type: 'function', default: () => {} },
-    onDeletePage: { type: 'function', default: () => {} },
-    onDeleteBuiltinPage: { type: 'function', default: () => {} },
-    onEditResults: { type: 'function', default: () => {} },
-    onReorderResults: { type: 'function', default: () => {} },
-    removeCustomSearchResult: { type: 'function', default: () => {} },
-    updatePageDisplayName: { type: 'function', default: () => {} },
-    pageAIOverviewSettings: { type: 'object', default: {} },
-    togglePageAIOverview: { type: 'function', default: () => {} },
-    isPageAIOverviewEnabled: { type: 'function', default: () => true },
-    queryToConfig: { type: 'object', default: {} },
-    deletedBuiltinPages: { type: 'array', default: [] }
-  })
+function EnhancedSearchManagementModal({ 
+  isOpen, 
+  onClose, 
+  currentSearchType,
+  displayNames,
+  customSearchPages,
+  customSearchResults,
+  setCustomSearchResults,
+  searchResultAssignments,
+  aiOverviews,
+  onNavigate,
+  onAssignAI,
+  onRemoveAI,
+  onDeletePage,
+  onDeleteBuiltinPage,
+  onEditResults,
+  onReorderResults,
+  removeCustomSearchResult,
+  updatePageDisplayName,
+  pageAIOverviewSettings,
+  togglePageAIOverview,
+  isPageAIOverviewEnabled,
+  queryToConfig,
+  deletedBuiltinPages
+}) {
   const [activeTab, setActiveTab] = useState('pages')
   const [selectedPageForResults, setSelectedPageForResults] = useState(null)
   const [builtinResults, setBuiltinResults] = useState({})
