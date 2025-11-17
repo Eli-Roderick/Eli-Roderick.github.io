@@ -6,8 +6,10 @@ import AdResult from '../components/AdResult'
 import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
+import UserLogin from '../components/UserLogin'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
+import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
 
 const logger = new ClickLogger()
 
@@ -45,24 +47,32 @@ export default function SearchResultsPage() {
   // Get search query from URL parameters
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
   
+  // User management state
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      return localStorage.getItem('current_user') || null
+    } catch {
+      return null
+    }
+  })
+  
+  // Initialize user data manager when user changes
+  useEffect(() => {
+    if (currentUser) {
+      initializeUserData(currentUser)
+    }
+  }, [currentUser])
+  
   // Load custom search pages first (needed for searchConfig calculation)
   const [customSearchPages, setCustomSearchPages] = useState(() => {
-    try {
-      const saved = localStorage.getItem('custom_search_pages')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
+    if (!currentUser) return {}
+    return getUserData('custom_search_pages', {})
   })
   
   // Load deleted built-in pages (needed for searchConfig calculation)
   const [deletedBuiltinPages, setDeletedBuiltinPages] = useState(() => {
-    try {
-      const saved = localStorage.getItem('deleted_builtin_pages')
-      return saved ? JSON.parse(saved) : []
-    } catch {
-      return []
-    }
+    if (!currentUser) return []
+    return getUserData('deleted_builtin_pages', [])
   })
   
   // Find matching config - use useMemo to recalculate when customSearchPages changes
@@ -136,66 +146,78 @@ export default function SearchResultsPage() {
       return {}
     }
   })
-  const [aiOverviews, setAIOverviews] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ai_overviews')
-      return saved ? JSON.parse(saved) : []
-    } catch {
-      return []
-    }
-  })
+  const [aiOverviews, setAIOverviews] = useState([])
   const [selectedAIOverviewId, setSelectedAIOverviewId] = useState(null)
-  const [searchResultAssignments, setSearchResultAssignments] = useState(() => {
-    try {
-      const saved = localStorage.getItem('search_result_assignments')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
+  const [searchResultAssignments, setSearchResultAssignments] = useState({})
   const [showSearchManagement, setShowSearchManagement] = useState(false)
   const [showSearchResultsEditor, setShowSearchResultsEditor] = useState(false)
   const [showNewPageEditor, setShowNewPageEditor] = useState(false)
-  const [customSearchResults, setCustomSearchResults] = useState(() => {
-    try {
-      const saved = localStorage.getItem('custom_search_results')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
-  const [aiOverviewEnabled, setAIOverviewEnabled] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ai_overview_enabled')
-      return saved !== null ? JSON.parse(saved) : true
-    } catch {
-      return true
-    }
-  })
-  const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('page_ai_overview_settings')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
-  const [resultImages, setResultImages] = useState(() => {
-    try {
-      const saved = localStorage.getItem('result_images')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
+  const [customSearchResults, setCustomSearchResults] = useState({})
+  const [aiOverviewEnabled, setAIOverviewEnabled] = useState(true)
+  const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState({})
+  const [resultImages, setResultImages] = useState({})
 
-  // Load persisted AI text on mount
+  // User login/logout handlers
+  const handleUserLogin = (username) => {
+    setCurrentUser(username)
+    
+    // Migrate existing data to user-specific storage on first login
+    const keysToMigrate = [
+      'custom_search_pages',
+      'deleted_builtin_pages', 
+      'ai_overviews',
+      'search_result_assignments',
+      'custom_search_results',
+      'page_ai_overview_settings',
+      'result_images',
+      'ai_overview_text'
+    ]
+    
+    migrateExistingData(username, keysToMigrate)
+    
+    // Reload user-specific data
+    setCustomSearchPages(getUserData('custom_search_pages', {}))
+    setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
+    setAIOverviews(getUserData('ai_overviews', []))
+    setSearchResultAssignments(getUserData('search_result_assignments', {}))
+    setCustomSearchResults(getUserData('custom_search_results', {}))
+    setUserAIText(getUserData('ai_overview_text', ''))
+    setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
+    setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
+    setResultImages(getUserData('result_images', {}))
+  }
+  
+  const handleUserLogout = () => {
+    setCurrentUser(null)
+    // Reset all state to defaults
+    setCustomSearchPages({})
+    setDeletedBuiltinPages([])
+    setAIOverviews([])
+    setSearchResultAssignments({})
+    setCustomSearchResults({})
+    setUserAIText('')
+    setSelectedAIOverviewId(null)
+    setAIOverviewEnabled(true)
+    setPageAIOverviewSettings({})
+    setResultImages({})
+  }
+  
+  // Reload user data when user changes
   useEffect(() => {
-    try {
-      const savedText = localStorage.getItem('ai_overview_text')
-      if (savedText) setUserAIText(savedText)
-    } catch {}
-  }, [])
+    if (currentUser) {
+      setCustomSearchPages(getUserData('custom_search_pages', {}))
+      setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
+      setAIOverviews(getUserData('ai_overviews', []))
+      setSearchResultAssignments(getUserData('search_result_assignments', {}))
+      setCustomSearchResults(getUserData('custom_search_results', {}))
+      setUserAIText(getUserData('ai_overview_text', ''))
+      setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
+      setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
+      setResultImages(getUserData('result_images', {}))
+    }
+  }, [currentUser])
+
+  // AI text is now loaded through user data system
 
   // Load config based on search query
   useEffect(() => {
@@ -347,7 +369,7 @@ export default function SearchResultsPage() {
     if (content) {
       e.preventDefault()
       setUserAIText(content)
-      try { localStorage.setItem('ai_overview_text', content) } catch {}
+      if (currentUser) { setUserData('ai_overview_text', content) }
     }
   }
 
@@ -411,14 +433,14 @@ export default function SearchResultsPage() {
       const updatedOverviews = aiOverviews.filter(overview => overview.id !== overviewId)
       setAIOverviews(updatedOverviews)
       
-      // Update localStorage
-      localStorage.setItem('ai_overviews', JSON.stringify(updatedOverviews))
+      // Update user data
+      if (currentUser) { setUserData('ai_overviews', updatedOverviews) }
       
       // If this was the selected overview, clear it
       if (selectedAIOverviewId === overviewId) {
         setSelectedAIOverviewId(null)
         setUserAIText('')
-        localStorage.removeItem('ai_overview_text')
+        if (currentUser) { setUserData('ai_overview_text', '') }
       }
       
       // Remove any assignments to this overview
@@ -429,7 +451,7 @@ export default function SearchResultsPage() {
         }
       })
       setSearchResultAssignments(updatedAssignments)
-      localStorage.setItem('search_result_assignments', JSON.stringify(updatedAssignments))
+      if (currentUser) { setUserData('search_result_assignments', updatedAssignments) }
     }
   }
 
@@ -518,79 +540,63 @@ export default function SearchResultsPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Save result images to localStorage whenever they change
+  // Save result images to user data whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem('result_images', JSON.stringify(resultImages))
-    } catch (error) {
-      console.warn('Failed to save images to localStorage:', error)
+    if (currentUser) {
+      setUserData('result_images', resultImages)
     }
-  }, [resultImages])
+  }, [resultImages, currentUser])
 
-  // Save AI overviews to localStorage whenever they change
+  // Save AI overviews to user data whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem('ai_overviews', JSON.stringify(aiOverviews))
-    } catch (error) {
-      console.warn('Failed to save AI overviews to localStorage:', error)
+    if (currentUser) {
+      setUserData('ai_overviews', aiOverviews)
     }
-  }, [aiOverviews])
+  }, [aiOverviews, currentUser])
 
   // Note: Removed localStorage persistence for selectedAIOverviewId to prevent jumping between overviews
 
-  // Save AI overview enabled state to localStorage whenever it changes
+  // Save AI overview enabled state to user data whenever it changes
   useEffect(() => {
-    try {
-      localStorage.setItem('ai_overview_enabled', JSON.stringify(aiOverviewEnabled))
-    } catch (error) {
-      console.warn('Failed to save AI overview enabled state to localStorage:', error)
+    if (currentUser) {
+      setUserData('ai_overview_enabled', aiOverviewEnabled)
     }
-  }, [aiOverviewEnabled])
+  }, [aiOverviewEnabled, currentUser])
 
-  // Save page AI overview settings to localStorage whenever they change
+  // Save page AI overview settings to user data whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem('page_ai_overview_settings', JSON.stringify(pageAIOverviewSettings))
-    } catch (error) {
-      console.warn('Failed to save page AI overview settings to localStorage:', error)
+    if (currentUser) {
+      setUserData('page_ai_overview_settings', pageAIOverviewSettings)
     }
-  }, [pageAIOverviewSettings])
+  }, [pageAIOverviewSettings, currentUser])
 
-  // Save search result assignments to localStorage whenever they change
+  // Save search result assignments to user data whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem('search_result_assignments', JSON.stringify(searchResultAssignments))
-    } catch (error) {
-      console.warn('Failed to save search result assignments to localStorage:', error)
+    if (currentUser) {
+      setUserData('search_result_assignments', searchResultAssignments)
     }
-  }, [searchResultAssignments])
+  }, [searchResultAssignments, currentUser])
 
-  // Save custom search results to localStorage whenever they change
+  // Save custom search results to user data whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem('custom_search_results', JSON.stringify(customSearchResults))
-    } catch (error) {
-      console.warn('Failed to save custom search results to localStorage:', error)
+    if (currentUser) {
+      setUserData('custom_search_results', customSearchResults)
     }
-  }, [customSearchResults])
+  }, [customSearchResults, currentUser])
 
-  // Save custom search pages to localStorage whenever they change
+  // Save custom search pages to user data whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem('custom_search_pages', JSON.stringify(customSearchPages))
-    } catch (error) {
-      console.warn('Failed to save custom search pages to localStorage:', error)
+    if (currentUser) {
+      setUserData('custom_search_pages', customSearchPages)
     }
-  }, [customSearchPages])
+  }, [customSearchPages, currentUser])
 
-  // Save deleted built-in pages to localStorage whenever they change
+  // Save deleted built-in pages to user data whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem('deleted_builtin_pages', JSON.stringify(deletedBuiltinPages))
-    } catch (error) {
-      console.warn('Failed to save deleted built-in pages to localStorage:', error)
+    if (currentUser) {
+      setUserData('deleted_builtin_pages', deletedBuiltinPages)
     }
-  }, [deletedBuiltinPages])
+  }, [deletedBuiltinPages, currentUser])
 
   // Update userAIText when selected AI overview changes
   useEffect(() => {
@@ -854,7 +860,7 @@ export default function SearchResultsPage() {
     const updatedPages = { ...customSearchPages }
     delete updatedPages[pageKey]
     setCustomSearchPages(updatedPages)
-    localStorage.setItem('custom_search_pages', JSON.stringify(updatedPages))
+    if (currentUser) { setUserData('custom_search_pages', updatedPages) }
   }
 
   const reorderSearchResults = (searchType, fromIndex, toIndex) => {
@@ -868,7 +874,7 @@ export default function SearchResultsPage() {
     }
     
     setCustomSearchResults(updatedResults)
-    localStorage.setItem('custom_search_results', JSON.stringify(updatedResults))
+    if (currentUser) { setUserData('custom_search_results', updatedResults) }
   }
 
   // Delete built-in page
@@ -921,6 +927,13 @@ export default function SearchResultsPage() {
 
   return (
     <div className="min-h-screen">
+      {/* User Login Modal */}
+      <UserLogin 
+        currentUser={currentUser}
+        onLogin={handleUserLogin}
+        onLogout={handleUserLogout}
+      />
+      
       {/* Header */}
       <header className="search-header relative">
         {/* Profile row - mobile only */}
@@ -991,6 +1004,15 @@ export default function SearchResultsPage() {
           {/* Experimenter controls / profile icon - desktop only */}
           {isAdmin ? (
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+              {/* User Indicator */}
+              {currentUser && (
+                <UserLogin 
+                  currentUser={currentUser}
+                  onLogin={handleUserLogin}
+                  onLogout={handleUserLogout}
+                />
+              )}
+              
               {/* Search Management Button */}
               <button
                 className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-purple-500 text-white"
