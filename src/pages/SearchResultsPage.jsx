@@ -303,7 +303,14 @@ export default function SearchResultsPage() {
   const handleDownload = () => logger.downloadCSV()
 
   const effectiveConfig = useMemo(() => {
-    if (!config) return null
+    try {
+      if (!config) {
+        // Return a basic fallback config instead of null
+        return {
+          results: [],
+          aiOverview: { show: false, text: '' }
+        }
+      }
     
     const defaultResults = config.results || []
     const customResults = customSearchResults[searchType] || []
@@ -322,7 +329,7 @@ export default function SearchResultsPage() {
     const aiText = (isCustomPage && !hasAssignment && !userAIText.trim()) ? '' : userAIText
     
     // Check if AI Overview is enabled for this specific page
-    const pageAIEnabled = isPageAIOverviewEnabled(searchType)
+    const pageAIEnabled = pageAIOverviewSettings[searchType] !== false
     
     return {
       ...config,
@@ -337,6 +344,14 @@ export default function SearchResultsPage() {
         show: pageAIEnabled, // Show AI Overview only if enabled for this page
         text: aiText 
       },
+    }
+    } catch (error) {
+      console.error('Error in effectiveConfig useMemo:', error)
+      // Return safe fallback config
+      return {
+        results: [],
+        aiOverview: { show: false, text: '' }
+      }
     }
   }, [config, customSearchResults, searchType, userAIText, customSearchPages, searchQuery, searchResultAssignments, aiOverviewEnabled, pageAIOverviewSettings])
 
@@ -2808,7 +2823,7 @@ function EnhancedSearchManagementModal({
                       {/* AI Overview Toggle Switch */}
                       {(() => {
                         // Compute the enabled state once to avoid multiple function calls
-                        const pageAIEnabled = isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true
+                        const pageAIEnabled = pageAIOverviewSettings ? pageAIOverviewSettings[page.key] !== false : true
                         
                         return (
                           <div style={{ 
