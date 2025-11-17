@@ -695,8 +695,11 @@ export default function SearchResultsPage() {
 
   // Toggle AI Overview for a specific page
   const togglePageAIOverview = (pageKey, enabled) => {
+    if (!pageKey) return
+    
+    const currentSettings = pageAIOverviewSettings || {}
     const newSettings = {
-      ...pageAIOverviewSettings,
+      ...currentSettings,
       [pageKey]: enabled
     }
     setPageAIOverviewSettings(newSettings)
@@ -705,6 +708,9 @@ export default function SearchResultsPage() {
   // Check if AI Overview is enabled for a specific page
   const isPageAIOverviewEnabled = (pageKey) => {
     // If no specific setting exists, default to true (enabled)
+    if (!pageAIOverviewSettings || typeof pageAIOverviewSettings !== 'object') {
+      return true
+    }
     return pageAIOverviewSettings[pageKey] !== false
   }
 
@@ -2790,8 +2796,12 @@ function EnhancedSearchManagementModal({
                         <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
                           <input
                             type="checkbox"
-                            checked={isPageAIOverviewEnabled(page.key)}
-                            onChange={(e) => togglePageAIOverview(page.key, e.target.checked)}
+                            checked={isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true}
+                            onChange={(e) => {
+                              if (togglePageAIOverview) {
+                                togglePageAIOverview(page.key, e.target.checked)
+                              }
+                            }}
                             style={{ opacity: 0, width: 0, height: 0 }}
                           />
                           <span style={{
@@ -2801,17 +2811,17 @@ function EnhancedSearchManagementModal({
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            backgroundColor: isPageAIOverviewEnabled(page.key) ? '#007bff' : '#ccc',
+                            backgroundColor: (isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? '#007bff' : '#ccc',
                             transition: '0.3s',
                             borderRadius: '24px',
-                            boxShadow: isPageAIOverviewEnabled(page.key) ? '0 0 0 2px rgba(0, 123, 255, 0.25)' : 'none'
+                            boxShadow: (isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? '0 0 0 2px rgba(0, 123, 255, 0.25)' : 'none'
                           }}>
                             <span style={{
                               position: 'absolute',
                               content: '""',
                               height: '18px',
                               width: '18px',
-                              left: isPageAIOverviewEnabled(page.key) ? '23px' : '3px',
+                              left: (isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? '23px' : '3px',
                               bottom: '3px',
                               backgroundColor: 'white',
                               transition: '0.3s',
@@ -2822,11 +2832,11 @@ function EnhancedSearchManagementModal({
                         </label>
                         <span style={{ 
                           fontSize: '12px', 
-                          color: isPageAIOverviewEnabled(page.key) ? '#007bff' : 'var(--muted)',
+                          color: (isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? '#007bff' : 'var(--muted)',
                           fontWeight: '500',
                           minWidth: '24px'
                         }}>
-                          {isPageAIOverviewEnabled(page.key) ? 'ON' : 'OFF'}
+                          {(isPageAIOverviewEnabled ? isPageAIOverviewEnabled(page.key) : true) ? 'ON' : 'OFF'}
                         </span>
                       </div>
                     </div>
