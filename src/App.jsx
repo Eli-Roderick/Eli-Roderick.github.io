@@ -5,6 +5,7 @@ import AdResult from './components/AdResult'
 import ImageManager from './components/ImageManager'
 import RichTextEditor from './components/RichTextEditor'
 import SearchPage from './pages/SearchPage'
+import SupabaseTest from './components/SupabaseTest'
 import { ClickLogger } from './utils/logger'
 import { loadConfigList, loadConfigByPath } from './utils/config'
 
@@ -467,6 +468,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
+      {/* Supabase Test Panel - Remove this after testing */}
+      <SupabaseTest />
 
       {/* Header */}
       <header className="search-header">

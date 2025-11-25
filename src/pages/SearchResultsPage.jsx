@@ -7,7 +7,7 @@ import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
 import UserLogin from '../components/UserLogin'
-import DataSync from '../components/DataSync'
+import ImprovedDataSync from '../components/ImprovedDataSync'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
 import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
@@ -2035,7 +2035,7 @@ export default function SearchResultsPage() {
 
       {/* Data Sync Modal */}
       {showDataSync && (
-        <DataSync
+        <ImprovedDataSync
           currentUser={currentUser}
           onExportData={handleExportData}
           onImportData={handleImportData}
