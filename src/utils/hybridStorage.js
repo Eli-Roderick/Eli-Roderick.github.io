@@ -5,20 +5,24 @@ import { setUserData, getUserData } from './userData'
 // Direct Supabase save functions that work with our current user system
 const saveCustomSearchPagesToSupabase = async (pages, userEmail) => {
   try {
+    console.log('🔍 saveCustomSearchPagesToSupabase called with:', { userEmail, pageCount: Object.keys(pages).length })
+    
     // First, ensure user profile exists
+    console.log('🔍 Checking if user profile exists...')
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id')
       .eq('username', userEmail)
       .single()
+    
+    console.log('🔍 Profile check result:', { profile, profileError })
 
     let userId
     if (profileError && profileError.code === 'PGRST116') {
-      // Profile doesn't exist, create it with a generated UUID
+      // Profile doesn't exist, create it (let database generate UUID)
       const { data: newProfile, error: insertError } = await supabase
         .from('user_profiles')
         .insert({
-          id: crypto.randomUUID(),
           username: userEmail
         })
         .select('id')
@@ -191,9 +195,7 @@ export const hybridLoad = async (key, defaultValue = null) => {
 // Test Supabase connection
 export const testSupabaseConnection = async () => {
   try {
-    console.log('🔍 Importing supabase...')
-    const { supabase } = await import('./supabase')
-    console.log('🔍 Supabase imported, testing query...')
+    console.log('🔍 Testing supabase connection...')
     
     const { data, error } = await supabase.from('user_profiles').select('count').limit(1)
     
