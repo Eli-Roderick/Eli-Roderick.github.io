@@ -7,10 +7,30 @@ import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
 import UserLogin from '../components/UserLogin'
+import SupabaseTestButton from '../components/SupabaseTestButton'
 import ImprovedDataSync from '../components/ImprovedDataSync'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
-import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
+import { 
+  getCustomSearchPages, 
+  saveCustomSearchPages,
+  getAIOverviews,
+  saveAIOverview,
+  updateAIOverview,
+  deleteAIOverview,
+  getSearchResultAssignments,
+  saveSearchResultAssignment,
+  removeSearchResultAssignment,
+  getCustomSearchResults,
+  saveCustomSearchResults,
+  getResultImages,
+  saveResultImages,
+  getUserSetting,
+  setUserSetting,
+  getDeletedBuiltinPages,
+  addDeletedBuiltinPage,
+  saveClickLog
+} from '../utils/supabaseData'
 
 const logger = new ClickLogger()
 
@@ -48,33 +68,60 @@ export default function SearchResultsPage() {
   // Get search query from URL parameters
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
   
-  // User management state
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      return localStorage.getItem('current_user') || null
-    } catch {
-      return null
-    }
-  })
+  // User management state (now managed by Supabase auth)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [loading, setLoading] = useState(true)
   
-  // Initialize user data manager when user changes
+  // Data state - loaded from Supabase
+  const [customSearchPages, setCustomSearchPages] = useState({})
+  const [deletedBuiltinPages, setDeletedBuiltinPages] = useState([])
+  const [aiOverviews, setAIOverviews] = useState([])
+  const [searchResultAssignments, setSearchResultAssignments] = useState({})
+  const [customSearchResults, setCustomSearchResults] = useState({})
+  const [resultImages, setResultImages] = useState({})
+  
+  // Load all data from Supabase when user changes
   useEffect(() => {
-    if (currentUser) {
-      initializeUserData(currentUser)
-    }
+    loadUserData()
   }, [currentUser])
   
-  // Load custom search pages first (needed for searchConfig calculation)
-  const [customSearchPages, setCustomSearchPages] = useState(() => {
-    if (!currentUser) return {}
-    return getUserData('custom_search_pages', {})
-  })
-  
-  // Load deleted built-in pages (needed for searchConfig calculation)
-  const [deletedBuiltinPages, setDeletedBuiltinPages] = useState(() => {
-    if (!currentUser) return []
-    return getUserData('deleted_builtin_pages', [])
-  })
+  const loadUserData = async () => {
+    if (!currentUser) {
+      setLoading(false)
+      return
+    }
+    
+    setLoading(true)
+    try {
+      // Load all data in parallel
+      const [
+        pages,
+        deleted,
+        overviews,
+        assignments,
+        results,
+        images
+      ] = await Promise.all([
+        getCustomSearchPages(),
+        getDeletedBuiltinPages(),
+        getAIOverviews(),
+        getSearchResultAssignments(),
+        getCustomSearchResults(),
+        getResultImages()
+      ])
+      
+      setCustomSearchPages(pages)
+      setDeletedBuiltinPages(deleted)
+      setAIOverviews(overviews)
+      setSearchResultAssignments(assignments)
+      setCustomSearchResults(results)
+      setResultImages(images)
+    } catch (error) {
+      console.error('Error loading user data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
   
   // Find matching config - use useMemo to recalculate when customSearchPages changes
   const searchConfig = useMemo(() => {
@@ -119,7 +166,7 @@ export default function SearchResultsPage() {
   const searchType = searchConfig.key
   
   const [config, setConfig] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [configLoading, setConfigLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('All')
   const [userAIText, setUserAIText] = useState('')
@@ -132,78 +179,37 @@ export default function SearchResultsPage() {
   const [modalView, setModalView] = useState('editor')
   const [draftTitle, setDraftTitle] = useState('')
   const [showClickTracker, setShowClickTracker] = useState(false)
-  const [currentUserId, setCurrentUserId] = useState(() => {
-    try {
-      return localStorage.getItem('click_tracking_user_id') || ''
-    } catch {
-      return ''
-    }
-  })
-  const [clickLogs, setClickLogs] = useState(() => {
-    try {
-      const saved = localStorage.getItem('click_logs')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
-  const [aiOverviews, setAIOverviews] = useState([])
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [clickLogs, setClickLogs] = useState({})
   const [selectedAIOverviewId, setSelectedAIOverviewId] = useState(null)
-  const [searchResultAssignments, setSearchResultAssignments] = useState({})
   const [showSearchManagement, setShowSearchManagement] = useState(false)
   const [showSearchResultsEditor, setShowSearchResultsEditor] = useState(false)
   const [showNewPageEditor, setShowNewPageEditor] = useState(false)
-  const [customSearchResults, setCustomSearchResults] = useState({})
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(true)
   const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState({})
-  const [resultImages, setResultImages] = useState({})
   const [showDataSync, setShowDataSync] = useState(false)
 
-  // User login/logout handlers
-  const handleUserLogin = (username) => {
-    setCurrentUser(username)
-    
-    // Migrate existing data to user-specific storage on first login
-    const keysToMigrate = [
-      'custom_search_pages',
-      'deleted_builtin_pages', 
-      'ai_overviews',
-      'search_result_assignments',
-      'custom_search_results',
-      'page_ai_overview_settings',
-      'result_images',
-      'ai_overview_text'
-    ]
-    
-    migrateExistingData(username, keysToMigrate)
-    
-    // Reload user-specific data
-    setCustomSearchPages(getUserData('custom_search_pages', {}))
-    setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
-    setAIOverviews(getUserData('ai_overviews', []))
-    setSearchResultAssignments(getUserData('search_result_assignments', {}))
-    setCustomSearchResults(getUserData('custom_search_results', {}))
-    setUserAIText(getUserData('ai_overview_text', ''))
-    setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
-    setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
-    setResultImages(getUserData('result_images', {}))
+  // User login/logout handlers - now using Supabase
+  const handleUserLogin = (email) => {
+    setCurrentUser(email)
+    // Data will be loaded by the useEffect that watches currentUser
   }
-  
+
   const handleUserLogout = () => {
     setCurrentUser(null)
-    // Reset all state to defaults
+    // Clear all user-specific state
     setCustomSearchPages({})
     setDeletedBuiltinPages([])
     setAIOverviews([])
     setSearchResultAssignments({})
     setCustomSearchResults({})
-    setUserAIText('')
-    setSelectedAIOverviewId(null)
-    setAIOverviewEnabled(true)
-    setPageAIOverviewSettings({})
     setResultImages({})
+    setUserAIText('')
+    setPageAIOverviewSettings({})
+    setSelectedAIOverviewId(null)
+    setClickLogs({})
   }
-  
+
   // Reload user data when user changes
   useEffect(() => {
     if (currentUser) {
@@ -1095,6 +1101,8 @@ export default function SearchResultsPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Supabase Test Button - Remove after testing */}
+      <SupabaseTestButton />
       {/* Header */}
       <header className="search-header relative">
         {/* Profile row - mobile only */}
