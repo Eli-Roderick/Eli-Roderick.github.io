@@ -146,7 +146,8 @@ export default function SupabaseSync({ currentUser, customSearchPages, aiOvervie
         color: '#666'
       }}>
         <div>User: {currentUser || 'Not logged in'}</div>
-        <div>Env: {process.env.REACT_APP_SUPABASE_URL ? '✅' : '❌'}</div>
+        <div>URL: {process.env.REACT_APP_SUPABASE_URL ? '✅' : '❌'}</div>
+        <div>Key: {process.env.REACT_APP_SUPABASE_ANON_KEY ? '✅' : '❌'}</div>
       </div>
     </div>
   )

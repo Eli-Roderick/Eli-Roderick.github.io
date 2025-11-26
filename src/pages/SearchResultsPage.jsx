@@ -7,8 +7,7 @@ import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
 import UserLogin from '../components/UserLogin'
-import SupabaseSync from '../components/SupabaseSync'
-import ImprovedDataSync from '../components/ImprovedDataSync'
+import SupabaseDataSync from '../components/SupabaseDataSync'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
 import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
@@ -204,158 +203,6 @@ export default function SearchResultsPage() {
   }
 
 
-  // Data sync functions
-  const handleExportData = () => {
-    console.log('=== EXPORT DEBUG ===')
-    console.log('handleExportData called')
-    console.log('currentUser:', currentUser)
-    
-    if (!currentUser) {
-      console.log('❌ No current user, returning null')
-      alert('Please log in first to sync your data. Click the user icon to log in.')
-      return null
-    }
-    
-    const allUserData = {
-      custom_search_pages: customSearchPages,
-      deleted_builtin_pages: deletedBuiltinPages,
-      ai_overviews: aiOverviews,
-      search_result_assignments: searchResultAssignments,
-      custom_search_results: customSearchResults,
-      ai_overview_text: userAIText,
-      ai_overview_enabled: aiOverviewEnabled,
-      page_ai_overview_settings: pageAIOverviewSettings,
-      result_images: resultImages
-    }
-    
-    console.log('📊 User data to export:')
-    console.log('- custom_search_pages:', Object.keys(customSearchPages).length, 'pages')
-    console.log('- deleted_builtin_pages:', deletedBuiltinPages.length, 'deleted')
-    console.log('- ai_overviews:', aiOverviews.length, 'overviews')
-    console.log('- custom_search_results:', Object.keys(customSearchResults).length, 'result sets')
-    console.log('- ai_overview_text length:', userAIText.length)
-    console.log('- result_images:', Object.keys(resultImages).length, 'image sets')
-    console.log('Full data:', allUserData)
-    
-    // Check if there's actually any meaningful data
-    const hasData = Object.keys(customSearchPages).length > 0 || 
-                   deletedBuiltinPages.length > 0 || 
-                   aiOverviews.length > 0 || 
-                   Object.keys(customSearchResults).length > 0 || 
-                   userAIText.length > 0 || 
-                   Object.keys(resultImages).length > 0
-    
-    if (!hasData) {
-      console.log('❌ No meaningful data found to export')
-      alert('No data to sync found. Make sure you have:\n- Created custom pages\n- Added AI overviews\n- Customized search results\n\nThen try syncing again.')
-      return null
-    }
-    
-    const exportData = {
-      user: currentUser,
-      data: allUserData,
-      timestamp: new Date().toISOString()
-    }
-    
-    try {
-      // Encode the data as a shareable string
-      const jsonString = JSON.stringify(exportData)
-      
-      // Use TextEncoder/TextDecoder for proper Unicode support
-      const encoder = new TextEncoder()
-      const decoder = new TextDecoder()
-      const uint8Array = encoder.encode(jsonString)
-      
-      // Convert to base64 using a Unicode-safe method
-      let binary = ''
-      uint8Array.forEach(byte => {
-        binary += String.fromCharCode(byte)
-      })
-      const encoded = btoa(binary)
-      
-      console.log('✅ Export successful, code length:', encoded.length)
-      console.log('✅ Original JSON length:', jsonString.length)
-      return encoded
-    } catch (error) {
-      console.error('❌ Failed to encode export data:', error)
-      alert('Failed to generate sync code. Error: ' + error.message)
-      return null
-    }
-  }
-  
-  const handleImportData = (syncCode) => {
-    if (!currentUser) return false
-    
-    try {
-      console.log('=== IMPORT DEBUG ===')
-      console.log('Attempting to import sync code, length:', syncCode.length)
-      
-      let importData
-      
-      try {
-        // First try the new Unicode-safe method
-        console.log('Trying new Unicode-safe decoding...')
-        const binary = atob(syncCode) // Base64 decode
-        
-        // Convert back to Uint8Array
-        const uint8Array = new Uint8Array(binary.length)
-        for (let i = 0; i < binary.length; i++) {
-          uint8Array[i] = binary.charCodeAt(i)
-        }
-        
-        // Decode using TextDecoder for proper Unicode support
-        const decoder = new TextDecoder()
-        const jsonString = decoder.decode(uint8Array)
-        importData = JSON.parse(jsonString)
-        console.log('✅ New method successful')
-      } catch (newMethodError) {
-        console.log('❌ New method failed:', newMethodError.message)
-        console.log('Trying legacy decoding method...')
-        
-        // Fallback to old method for backward compatibility
-        try {
-          const decoded = atob(syncCode)
-          importData = JSON.parse(decoded)
-          console.log('✅ Legacy method successful')
-        } catch (legacyError) {
-          console.log('❌ Legacy method also failed:', legacyError.message)
-          throw new Error('Both decoding methods failed')
-        }
-      }
-      
-      if (!importData || !importData.data) {
-        console.log('❌ No valid data in import')
-        return false
-      }
-      
-      console.log('📊 Import data found:')
-      console.log('- User:', importData.user)
-      console.log('- Timestamp:', importData.timestamp)
-      console.log('- Data keys:', Object.keys(importData.data))
-      
-      // Import all the data
-      const data = importData.data
-      setCustomSearchPages(data.custom_search_pages || {})
-      setDeletedBuiltinPages(data.deleted_builtin_pages || [])
-      setAIOverviews(data.ai_overviews || [])
-      setSearchResultAssignments(data.search_result_assignments || {})
-      setCustomSearchResults(data.custom_search_results || {})
-      setUserAIText(data.ai_overview_text || '')
-      setAIOverviewEnabled(data.ai_overview_enabled !== undefined ? data.ai_overview_enabled : true)
-      setPageAIOverviewSettings(data.page_ai_overview_settings || {})
-      setResultImages(data.result_images || {})
-      
-      // Save to user data storage
-      Object.entries(data).forEach(([key, value]) => {
-        setUserData(key, value)
-      })
-      
-      return true
-    } catch (error) {
-      console.error('Failed to import data:', error)
-      return false
-    }
-  }
 
   // AI text is now loaded through user data system
 
@@ -1080,12 +927,6 @@ export default function SearchResultsPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Supabase Sync Panel */}
-      <SupabaseSync 
-        currentUser={currentUser}
-        customSearchPages={customSearchPages}
-        aiOverviews={aiOverviews}
-      />
       {/* Header */}
       <header className="search-header relative">
         {/* Profile row - mobile only */}
@@ -2024,15 +1865,19 @@ export default function SearchResultsPage() {
         </div>
       )}
 
-      {/* Data Sync Modal */}
-      {showDataSync && (
-        <ImprovedDataSync
-          currentUser={currentUser}
-          onExportData={handleExportData}
-          onImportData={handleImportData}
-          onClose={() => setShowDataSync(false)}
-        />
-      )}
+      {/* Supabase Data Sync Modal */}
+      <SupabaseDataSync
+        isOpen={showDataSync}
+        onClose={() => setShowDataSync(false)}
+        currentUser={currentUser}
+        customSearchPages={customSearchPages}
+        aiOverviews={aiOverviews}
+        searchResultAssignments={searchResultAssignments}
+        customSearchResults={customSearchResults}
+        resultImages={resultImages}
+        userAIText={userAIText}
+        pageAIOverviewSettings={pageAIOverviewSettings}
+      />
     </div>
   )
 }
