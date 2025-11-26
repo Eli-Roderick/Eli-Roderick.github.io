@@ -7,30 +7,11 @@ import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
 import UserLogin from '../components/UserLogin'
-import SupabaseTestButton from '../components/SupabaseTestButton'
+// import SupabaseTestButton from '../components/SupabaseTestButton'
 import ImprovedDataSync from '../components/ImprovedDataSync'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
-import { 
-  getCustomSearchPages, 
-  saveCustomSearchPages,
-  getAIOverviews,
-  saveAIOverview,
-  updateAIOverview,
-  deleteAIOverview,
-  getSearchResultAssignments,
-  saveSearchResultAssignment,
-  removeSearchResultAssignment,
-  getCustomSearchResults,
-  saveCustomSearchResults,
-  getResultImages,
-  saveResultImages,
-  getUserSetting,
-  setUserSetting,
-  getDeletedBuiltinPages,
-  addDeletedBuiltinPage,
-  saveClickLog
-} from '../utils/supabaseData'
+import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
 
 const logger = new ClickLogger()
 
@@ -86,42 +67,43 @@ export default function SearchResultsPage() {
   const [customSearchResults, setCustomSearchResults] = useState({})
   const [resultImages, setResultImages] = useState({})
   
-  // Temporarily disable Supabase loading - restore localStorage loading
+  // Initialize user data manager when user changes
   useEffect(() => {
     if (currentUser) {
-      // Load data from localStorage for now
+      initializeUserData(currentUser)
+    }
+  }, [currentUser])
+  
+  // Load all user data when user changes
+  useEffect(() => {
+    if (currentUser) {
+      setCustomSearchPages(getUserData('custom_search_pages', {}))
+      setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
+      setAIOverviews(getUserData('ai_overviews', []))
+      setSearchResultAssignments(getUserData('search_result_assignments', {}))
+      setCustomSearchResults(getUserData('custom_search_results', {}))
+      setUserAIText(getUserData('ai_overview_text', ''))
+      setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
+      setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
+      
+      // Load result images from global localStorage (not user-specific)
       try {
-        const savedPages = localStorage.getItem(`user_${currentUser}_custom_search_pages`)
-        if (savedPages) setCustomSearchPages(JSON.parse(savedPages))
-        
-        const savedDeleted = localStorage.getItem(`user_${currentUser}_deleted_builtin_pages`)
-        if (savedDeleted) setDeletedBuiltinPages(JSON.parse(savedDeleted))
-        
-        const savedOverviews = localStorage.getItem(`user_${currentUser}_ai_overviews`)
-        if (savedOverviews) setAIOverviews(JSON.parse(savedOverviews))
-        
-        const savedAssignments = localStorage.getItem(`user_${currentUser}_search_result_assignments`)
-        if (savedAssignments) setSearchResultAssignments(JSON.parse(savedAssignments))
-        
-        const savedResults = localStorage.getItem(`user_${currentUser}_custom_search_results`)
-        if (savedResults) setCustomSearchResults(JSON.parse(savedResults))
-        
         const savedImages = localStorage.getItem('result_images')
         if (savedImages) setResultImages(JSON.parse(savedImages))
-        
-        const savedAIText = localStorage.getItem('ai_overview_text')
-        if (savedAIText) setUserAIText(savedAIText)
-        
-        const savedAIEnabled = localStorage.getItem('ai_overview_enabled')
-        if (savedAIEnabled) setAIOverviewEnabled(JSON.parse(savedAIEnabled))
-        
-        const savedPageSettings = localStorage.getItem('page_ai_overview_settings')
-        if (savedPageSettings) setPageAIOverviewSettings(JSON.parse(savedPageSettings))
       } catch (error) {
-        console.warn('Error loading localStorage data:', error)
+        console.warn('Failed to load result images:', error)
       }
+    } else {
+      // Clear all data when no user
+      setCustomSearchPages({})
+      setDeletedBuiltinPages([])
+      setAIOverviews([])
+      setSearchResultAssignments({})
+      setCustomSearchResults({})
+      setResultImages({})
+      setUserAIText('')
+      setPageAIOverviewSettings({})
     }
-    setLoading(false)
   }, [currentUser])
   
   // Find matching config - use useMemo to recalculate when customSearchPages changes
@@ -221,20 +203,6 @@ export default function SearchResultsPage() {
     setClickLogs({})
   }
 
-  // Reload user data when user changes
-  useEffect(() => {
-    if (currentUser) {
-      setCustomSearchPages(getUserData('custom_search_pages', {}))
-      setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
-      setAIOverviews(getUserData('ai_overviews', []))
-      setSearchResultAssignments(getUserData('search_result_assignments', {}))
-      setCustomSearchResults(getUserData('custom_search_results', {}))
-      setUserAIText(getUserData('ai_overview_text', ''))
-      setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
-      setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
-      setResultImages(getUserData('result_images', {}))
-    }
-  }, [currentUser])
 
   // Data sync functions
   const handleExportData = () => {
@@ -1112,8 +1080,8 @@ export default function SearchResultsPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Supabase Test Button - Remove after testing */}
-      <SupabaseTestButton />
+      {/* Supabase Test Button - Commented out to fix blank page */}
+      {/* <SupabaseTestButton /> */}
       {/* Header */}
       <header className="search-header relative">
         {/* Profile row - mobile only */}
