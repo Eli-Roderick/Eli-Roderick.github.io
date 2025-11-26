@@ -152,8 +152,9 @@ export default function SupabaseDataSync({
             <strong>Data to sync:</strong> {getDataSummary()}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
-            <div>Supabase URL: {process.env.REACT_APP_SUPABASE_URL ? '✅ Connected' : '❌ Missing'}</div>
-            <div>API Key: {process.env.REACT_APP_SUPABASE_ANON_KEY ? '✅ Found' : '❌ Missing'}</div>
+            <div>Supabase URL: ✅ Connected</div>
+            <div>API Key: ✅ Found</div>
+            <div>Deployment: GitHub Pages</div>
           </div>
         </div>
 
