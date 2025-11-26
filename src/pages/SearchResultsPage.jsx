@@ -7,10 +7,22 @@ import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
 import UserLogin from '../components/UserLogin'
-import SupabaseDataSync from '../components/SupabaseDataSync'
+import SavingIndicator from '../components/SavingIndicator'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
 import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
+import { 
+  autoSaveCustomSearchPages,
+  autoSaveAIOverviews,
+  autoSaveCurrentAIText,
+  autoSaveSearchResultAssignments,
+  autoSaveCustomSearchResults,
+  autoSaveResultImages,
+  autoSaveDeletedBuiltinPages,
+  autoSaveAIOverviewEnabled,
+  autoSavePageAIOverviewSettings,
+  debouncedAutoSaveCurrentAIText
+} from '../utils/autoSave'
 
 const logger = new ClickLogger()
 
@@ -73,37 +85,92 @@ export default function SearchResultsPage() {
     }
   }, [currentUser])
   
-  // Load all user data when user changes
+  // Load all user data from Supabase when user changes
   useEffect(() => {
-    if (currentUser) {
-      setCustomSearchPages(getUserData('custom_search_pages', {}))
-      setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
-      setAIOverviews(getUserData('ai_overviews', []))
-      setSearchResultAssignments(getUserData('search_result_assignments', {}))
-      setCustomSearchResults(getUserData('custom_search_results', {}))
-      setUserAIText(getUserData('ai_overview_text', ''))
-      setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
-      setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
-      
-      // Load result images from global localStorage (not user-specific)
-      try {
-        const savedImages = localStorage.getItem('result_images')
-        if (savedImages) setResultImages(JSON.parse(savedImages))
-      } catch (error) {
-        console.warn('Failed to load result images:', error)
+    const loadUserDataFromCloud = async () => {
+      if (!currentUser) {
+        // Clear all data when no user
+        setCustomSearchPages({})
+        setDeletedBuiltinPages([])
+        setAIOverviews([])
+        setSearchResultAssignments({})
+        setCustomSearchResults({})
+        setResultImages({})
+        setUserAIText('')
+        setPageAIOverviewSettings({})
+        setLoading(false)
+        return
       }
-    } else {
-      // Clear all data when no user
-      setCustomSearchPages({})
-      setDeletedBuiltinPages([])
-      setAIOverviews([])
-      setSearchResultAssignments({})
-      setCustomSearchResults({})
-      setResultImages({})
-      setUserAIText('')
-      setPageAIOverviewSettings({})
+
+      setLoading(true)
+      console.log(`🔄 Loading all data from Supabase for user: ${currentUser}`)
+
+      try {
+        // Import cloud data functions
+        const {
+          loadAllUserData,
+          migrateFromLocalStorage
+        } = await import('../utils/cloudData')
+
+        // Check if this is first time - migrate from localStorage if needed
+        const hasCloudData = await checkIfUserHasCloudData(currentUser)
+        if (!hasCloudData) {
+          console.log('🔄 First time user - migrating from localStorage...')
+          await migrateFromLocalStorage(currentUser)
+        }
+
+        // Load all data from Supabase
+        const cloudData = await loadAllUserData(currentUser)
+        
+        // Set all state from cloud data
+        setCustomSearchPages(cloudData.customSearchPages || {})
+        setDeletedBuiltinPages(cloudData.deletedBuiltinPages || [])
+        setAIOverviews(cloudData.aiOverviews || [])
+        setSearchResultAssignments(cloudData.searchResultAssignments || {})
+        setCustomSearchResults(cloudData.customSearchResults || {})
+        setResultImages(cloudData.resultImages || {})
+        setUserAIText(cloudData.currentAIText || '')
+        setAIOverviewEnabled(cloudData.aiOverviewEnabled !== undefined ? cloudData.aiOverviewEnabled : true)
+        setPageAIOverviewSettings(cloudData.pageAIOverviewSettings || {})
+
+        console.log(`✅ Loaded all data from Supabase for user: ${currentUser}`)
+      } catch (error) {
+        console.error('❌ Failed to load data from Supabase:', error)
+        // Fallback to localStorage if Supabase fails
+        console.log('🔄 Falling back to localStorage...')
+        setCustomSearchPages(getUserData('custom_search_pages', {}))
+        setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
+        setAIOverviews(getUserData('ai_overviews', []))
+        setSearchResultAssignments(getUserData('search_result_assignments', {}))
+        setCustomSearchResults(getUserData('custom_search_results', {}))
+        setUserAIText(getUserData('ai_overview_text', ''))
+        setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
+        setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
+        
+        try {
+          const savedImages = localStorage.getItem('result_images')
+          if (savedImages) setResultImages(JSON.parse(savedImages))
+        } catch (imgError) {
+          console.warn('Failed to load result images:', imgError)
+        }
+      }
+      
+      setLoading(false)
     }
+
+    loadUserDataFromCloud()
   }, [currentUser])
+
+  // Helper function to check if user has any data in Supabase
+  const checkIfUserHasCloudData = async (username) => {
+    try {
+      const { loadCustomSearchPages } = await import('../utils/cloudData')
+      const pages = await loadCustomSearchPages(username)
+      return Object.keys(pages).length > 0
+    } catch (error) {
+      return false
+    }
+  }
   
   // Find matching config - use useMemo to recalculate when customSearchPages changes
   const searchConfig = useMemo(() => {
@@ -169,7 +236,6 @@ export default function SearchResultsPage() {
   const [showNewPageEditor, setShowNewPageEditor] = useState(false)
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(true)
   const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState({})
-  const [showDataSync, setShowDataSync] = useState(false)
 
   // User login/logout handlers - restore localStorage functionality
   const handleUserLogin = (username) => {
@@ -807,11 +873,22 @@ export default function SearchResultsPage() {
     }
     setCustomSearchPages(newPages)
     
+    // Auto-save to Supabase
+    if (currentUser) {
+      autoSaveCustomSearchPages(currentUser, newPages)
+    }
+    
     // Initialize empty custom results for this page
-    setCustomSearchResults({
+    const newResults = {
       ...customSearchResults,
       [searchKey]: []
-    })
+    }
+    setCustomSearchResults(newResults)
+    
+    // Auto-save custom results
+    if (currentUser) {
+      autoSaveCustomSearchResults(currentUser, newResults)
+    }
     
     return queryKey
   }
@@ -830,6 +907,11 @@ export default function SearchResultsPage() {
         }
       })
       setCustomSearchPages(updatedPages)
+      
+      // Auto-save to Supabase
+      if (currentUser) {
+        autoSaveCustomSearchPages(currentUser, updatedPages)
+      }
     } else {
       // For built-in pages, we'll store custom display names separately
       const updatedDisplayNames = {
@@ -847,7 +929,11 @@ export default function SearchResultsPage() {
     const updatedPages = { ...customSearchPages }
     delete updatedPages[pageKey]
     setCustomSearchPages(updatedPages)
-    if (currentUser) { setUserData('custom_search_pages', updatedPages) }
+    
+    // Auto-save to Supabase
+    if (currentUser) {
+      autoSaveCustomSearchPages(currentUser, updatedPages)
+    }
   }
 
   const reorderSearchResults = (searchType, fromIndex, toIndex) => {
@@ -861,7 +947,11 @@ export default function SearchResultsPage() {
     }
     
     setCustomSearchResults(updatedResults)
-    if (currentUser) { setUserData('custom_search_results', updatedResults) }
+    
+    // Auto-save to Supabase
+    if (currentUser) {
+      autoSaveCustomSearchResults(currentUser, updatedResults)
+    }
   }
 
   // Delete built-in page
@@ -869,10 +959,20 @@ export default function SearchResultsPage() {
     const updatedDeleted = [...deletedBuiltinPages, pageKey]
     setDeletedBuiltinPages(updatedDeleted)
     
+    // Auto-save deleted pages
+    if (currentUser) {
+      autoSaveDeletedBuiltinPages(currentUser, updatedDeleted)
+    }
+    
     // Also remove any custom results for this page
     const updatedCustomResults = { ...customSearchResults }
     delete updatedCustomResults[pageKey]
     setCustomSearchResults(updatedCustomResults)
+    
+    // Auto-save custom results
+    if (currentUser) {
+      autoSaveCustomSearchResults(currentUser, updatedCustomResults)
+    }
   }
 
   // Do not render a dedicated loading screen; allow the page shell to appear immediately.
@@ -927,6 +1027,7 @@ export default function SearchResultsPage() {
 
   return (
     <div className="min-h-screen">
+      <SavingIndicator />
       {/* Header */}
       <header className="search-header relative">
         {/* Profile row - mobile only */}
@@ -993,57 +1094,23 @@ export default function SearchResultsPage() {
           {/* Experimenter controls / profile icon - desktop only */}
           {isAdmin ? (
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-              {/* User Indicator */}
-              {currentUser && (
-                <UserLogin 
-                  currentUser={currentUser}
-                  onLogin={handleUserLogin}
-                  onLogout={handleUserLogout}
-                />
-              )}
-              
-              {/* Data Sync Button */}
+              {/* Cloud Status Indicator */}
               {currentUser ? (
-                <button
-                  onClick={() => setShowDataSync(true)}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: 'var(--card-bg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                  title="Sync data across devices"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>sync</span>
-                  Sync Devices
-                </button>
-              ) : (
-                <button
-                  onClick={() => alert(`Debug Info:\n- Current User: ${currentUser || 'NOT LOGGED IN'}\n- Custom Pages: ${Object.keys(customSearchPages).length}\n- AI Overviews: ${aiOverviews.length}\n\nYou need to log in first!`)}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: '#ff6b6b',
-                    border: '1px solid #ff5252',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    color: 'white',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                  title="You need to log in first"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
-                  Login Required
-                </button>
-              )}
+                <div style={{
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'var(--card-bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  color: 'var(--muted)',
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#10b981' }}>cloud_done</span>
+                  Auto-sync enabled
+                </div>
+              ) : null}
               
               {/* Search Management Button */}
               <button
@@ -1788,16 +1855,10 @@ export default function SearchResultsPage() {
                 </div>
                 
                 {/* Sync Button */}
-                <button
-                  className="w-full border rounded px-3 py-2 text-sm bg-green-600 text-white flex items-center justify-center gap-2"
-                  onClick={() => {
-                    setShowProfileMenu(false)
-                    setShowDataSync(true)
-                  }}
-                >
-                  <span className="material-symbols-outlined text-sm">sync</span>
-                  Sync Devices
-                </button>
+                <div className="w-full border rounded px-3 py-2 text-sm bg-green-100 text-green-800 flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-sm">cloud_done</span>
+                  Auto-sync Active
+                </div>
               </div>
             )}
             
@@ -1865,19 +1926,6 @@ export default function SearchResultsPage() {
         </div>
       )}
 
-      {/* Supabase Data Sync Modal */}
-      <SupabaseDataSync
-        isOpen={showDataSync}
-        onClose={() => setShowDataSync(false)}
-        currentUser={currentUser}
-        customSearchPages={customSearchPages}
-        aiOverviews={aiOverviews}
-        searchResultAssignments={searchResultAssignments}
-        customSearchResults={customSearchResults}
-        resultImages={resultImages}
-        userAIText={userAIText}
-        pageAIOverviewSettings={pageAIOverviewSettings}
-      />
     </div>
   )
 }

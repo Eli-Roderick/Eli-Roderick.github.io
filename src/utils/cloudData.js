@@ -818,6 +818,75 @@ export const deleteIndividualAIOverview = async (username, overviewId) => {
 }
 
 // ============================================================================
+// MIGRATION FROM LOCALSTORAGE
+// ============================================================================
+
+export const migrateFromLocalStorage = async (username) => {
+  console.log(`🔄 Starting migration from localStorage for user: ${username}`)
+  
+  try {
+    // Import userData functions to read from localStorage
+    const { getUserData } = await import('./userData')
+    
+    // Collect all localStorage data
+    const localData = {
+      customSearchPages: getUserData('custom_search_pages', {}),
+      deletedBuiltinPages: getUserData('deleted_builtin_pages', []),
+      aiOverviews: getUserData('ai_overviews', []),
+      searchResultAssignments: getUserData('search_result_assignments', {}),
+      customSearchResults: getUserData('custom_search_results', {}),
+      currentAIText: getUserData('ai_overview_text', ''),
+      aiOverviewEnabled: getUserData('ai_overview_enabled', true),
+      pageAIOverviewSettings: getUserData('page_ai_overview_settings', {}),
+    }
+    
+    // Load result images from global localStorage
+    try {
+      const savedImages = localStorage.getItem('result_images')
+      localData.resultImages = savedImages ? JSON.parse(savedImages) : {}
+    } catch (error) {
+      localData.resultImages = {}
+    }
+    
+    // Check if there's any data to migrate
+    const hasData = Object.keys(localData.customSearchPages).length > 0 ||
+                   localData.deletedBuiltinPages.length > 0 ||
+                   localData.aiOverviews.length > 0 ||
+                   Object.keys(localData.customSearchResults).length > 0 ||
+                   localData.currentAIText.length > 0 ||
+                   Object.keys(localData.resultImages).length > 0
+    
+    if (!hasData) {
+      console.log('📭 No localStorage data to migrate')
+      return true
+    }
+    
+    console.log('📦 Migrating localStorage data:', {
+      customPages: Object.keys(localData.customSearchPages).length,
+      aiOverviews: localData.aiOverviews.length,
+      customResults: Object.keys(localData.customSearchResults).length,
+      images: Object.keys(localData.resultImages).length
+    })
+    
+    // Save all data to Supabase
+    const success = await saveAllUserData(username, localData)
+    
+    if (success) {
+      console.log('✅ Migration completed successfully')
+      // Optionally clear localStorage after successful migration
+      // We'll keep it for now as backup
+    } else {
+      console.warn('⚠️ Migration partially failed')
+    }
+    
+    return success
+  } catch (error) {
+    console.error('❌ Migration failed:', error)
+    return false
+  }
+}
+
+// ============================================================================
 // BULK OPERATIONS
 // ============================================================================
 
