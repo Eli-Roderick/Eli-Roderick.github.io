@@ -68,8 +68,14 @@ export default function SearchResultsPage() {
   // Get search query from URL parameters
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
   
-  // User management state (now managed by Supabase auth)
-  const [currentUser, setCurrentUser] = useState(null)
+  // User management state - restore localStorage for now
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      return localStorage.getItem('current_user') || null
+    } catch {
+      return null
+    }
+  })
   const [loading, setLoading] = useState(true)
   
   // Data state - loaded from Supabase
@@ -80,48 +86,43 @@ export default function SearchResultsPage() {
   const [customSearchResults, setCustomSearchResults] = useState({})
   const [resultImages, setResultImages] = useState({})
   
-  // Load all data from Supabase when user changes
+  // Temporarily disable Supabase loading - restore localStorage loading
   useEffect(() => {
-    loadUserData()
+    if (currentUser) {
+      // Load data from localStorage for now
+      try {
+        const savedPages = localStorage.getItem(`user_${currentUser}_custom_search_pages`)
+        if (savedPages) setCustomSearchPages(JSON.parse(savedPages))
+        
+        const savedDeleted = localStorage.getItem(`user_${currentUser}_deleted_builtin_pages`)
+        if (savedDeleted) setDeletedBuiltinPages(JSON.parse(savedDeleted))
+        
+        const savedOverviews = localStorage.getItem(`user_${currentUser}_ai_overviews`)
+        if (savedOverviews) setAIOverviews(JSON.parse(savedOverviews))
+        
+        const savedAssignments = localStorage.getItem(`user_${currentUser}_search_result_assignments`)
+        if (savedAssignments) setSearchResultAssignments(JSON.parse(savedAssignments))
+        
+        const savedResults = localStorage.getItem(`user_${currentUser}_custom_search_results`)
+        if (savedResults) setCustomSearchResults(JSON.parse(savedResults))
+        
+        const savedImages = localStorage.getItem('result_images')
+        if (savedImages) setResultImages(JSON.parse(savedImages))
+        
+        const savedAIText = localStorage.getItem('ai_overview_text')
+        if (savedAIText) setUserAIText(savedAIText)
+        
+        const savedAIEnabled = localStorage.getItem('ai_overview_enabled')
+        if (savedAIEnabled) setAIOverviewEnabled(JSON.parse(savedAIEnabled))
+        
+        const savedPageSettings = localStorage.getItem('page_ai_overview_settings')
+        if (savedPageSettings) setPageAIOverviewSettings(JSON.parse(savedPageSettings))
+      } catch (error) {
+        console.warn('Error loading localStorage data:', error)
+      }
+    }
+    setLoading(false)
   }, [currentUser])
-  
-  const loadUserData = async () => {
-    if (!currentUser) {
-      setLoading(false)
-      return
-    }
-    
-    setLoading(true)
-    try {
-      // Load all data in parallel
-      const [
-        pages,
-        deleted,
-        overviews,
-        assignments,
-        results,
-        images
-      ] = await Promise.all([
-        getCustomSearchPages(),
-        getDeletedBuiltinPages(),
-        getAIOverviews(),
-        getSearchResultAssignments(),
-        getCustomSearchResults(),
-        getResultImages()
-      ])
-      
-      setCustomSearchPages(pages)
-      setDeletedBuiltinPages(deleted)
-      setAIOverviews(overviews)
-      setSearchResultAssignments(assignments)
-      setCustomSearchResults(results)
-      setResultImages(images)
-    } catch (error) {
-      console.error('Error loading user data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
   
   // Find matching config - use useMemo to recalculate when customSearchPages changes
   const searchConfig = useMemo(() => {
@@ -189,14 +190,24 @@ export default function SearchResultsPage() {
   const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState({})
   const [showDataSync, setShowDataSync] = useState(false)
 
-  // User login/logout handlers - now using Supabase
-  const handleUserLogin = (email) => {
-    setCurrentUser(email)
+  // User login/logout handlers - restore localStorage functionality
+  const handleUserLogin = (username) => {
+    setCurrentUser(username)
+    try {
+      localStorage.setItem('current_user', username)
+    } catch (error) {
+      console.warn('Failed to save user to localStorage:', error)
+    }
     // Data will be loaded by the useEffect that watches currentUser
   }
 
   const handleUserLogout = () => {
     setCurrentUser(null)
+    try {
+      localStorage.removeItem('current_user')
+    } catch (error) {
+      console.warn('Failed to remove user from localStorage:', error)
+    }
     // Clear all user-specific state
     setCustomSearchPages({})
     setDeletedBuiltinPages([])
