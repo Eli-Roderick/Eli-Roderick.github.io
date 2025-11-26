@@ -8,7 +8,6 @@ import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
 import UserLogin from '../components/UserLogin'
 import SupabaseDataSync from '../components/SupabaseDataSync'
-import EnvDebug from '../components/EnvDebug'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
 import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
@@ -928,7 +927,6 @@ export default function SearchResultsPage() {
 
   return (
     <div className="min-h-screen">
-      <EnvDebug />
       {/* Header */}
       <header className="search-header relative">
         {/* Profile row - mobile only */}
