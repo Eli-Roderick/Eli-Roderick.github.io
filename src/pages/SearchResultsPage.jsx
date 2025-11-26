@@ -422,7 +422,9 @@ export default function SearchResultsPage() {
     if (content) {
       e.preventDefault()
       setUserAIText(content)
-      if (currentUser) { setUserData('ai_overview_text', content) }
+      if (currentUser) { 
+        autoSaveCurrentAIText(currentUser, content)
+      }
     }
   }
 
@@ -486,25 +488,31 @@ export default function SearchResultsPage() {
       const updatedOverviews = aiOverviews.filter(overview => overview.id !== overviewId)
       setAIOverviews(updatedOverviews)
       
-      // Update user data
-      if (currentUser) { setUserData('ai_overviews', updatedOverviews) }
+      // Auto-save AI overviews
+      if (currentUser) { 
+        autoSaveAIOverviews(currentUser, updatedOverviews)
+      }
       
       // If this was the selected overview, clear it
       if (selectedAIOverviewId === overviewId) {
         setSelectedAIOverviewId(null)
         setUserAIText('')
-        if (currentUser) { setUserData('ai_overview_text', '') }
+        if (currentUser) { 
+          autoSaveCurrentAIText(currentUser, '')
+        }
       }
       
       // Remove any assignments to this overview
       const updatedAssignments = { ...searchResultAssignments }
-      Object.keys(updatedAssignments).forEach(key => {
-        if (updatedAssignments[key] === overviewId) {
-          delete updatedAssignments[key]
+      Object.keys(updatedAssignments).forEach(searchType => {
+        if (updatedAssignments[searchType] === overviewId) {
+          delete updatedAssignments[searchType]
         }
       })
       setSearchResultAssignments(updatedAssignments)
-      if (currentUser) { setUserData('search_result_assignments', updatedAssignments) }
+      if (currentUser) { 
+        autoSaveSearchResultAssignments(currentUser, updatedAssignments)
+      }
     }
   }
 
@@ -593,61 +601,59 @@ export default function SearchResultsPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Save result images to user data whenever they change
+  // Auto-save result images whenever they change
   useEffect(() => {
     if (currentUser) {
-      setUserData('result_images', resultImages)
+      autoSaveResultImages(currentUser, resultImages)
     }
   }, [resultImages, currentUser])
 
-  // Save AI overviews to user data whenever they change
+  // Auto-save AI overviews whenever they change
   useEffect(() => {
     if (currentUser) {
-      setUserData('ai_overviews', aiOverviews)
+      autoSaveAIOverviews(currentUser, aiOverviews)
     }
   }, [aiOverviews, currentUser])
 
-  // Note: Removed localStorage persistence for selectedAIOverviewId to prevent jumping between overviews
-
-  // Save AI overview enabled state to user data whenever it changes
+  // Auto-save AI overview enabled state whenever it changes
   useEffect(() => {
     if (currentUser) {
-      setUserData('ai_overview_enabled', aiOverviewEnabled)
+      autoSaveAIOverviewEnabled(currentUser, aiOverviewEnabled)
     }
   }, [aiOverviewEnabled, currentUser])
 
-  // Save page AI overview settings to user data whenever they change
+  // Auto-save page AI overview settings whenever they change
   useEffect(() => {
     if (currentUser) {
-      setUserData('page_ai_overview_settings', pageAIOverviewSettings)
+      autoSavePageAIOverviewSettings(currentUser, pageAIOverviewSettings)
     }
   }, [pageAIOverviewSettings, currentUser])
 
-  // Save search result assignments to user data whenever they change
+  // Auto-save search result assignments whenever they change
   useEffect(() => {
     if (currentUser) {
-      setUserData('search_result_assignments', searchResultAssignments)
+      autoSaveSearchResultAssignments(currentUser, searchResultAssignments)
     }
   }, [searchResultAssignments, currentUser])
 
-  // Save custom search results to user data whenever they change
+  // Auto-save custom search results whenever they change
   useEffect(() => {
     if (currentUser) {
-      setUserData('custom_search_results', customSearchResults)
+      autoSaveCustomSearchResults(currentUser, customSearchResults)
     }
   }, [customSearchResults, currentUser])
 
-  // Save custom search pages to user data whenever they change
+  // Auto-save custom search pages whenever they change
   useEffect(() => {
     if (currentUser) {
-      setUserData('custom_search_pages', customSearchPages)
+      autoSaveCustomSearchPages(currentUser, customSearchPages)
     }
   }, [customSearchPages, currentUser])
 
-  // Save deleted built-in pages to user data whenever they change
+  // Auto-save deleted built-in pages whenever they change
   useEffect(() => {
     if (currentUser) {
-      setUserData('deleted_builtin_pages', deletedBuiltinPages)
+      autoSaveDeletedBuiltinPages(currentUser, deletedBuiltinPages)
     }
   }, [deletedBuiltinPages, currentUser])
 
@@ -726,13 +732,21 @@ export default function SearchResultsPage() {
     }
     setSearchResultAssignments(newAssignments)
     
+    // Auto-save to Supabase
+    if (currentUser) {
+      autoSaveSearchResultAssignments(currentUser, newAssignments)
+    }
+    
     // If we're assigning to the current search type, update immediately
     if (searchResultType === searchType) {
       const overview = aiOverviews.find(o => o.id === overviewId)
       if (overview) {
         setSelectedAIOverviewId(overviewId)
         setUserAIText(overview.text)
-        setAIOverviewEnabled(true)
+        // Auto-save current AI text
+        if (currentUser) {
+          autoSaveCurrentAIText(currentUser, overview.text)
+        }
       }
     }
   }
@@ -743,10 +757,19 @@ export default function SearchResultsPage() {
     delete newAssignments[searchResultType]
     setSearchResultAssignments(newAssignments)
     
+    // Auto-save to Supabase
+    if (currentUser) {
+      autoSaveSearchResultAssignments(currentUser, newAssignments)
+    }
+    
     // If we're removing from current search type, clear immediately
     if (searchResultType === searchType) {
       setSelectedAIOverviewId(null)
       setUserAIText('')
+      // Auto-save cleared AI text
+      if (currentUser) {
+        autoSaveCurrentAIText(currentUser, '')
+      }
     }
   }
 
@@ -764,6 +787,11 @@ export default function SearchResultsPage() {
         [pageKey]: Boolean(enabled)
       }
       setPageAIOverviewSettings(newSettings)
+      
+      // Auto-save to Supabase
+      if (currentUser) {
+        autoSavePageAIOverviewSettings(currentUser, newSettings)
+      }
     } catch (error) {
       console.error('Error in togglePageAIOverview:', error)
     }
@@ -833,6 +861,11 @@ export default function SearchResultsPage() {
       ]
     }
     setCustomSearchResults(newResults)
+    
+    // Auto-save to Supabase
+    if (currentUser) {
+      autoSaveCustomSearchResults(currentUser, newResults)
+    }
   }
 
   // Update custom search result
@@ -846,6 +879,11 @@ export default function SearchResultsPage() {
       )
     }
     setCustomSearchResults(newResults)
+    
+    // Auto-save to Supabase
+    if (currentUser) {
+      autoSaveCustomSearchResults(currentUser, newResults)
+    }
   }
 
   // Remove custom search result
@@ -855,6 +893,11 @@ export default function SearchResultsPage() {
       [searchResultType]: (customSearchResults[searchResultType] || []).filter(result => result.id !== resultId)
     }
     setCustomSearchResults(newResults)
+    
+    // Auto-save to Supabase
+    if (currentUser) {
+      autoSaveCustomSearchResults(currentUser, newResults)
+    }
   }
 
   // Add custom search page
