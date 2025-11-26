@@ -6,7 +6,7 @@ import AdResult from '../components/AdResult'
 import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
-import UserLogin from '../components/UserLogin'
+import SupabaseUserLogin from '../components/SupabaseUserLogin'
 import ImprovedDataSync from '../components/ImprovedDataSync'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
@@ -1084,7 +1084,7 @@ export default function SearchResultsPage() {
   if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <UserLogin 
+        <SupabaseUserLogin 
           currentUser={currentUser}
           onLogin={handleUserLogin}
           onLogout={handleUserLogout}
@@ -1163,7 +1163,7 @@ export default function SearchResultsPage() {
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
               {/* User Indicator */}
               {currentUser && (
-                <UserLogin 
+                <SupabaseUserLogin 
                   currentUser={currentUser}
                   onLogin={handleUserLogin}
                   onLogout={handleUserLogout}
