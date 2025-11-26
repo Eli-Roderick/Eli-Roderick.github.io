@@ -6,7 +6,7 @@ import AdResult from '../components/AdResult'
 import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
-import UserLogin from '../components/UserLogin'
+import UserAuth from '../components/UserAuth'
 import SavingIndicator from '../components/SavingIndicator'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
@@ -239,6 +239,7 @@ export default function SearchResultsPage() {
 
   // User login/logout handlers - restore localStorage functionality
   const handleUserLogin = (username) => {
+    console.log(`🔐 User logged in: ${username}`)
     setCurrentUser(username)
     try {
       localStorage.setItem('current_user', username)
@@ -249,12 +250,14 @@ export default function SearchResultsPage() {
   }
 
   const handleUserLogout = () => {
+    console.log(`🔐 User logged out: ${currentUser}`)
     setCurrentUser(null)
     try {
       localStorage.removeItem('current_user')
     } catch (error) {
       console.warn('Failed to remove user from localStorage:', error)
     }
+    
     // Clear all user-specific state
     setCustomSearchPages({})
     setDeletedBuiltinPages([])
@@ -1059,7 +1062,7 @@ export default function SearchResultsPage() {
   if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <UserLogin 
+        <UserAuth 
           currentUser={currentUser}
           onLogin={handleUserLogin}
           onLogout={handleUserLogout}
@@ -1137,21 +1140,32 @@ export default function SearchResultsPage() {
           {/* Experimenter controls / profile icon - desktop only */}
           {isAdmin ? (
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-              {/* Cloud Status Indicator */}
+              {/* User Profile & Cloud Status */}
               {currentUser ? (
                 <div style={{
-                  padding: '0.5rem 0.75rem',
-                  backgroundColor: 'var(--card-bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '6px',
-                  color: 'var(--muted)',
-                  fontSize: '12px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem'
+                  gap: '0.75rem'
                 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#10b981' }}>cloud_done</span>
-                  Auto-sync enabled
+                  <UserAuth 
+                    currentUser={currentUser}
+                    onLogin={handleUserLogin}
+                    onLogout={handleUserLogout}
+                  />
+                  <div style={{
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: 'var(--card-bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    color: 'var(--muted)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#10b981' }}>cloud_done</span>
+                    Auto-sync enabled
+                  </div>
                 </div>
               ) : null}
               
