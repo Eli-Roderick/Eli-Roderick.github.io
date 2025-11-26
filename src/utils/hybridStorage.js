@@ -191,15 +191,23 @@ export const hybridLoad = async (key, defaultValue = null) => {
 // Test Supabase connection
 export const testSupabaseConnection = async () => {
   try {
+    console.log('🔍 Importing supabase...')
     const { supabase } = await import('./supabase')
+    console.log('🔍 Supabase imported, testing query...')
+    
     const { data, error } = await supabase.from('user_profiles').select('count').limit(1)
     
+    console.log('🔍 Query result:', { data, error })
+    
     if (error) {
+      console.error('🔍 Supabase connection error:', error)
       return { success: false, error: error.message }
     }
     
+    console.log('🔍 Supabase connection successful!')
     return { success: true, message: 'Connected successfully!' }
   } catch (error) {
+    console.error('🔍 Supabase connection exception:', error)
     return { success: false, error: error.message }
   }
 }

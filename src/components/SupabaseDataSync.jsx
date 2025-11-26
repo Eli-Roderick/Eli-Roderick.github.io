@@ -23,7 +23,9 @@ export default function SupabaseDataSync({
     setLoading(true)
     setStatus('Testing Supabase connection...')
     
+    console.log('🔍 Testing Supabase connection...')
     const result = await testSupabaseConnection()
+    console.log('🔍 Connection result:', result)
     
     if (result.success) {
       setStatus('✅ Supabase connected successfully!')
@@ -50,25 +52,33 @@ export default function SupabaseDataSync({
     setLoading(true)
     setStatus('Syncing all data to Supabase...')
     
+    console.log('🔍 Starting sync for user:', currentUser)
+    console.log('🔍 Custom pages to sync:', Object.keys(customSearchPages).length)
+    console.log('🔍 AI overviews to sync:', aiOverviews.length)
+    
     try {
       let syncCount = 0
       
       // Sync custom pages
       if (Object.keys(customSearchPages).length > 0) {
-        await hybridSave('custom_search_pages', customSearchPages, currentUser)
-        syncCount++
+        console.log('🔍 Syncing custom pages...')
+        const result = await hybridSave('custom_search_pages', customSearchPages, currentUser)
+        console.log('🔍 Custom pages sync result:', result)
+        if (result) syncCount++
       }
       
       // Sync AI overviews
       if (aiOverviews.length > 0) {
-        await hybridSave('ai_overviews', aiOverviews, currentUser)
-        syncCount++
+        console.log('🔍 Syncing AI overviews...')
+        const result = await hybridSave('ai_overviews', aiOverviews, currentUser)
+        console.log('🔍 AI overviews sync result:', result)
+        if (result) syncCount++
       }
       
-      // Add other data types here as we implement them
-      
+      console.log('🔍 Total sync count:', syncCount)
       setStatus(`✅ Successfully synced ${syncCount} data types to Supabase!`)
     } catch (error) {
+      console.error('🔍 Sync error:', error)
       setStatus(`❌ Sync failed: ${error.message}`)
     }
     
