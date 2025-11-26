@@ -7,7 +7,7 @@ import ImageManager from '../components/ImageManager'
 import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
 import UserLogin from '../components/UserLogin'
-// import SupabaseTestButton from '../components/SupabaseTestButton'
+import SupabaseSync from '../components/SupabaseSync'
 import ImprovedDataSync from '../components/ImprovedDataSync'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
@@ -1080,8 +1080,12 @@ export default function SearchResultsPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Supabase Test Button - Commented out to fix blank page */}
-      {/* <SupabaseTestButton /> */}
+      {/* Supabase Sync Panel */}
+      <SupabaseSync 
+        currentUser={currentUser}
+        customSearchPages={customSearchPages}
+        aiOverviews={aiOverviews}
+      />
       {/* Header */}
       <header className="search-header relative">
         {/* Profile row - mobile only */}
