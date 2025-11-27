@@ -53,6 +53,42 @@ export const signInWithEmail = async (email, password) => {
   return { data, error }
 }
 
+// Helper function to bypass email confirmation for local development
+export const signUpWithoutConfirmation = async (email, password) => {
+  try {
+    // First, create the user
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: {
+          email_confirmed: true // Custom flag
+        }
+      }
+    })
+
+    if (signUpError && !signUpError.message.includes('already registered')) {
+      return { data: signUpData, error: signUpError }
+    }
+
+    // Try to sign in immediately (this may work for some configurations)
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+
+    if (!signInError && signInData.user) {
+      return { data: signInData, error: null }
+    }
+
+    // If sign in fails, return the original signup result
+    return { data: signUpData, error: signUpError }
+  } catch (error) {
+    return { data: null, error }
+  }
+}
+
 export const signUpWithEmail = async (email, password) => {
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -61,11 +97,27 @@ export const signUpWithEmail = async (email, password) => {
       emailRedirectTo: window.location.origin,
       data: {
         skip_email_verification: true
-      },
-      // Disable email confirmation for local development
-      noEmailCode: true
+      }
+      // Remove noEmailCode as it's not a valid option
     }
   })
+  
+  // If signup is successful but requires email confirmation, try to sign in immediately
+  if (!error && data.user && !data.session) {
+    // User created but not confirmed, try to confirm and sign in
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+    
+    if (!signInError && signInData.user) {
+      return { data: signInData, error: null }
+    } else if (signInError) {
+      // If sign in fails, return the original signup data
+      return { data, error: signInError }
+    }
+  }
+  
   return { data, error }
 }
 

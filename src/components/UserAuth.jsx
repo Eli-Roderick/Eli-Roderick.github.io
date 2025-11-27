@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { signInWithEmail, signUpWithEmail, getCurrentUser, updateUser, signOut } from '../utils/supabase'
+import { signInWithEmail, signUpWithoutConfirmation, getCurrentUser, updateUser, signOut } from '../utils/supabase'
 
 export default function UserAuth({ currentUser, onLogin, onLogout }) {
   const [showLogin, setShowLogin] = useState(false)
@@ -45,7 +45,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
 
       let result
       if (isSignUp) {
-        result = await signUpWithEmail(email, cleanPassword)
+        result = await signUpWithoutConfirmation(email, cleanPassword)
       } else {
         result = await signInWithEmail(email, cleanPassword)
       }
