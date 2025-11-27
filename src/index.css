@@ -44,6 +44,16 @@
   a:hover { text-decoration: underline; }
 }
 
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 /* Explicit theme classes */
 /* Direct background override (as requested) */
 .light { background-color: #ffffff; }

@@ -11,18 +11,7 @@ import SavingIndicator from '../components/SavingIndicator'
 import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
 import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
-import { 
-  autoSaveCustomSearchPages,
-  autoSaveAIOverviews,
-  autoSaveCurrentAIText,
-  autoSaveSearchResultAssignments,
-  autoSaveCustomSearchResults,
-  autoSaveResultImages,
-  autoSaveDeletedBuiltinPages,
-  autoSaveAIOverviewEnabled,
-  autoSavePageAIOverviewSettings,
-  debouncedAutoSaveCurrentAIText
-} from '../utils/autoSave'
+// REMOVED auto-save imports - now using manual save only to prevent data conflicts
 
 const logger = new ClickLogger()
 
@@ -85,9 +74,9 @@ export default function SearchResultsPage() {
     }
   }, [currentUser])
   
-  // Load all user data from Supabase when user changes
+  // Fast load: Show cached data instantly, then sync from Supabase in background
   useEffect(() => {
-    const loadUserDataFromCloud = async () => {
+    const fastLoadWithBackgroundSync = async () => {
       if (!currentUser) {
         // Clear all data when no user
         setCustomSearchPages({})
@@ -102,42 +91,10 @@ export default function SearchResultsPage() {
         return
       }
 
-      setLoading(true)
-      console.log(`🔄 Loading all data from Supabase for user: ${currentUser}`)
+      console.log(`⚡ Fast loading cached data for user: ${currentUser}`)
 
+      // PHASE 1: Instant render from localStorage cache
       try {
-        // Import cloud data functions
-        const {
-          loadAllUserData,
-          migrateFromLocalStorage
-        } = await import('../utils/cloudData')
-
-        // Check if this is first time - migrate from localStorage if needed
-        const hasCloudData = await checkIfUserHasCloudData(currentUser)
-        if (!hasCloudData) {
-          console.log('🔄 First time user - migrating from localStorage...')
-          await migrateFromLocalStorage(currentUser)
-        }
-
-        // Load all data from Supabase
-        const cloudData = await loadAllUserData(currentUser)
-        
-        // Set all state from cloud data
-        setCustomSearchPages(cloudData.customSearchPages || {})
-        setDeletedBuiltinPages(cloudData.deletedBuiltinPages || [])
-        setAIOverviews(cloudData.aiOverviews || [])
-        setSearchResultAssignments(cloudData.searchResultAssignments || {})
-        setCustomSearchResults(cloudData.customSearchResults || {})
-        setResultImages(cloudData.resultImages || {})
-        setUserAIText(cloudData.currentAIText || '')
-        setAIOverviewEnabled(cloudData.aiOverviewEnabled !== undefined ? cloudData.aiOverviewEnabled : true)
-        setPageAIOverviewSettings(cloudData.pageAIOverviewSettings || {})
-
-        console.log(`✅ Loaded all data from Supabase for user: ${currentUser}`)
-      } catch (error) {
-        console.error('❌ Failed to load data from Supabase:', error)
-        // Fallback to localStorage if Supabase fails
-        console.log('🔄 Falling back to localStorage...')
         setCustomSearchPages(getUserData('custom_search_pages', {}))
         setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
         setAIOverviews(getUserData('ai_overviews', []))
@@ -153,12 +110,58 @@ export default function SearchResultsPage() {
         } catch (imgError) {
           console.warn('Failed to load result images:', imgError)
         }
+
+        console.log(`✅ Instant render complete - showing cached data`)
+        setLoading(false) // Show UI immediately with cached data
+      } catch (error) {
+        console.warn('Failed to load cached data:', error)
+        setLoading(false)
       }
-      
-      setLoading(false)
+
+      // PHASE 2: Background sync from Supabase (non-blocking)
+      setTimeout(async () => {
+        try {
+          setBackgroundSyncing(true)
+          console.log(`🔄 Background sync starting for user: ${currentUser}`)
+          
+          // Import cloud data functions
+          const {
+            loadAllUserData,
+            migrateFromLocalStorage
+          } = await import('../utils/cloudData')
+
+          // Check if this is first time - migrate from localStorage if needed
+          const hasCloudData = await checkIfUserHasCloudData(currentUser)
+          if (!hasCloudData) {
+            console.log('🔄 First time user - migrating from localStorage...')
+            await migrateFromLocalStorage(currentUser)
+          }
+
+          // Load fresh data from Supabase
+          const cloudData = await loadAllUserData(currentUser)
+          
+          // Update state with fresh cloud data (this will re-render with latest data)
+          setCustomSearchPages(cloudData.customSearchPages || {})
+          setDeletedBuiltinPages(cloudData.deletedBuiltinPages || [])
+          setAIOverviews(cloudData.aiOverviews || [])
+          setSearchResultAssignments(cloudData.searchResultAssignments || {})
+          setCustomSearchResults(cloudData.customSearchResults || {})
+          setResultImages(cloudData.resultImages || {})
+          setUserAIText(cloudData.currentAIText || '')
+          setAIOverviewEnabled(cloudData.aiOverviewEnabled !== undefined ? cloudData.aiOverviewEnabled : true)
+          setPageAIOverviewSettings(cloudData.pageAIOverviewSettings || {})
+
+          console.log(`✅ Background sync complete - data updated from Supabase`)
+        } catch (error) {
+          console.error('❌ Background sync failed:', error)
+          // Keep using cached data if sync fails
+        } finally {
+          setBackgroundSyncing(false)
+        }
+      }, 100) // Small delay to let UI render first
     }
 
-    loadUserDataFromCloud()
+    fastLoadWithBackgroundSync()
   }, [currentUser])
 
   // Helper function to check if user has any data in Supabase
@@ -236,6 +239,8 @@ export default function SearchResultsPage() {
   const [showNewPageEditor, setShowNewPageEditor] = useState(false)
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(true)
   const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState({})
+  const [backgroundSyncing, setBackgroundSyncing] = useState(false)
+  const [manualSyncing, setManualSyncing] = useState(false)
 
   // User login/logout handlers - restore localStorage functionality
   const handleUserLogin = (username) => {
@@ -269,6 +274,55 @@ export default function SearchResultsPage() {
     setPageAIOverviewSettings({})
     setSelectedAIOverviewId(null)
     setClickLogs({})
+  }
+
+  // Manual sync function to save all changes to Supabase
+  const handleManualSync = async () => {
+    if (!currentUser) {
+      alert('Please log in to save to cloud')
+      return
+    }
+
+    setManualSyncing(true)
+    
+    try {
+      console.log(`💾 Manual sync starting for user: ${currentUser}`)
+      
+      // Import cloud data functions
+      const {
+        saveCustomSearchPages,
+        saveAIOverviews,
+        saveCurrentAIText,
+        saveSearchResultAssignments,
+        saveCustomSearchResults,
+        saveResultImages,
+        saveDeletedBuiltinPages,
+        saveAIOverviewEnabled,
+        savePageAIOverviewSettings
+      } = await import('../utils/cloudData')
+
+      // Save all current state to Supabase
+      await Promise.all([
+        saveCustomSearchPages(currentUser, customSearchPages),
+        saveAIOverviews(currentUser, aiOverviews),
+        saveCurrentAIText(currentUser, userAIText),
+        saveSearchResultAssignments(currentUser, searchResultAssignments),
+        saveCustomSearchResults(currentUser, customSearchResults),
+        saveResultImages(currentUser, resultImages),
+        saveDeletedBuiltinPages(currentUser, deletedBuiltinPages),
+        saveAIOverviewEnabled(currentUser, aiOverviewEnabled),
+        savePageAIOverviewSettings(currentUser, pageAIOverviewSettings)
+      ])
+
+      console.log(`✅ Manual sync complete - all data saved to Supabase`)
+      alert('✅ All changes saved to cloud successfully!')
+      
+    } catch (error) {
+      console.error('❌ Manual sync failed:', error)
+      alert('❌ Failed to save to cloud. Please try again.')
+    } finally {
+      setManualSyncing(false)
+    }
   }
 
 
@@ -425,9 +479,7 @@ export default function SearchResultsPage() {
     if (content) {
       e.preventDefault()
       setUserAIText(content)
-      if (currentUser) { 
-        autoSaveCurrentAIText(currentUser, content)
-      }
+      // REMOVED auto-save - now manual save only
     }
   }
 
@@ -491,18 +543,13 @@ export default function SearchResultsPage() {
       const updatedOverviews = aiOverviews.filter(overview => overview.id !== overviewId)
       setAIOverviews(updatedOverviews)
       
-      // Auto-save AI overviews
-      if (currentUser) { 
-        autoSaveAIOverviews(currentUser, updatedOverviews)
-      }
+      // REMOVED auto-save - now manual save only
       
       // If this was the selected overview, clear it
       if (selectedAIOverviewId === overviewId) {
         setSelectedAIOverviewId(null)
         setUserAIText('')
-        if (currentUser) { 
-          autoSaveCurrentAIText(currentUser, '')
-        }
+        // REMOVED auto-save - now manual save only
       }
       
       // Remove any assignments to this overview
@@ -513,9 +560,7 @@ export default function SearchResultsPage() {
         }
       })
       setSearchResultAssignments(updatedAssignments)
-      if (currentUser) { 
-        autoSaveSearchResultAssignments(currentUser, updatedAssignments)
-      }
+      // REMOVED auto-save - now manual save only
     }
   }
 
@@ -604,61 +649,9 @@ export default function SearchResultsPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Auto-save result images whenever they change
-  useEffect(() => {
-    if (currentUser) {
-      autoSaveResultImages(currentUser, resultImages)
-    }
-  }, [resultImages, currentUser])
-
-  // Auto-save AI overviews whenever they change
-  useEffect(() => {
-    if (currentUser) {
-      autoSaveAIOverviews(currentUser, aiOverviews)
-    }
-  }, [aiOverviews, currentUser])
-
-  // Auto-save AI overview enabled state whenever it changes
-  useEffect(() => {
-    if (currentUser) {
-      autoSaveAIOverviewEnabled(currentUser, aiOverviewEnabled)
-    }
-  }, [aiOverviewEnabled, currentUser])
-
-  // Auto-save page AI overview settings whenever they change
-  useEffect(() => {
-    if (currentUser) {
-      autoSavePageAIOverviewSettings(currentUser, pageAIOverviewSettings)
-    }
-  }, [pageAIOverviewSettings, currentUser])
-
-  // Auto-save search result assignments whenever they change
-  useEffect(() => {
-    if (currentUser) {
-      autoSaveSearchResultAssignments(currentUser, searchResultAssignments)
-    }
-  }, [searchResultAssignments, currentUser])
-
-  // Auto-save custom search results whenever they change
-  useEffect(() => {
-    if (currentUser) {
-      autoSaveCustomSearchResults(currentUser, customSearchResults)
-    }
-  }, [customSearchResults, currentUser])
-
-  // Auto-save custom search pages whenever they change
-  useEffect(() => {
-    if (currentUser) {
-      autoSaveCustomSearchPages(currentUser, customSearchPages)
-    }
-  }, [customSearchPages, currentUser])
-
-  // Auto-save deleted built-in pages whenever they change
-  useEffect(() => {
-    if (currentUser) {
-      autoSaveDeletedBuiltinPages(currentUser, deletedBuiltinPages)
-    }
-  }, [deletedBuiltinPages, currentUser])
+  // REMOVED ALL AUTO-SAVE useEffect hooks to prevent data conflicts
+  // All saves are now manual only to prevent overwrites when multiple users
+  // are logged into the same account on different computers
 
   // Update userAIText when selected AI overview changes
   useEffect(() => {
@@ -735,10 +728,7 @@ export default function SearchResultsPage() {
     }
     setSearchResultAssignments(newAssignments)
     
-    // Auto-save to Supabase
-    if (currentUser) {
-      autoSaveSearchResultAssignments(currentUser, newAssignments)
-    }
+    // REMOVED auto-save - now manual save only
     
     // If we're assigning to the current search type, update immediately
     if (searchResultType === searchType) {
@@ -746,10 +736,7 @@ export default function SearchResultsPage() {
       if (overview) {
         setSelectedAIOverviewId(overviewId)
         setUserAIText(overview.text)
-        // Auto-save current AI text
-        if (currentUser) {
-          autoSaveCurrentAIText(currentUser, overview.text)
-        }
+        // REMOVED auto-save - now manual save only
       }
     }
   }
@@ -760,19 +747,13 @@ export default function SearchResultsPage() {
     delete newAssignments[searchResultType]
     setSearchResultAssignments(newAssignments)
     
-    // Auto-save to Supabase
-    if (currentUser) {
-      autoSaveSearchResultAssignments(currentUser, newAssignments)
-    }
+    // REMOVED auto-save - now manual save only
     
     // If we're removing from current search type, clear immediately
     if (searchResultType === searchType) {
       setSelectedAIOverviewId(null)
       setUserAIText('')
-      // Auto-save cleared AI text
-      if (currentUser) {
-        autoSaveCurrentAIText(currentUser, '')
-      }
+      // REMOVED auto-save - now manual save only
     }
   }
 
@@ -791,10 +772,7 @@ export default function SearchResultsPage() {
       }
       setPageAIOverviewSettings(newSettings)
       
-      // Auto-save to Supabase
-      if (currentUser) {
-        autoSavePageAIOverviewSettings(currentUser, newSettings)
-      }
+      // REMOVED auto-save - now manual save only
     } catch (error) {
       console.error('Error in togglePageAIOverview:', error)
     }
@@ -865,10 +843,7 @@ export default function SearchResultsPage() {
     }
     setCustomSearchResults(newResults)
     
-    // Auto-save to Supabase
-    if (currentUser) {
-      autoSaveCustomSearchResults(currentUser, newResults)
-    }
+    // REMOVED auto-save - now manual save only
   }
 
   // Update custom search result
@@ -883,10 +858,7 @@ export default function SearchResultsPage() {
     }
     setCustomSearchResults(newResults)
     
-    // Auto-save to Supabase
-    if (currentUser) {
-      autoSaveCustomSearchResults(currentUser, newResults)
-    }
+    // REMOVED auto-save - now manual save only
   }
 
   // Remove custom search result
@@ -897,10 +869,7 @@ export default function SearchResultsPage() {
     }
     setCustomSearchResults(newResults)
     
-    // Auto-save to Supabase
-    if (currentUser) {
-      autoSaveCustomSearchResults(currentUser, newResults)
-    }
+    // REMOVED auto-save - now manual save only
   }
 
   // Add custom search page
@@ -919,10 +888,7 @@ export default function SearchResultsPage() {
     }
     setCustomSearchPages(newPages)
     
-    // Auto-save to Supabase
-    if (currentUser) {
-      autoSaveCustomSearchPages(currentUser, newPages)
-    }
+    // REMOVED auto-save - now manual save only
     
     // Initialize empty custom results for this page
     const newResults = {
@@ -931,10 +897,7 @@ export default function SearchResultsPage() {
     }
     setCustomSearchResults(newResults)
     
-    // Auto-save custom results
-    if (currentUser) {
-      autoSaveCustomSearchResults(currentUser, newResults)
-    }
+    // REMOVED auto-save - now manual save only
     
     return queryKey
   }
@@ -954,10 +917,7 @@ export default function SearchResultsPage() {
       })
       setCustomSearchPages(updatedPages)
       
-      // Auto-save to Supabase
-      if (currentUser) {
-        autoSaveCustomSearchPages(currentUser, updatedPages)
-      }
+      // REMOVED auto-save - now manual save only
     } else {
       // For built-in pages, we'll store custom display names separately
       const updatedDisplayNames = {
@@ -976,10 +936,7 @@ export default function SearchResultsPage() {
     delete updatedPages[pageKey]
     setCustomSearchPages(updatedPages)
     
-    // Auto-save to Supabase
-    if (currentUser) {
-      autoSaveCustomSearchPages(currentUser, updatedPages)
-    }
+    // REMOVED auto-save - now manual save only
   }
 
   const reorderSearchResults = (searchType, fromIndex, toIndex) => {
@@ -994,10 +951,7 @@ export default function SearchResultsPage() {
     
     setCustomSearchResults(updatedResults)
     
-    // Auto-save to Supabase
-    if (currentUser) {
-      autoSaveCustomSearchResults(currentUser, updatedResults)
-    }
+    // REMOVED auto-save - now manual save only
   }
 
   // Delete built-in page
@@ -1005,20 +959,14 @@ export default function SearchResultsPage() {
     const updatedDeleted = [...deletedBuiltinPages, pageKey]
     setDeletedBuiltinPages(updatedDeleted)
     
-    // Auto-save deleted pages
-    if (currentUser) {
-      autoSaveDeletedBuiltinPages(currentUser, updatedDeleted)
-    }
+    // REMOVED auto-save - now manual save only
     
     // Also remove any custom results for this page
     const updatedCustomResults = { ...customSearchResults }
     delete updatedCustomResults[pageKey]
     setCustomSearchResults(updatedCustomResults)
     
-    // Auto-save custom results
-    if (currentUser) {
-      autoSaveCustomSearchResults(currentUser, updatedCustomResults)
-    }
+    // REMOVED auto-save - now manual save only
   }
 
   // Do not render a dedicated loading screen; allow the page shell to appear immediately.
@@ -1163,11 +1111,43 @@ export default function SearchResultsPage() {
                     alignItems: 'center',
                     gap: '0.5rem'
                   }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#10b981' }}>cloud_done</span>
-                    Auto-sync enabled
+                    {backgroundSyncing ? (
+                      <>
+                        <span className="material-symbols-outlined" style={{ 
+                          fontSize: '14px', 
+                          color: '#f59e0b',
+                          animation: 'spin 1s linear infinite'
+                        }}>sync</span>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#6b7280' }}>save</span>
+                        Manual save only
+                      </>
+                    )}
                   </div>
                 </div>
               ) : null}
+              
+              {/* Manual Sync Button */}
+              <button
+                className={`border rounded px-2 py-1 text-sm whitespace-nowrap text-white ${
+                  manualSyncing 
+                    ? 'bg-gray-500 cursor-not-allowed' 
+                    : 'bg-blue-500 hover:bg-blue-600'
+                }`}
+                onClick={() => handleManualSync()}
+                disabled={manualSyncing}
+                title="Save all changes to cloud"
+              >
+                <span className={`material-symbols-outlined align-middle mr-1 ${
+                  manualSyncing ? 'animate-spin' : ''
+                }`}>
+                  {manualSyncing ? 'sync' : 'cloud_upload'}
+                </span>
+                {manualSyncing ? 'Saving...' : 'Save to Cloud'}
+              </button>
               
               {/* Search Management Button */}
               <button
