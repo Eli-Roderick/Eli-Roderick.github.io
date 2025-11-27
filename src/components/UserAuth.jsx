@@ -10,6 +10,20 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
   const [error, setError] = useState('')
   const [showProfile, setShowProfile] = useState(false)
 
+  // Add ESC key listener to close profile popup
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        setShowProfile(false)
+      }
+    }
+    
+    if (showProfile) {
+      window.addEventListener('keydown', handleEsc)
+      return () => window.removeEventListener('keydown', handleEsc)
+    }
+  }, [showProfile])
+
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
@@ -592,7 +606,10 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
-      }} onClick={() => setShowProfile(false)}>
+      }} onClick={(e) => {
+        e.preventDefault()
+        setShowProfile(false)
+      }}>
         <div style={{
           backgroundColor: 'var(--card-bg)',
           border: '1px solid var(--border)',
@@ -602,10 +619,16 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           width: '90%',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
           position: 'relative'
-        }} onClick={(e) => e.stopPropagation()}>
+        }} onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+        }}>
           {/* Close button */}
           <button
-            onClick={() => setShowProfile(false)}
+            onClick={(e) => {
+              e.preventDefault()
+              setShowProfile(false)
+            }}
             style={{
               position: 'absolute',
               top: '1rem',
@@ -614,7 +637,8 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
               border: 'none',
               fontSize: '20px',
               cursor: 'pointer',
-              color: 'var(--muted)'
+              color: 'var(--muted)',
+              zIndex: 1000000
             }}
           >
             ✕
@@ -700,7 +724,8 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           {/* Action Buttons */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault()
                 setShowProfile(false)
                 setShowLogin(true)
               }}
@@ -728,7 +753,8 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
             </button>
             
             <button
-              onClick={async () => {
+              onClick={async (e) => {
+                e.preventDefault()
                 await handleLogout()
                 setShowProfile(false)
               }}

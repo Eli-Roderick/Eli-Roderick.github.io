@@ -44,81 +44,93 @@ export const ensureUserProfile = async (user) => {
   return profile
 }
 
-// Authentication helpers
+// Simple local authentication bypass
 export const signInWithEmail = async (email, password) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  })
-  
-  // If sign in fails due to email confirmation, provide a helpful error message
-  if (error && error.message.includes('Email not confirmed')) {
+  // For local development, just check if the user exists in localStorage
+  try {
+    const username = email.split('@')[0]
+    const storedUsers = JSON.parse(localStorage.getItem('local_users') || '{}')
+    
+    if (storedUsers[username] && storedUsers[username].password === password) {
+      return { 
+        data: { 
+          user: {
+            id: `local_${username}`,
+            email: email,
+            username: username,
+            aud: 'authenticated',
+            role: 'authenticated'
+          },
+          session: {
+            user: {
+              id: `local_${username}`,
+              email: email,
+              username: username
+            }
+          }
+        }, 
+        error: null 
+      }
+    } else {
+      return { 
+        data: null, 
+        error: { message: 'Invalid username or password' } 
+      }
+    }
+  } catch (error) {
     return { 
       data: null, 
-      error: { 
-        message: 'This account requires email confirmation. Please create a new account or contact support to enable email confirmation bypass.' 
-      } 
+      error: { message: 'Authentication failed' } 
     }
   }
-  
-  return { data, error }
 }
 
 // Helper function to bypass email confirmation for local development
 export const signUpWithoutConfirmation = async (email, password) => {
   try {
-    // First, try to sign up
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          email_confirmed: true
+    const username = email.split('@')[0]
+    const storedUsers = JSON.parse(localStorage.getItem('local_users') || '{}')
+    
+    // Check if user already exists
+    if (storedUsers[username]) {
+      // User exists, try to sign them in
+      return await signInWithEmail(email, password)
+    }
+    
+    // Create new user in localStorage
+    storedUsers[username] = {
+      username: username,
+      email: email,
+      password: password,
+      created_at: new Date().toISOString()
+    }
+    
+    localStorage.setItem('local_users', JSON.stringify(storedUsers))
+    
+    return { 
+      data: { 
+        user: {
+          id: `local_${username}`,
+          email: email,
+          username: username,
+          aud: 'authenticated',
+          role: 'authenticated'
+        },
+        session: {
+          user: {
+            id: `local_${username}`,
+            email: email,
+            username: username
+          }
         }
-      }
-    })
-
-    // If user already exists, just sign them in
-    if (signUpError && signUpError.message.includes('already registered')) {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-      return { data: signInData, error: signInError }
+      }, 
+      error: null 
     }
-
-    // If signup failed for other reasons, return the error
-    if (signUpError) {
-      return { data: null, error: signUpError }
-    }
-
-    // If signup succeeded, try to sign in immediately
-    if (signUpData.user) {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-
-      // If sign in works, return that
-      if (!signInError && signInData.user) {
-        return { data: signInData, error: null }
-      }
-
-      // If sign in fails due to email confirmation, still return the user data
-      // The app will handle the confirmation state
-      return { 
-        data: { 
-          user: signUpData.user, 
-          session: null 
-        }, 
-        error: null 
-      }
-    }
-
-    return { data: signUpData, error: signUpError }
   } catch (error) {
-    return { data: null, error: { message: 'Unexpected error during signup' } }
+    return { 
+      data: null, 
+      error: { message: 'Failed to create account' } 
+    }
   }
 }
 
