@@ -3236,6 +3236,263 @@ function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult,
             <div 
               key={result.id} 
               draggable={true}
+              style={{
+                padding: '1.5rem',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--card-bg)',
+                transition: 'all 0.2s ease',
+                cursor: 'grab',
+                position: 'relative'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginLeft: '20px' }}>
+                <img 
+                  src={result.favicon} 
+                  alt="Favicon"
+                  style={{ width: '20px', height: '20px', marginTop: '2px', flexShrink: 0, borderRadius: '50%', border: '1px solid var(--border)' }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: '500', color: '#1a0dab', lineHeight: '1.3' }}>
+                    {result.title}
+                  </h4>
+                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: '#006621', wordBreak: 'break-all' }}>
+                    {result.url}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text)', lineHeight: '1.5' }}>
+                    {result.snippet}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '600' }}>
+                    #{index + 1}
+                  </div>
+                  <button
+                    onClick={() => onEditResult(result)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: '1px solid #2563eb',
+                      borderRadius: '4px',
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Delete this search result?')) {
+                        onDeleteResult(result.id)
+                      }
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: '1px solid #dc2626',
+                      borderRadius: '4px',
+                      backgroundColor: '#dc2626',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ 
+          padding: '3rem', 
+          textAlign: 'center', 
+          border: '2px dashed var(--border)', 
+          borderRadius: '8px',
+          backgroundColor: 'rgba(0,0,0,0.02)'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '18px', fontWeight: '600', color: 'var(--text)' }}>
+            No Search Results Yet
+          </h4>
+          <p style={{ margin: '0 0 1.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
+            This page doesn't have any custom search results. Add some to get started!
+          </p>
+          <button
+            onClick={onAddResult}
+            style={{
+              padding: '0.75rem 1.5rem',
+              border: 'none',
+              borderRadius: '6px',
+              backgroundColor: '#16a34a',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Add First Search Result
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              {/* Save to Cloud */}
+              <button
+                onClick={handleManualSync}
+                disabled={manualSyncing || !currentUser}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: manualSyncing ? '#6b7280' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: manualSyncing ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span className={`material-symbols-outlined ${manualSyncing ? 'animate-spin' : ''}`}>
+                  {manualSyncing ? 'sync' : 'cloud_upload'}
+                </span>
+                {manualSyncing ? 'Saving to Cloud...' : 'Save All Changes to Cloud'}
+              </button>
+
+              {/* Refresh from Cloud */}
+              <button
+                onClick={handleRefreshFromCloud}
+                disabled={backgroundSyncing || !currentUser}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: backgroundSyncing ? '#6b7280' : '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: backgroundSyncing ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span className={`material-symbols-outlined ${backgroundSyncing ? 'animate-spin' : ''}`}>
+                  {backgroundSyncing ? 'sync' : 'cloud_download'}
+                </span>
+                {backgroundSyncing ? 'Loading from Cloud...' : 'Refresh from Cloud'}
+              </button>
+
+              {/* Warning */}
+              <div style={{
+                padding: '1rem',
+                backgroundColor: '#fef3c7',
+                border: '1px solid #f59e0b',
+                borderRadius: '6px',
+                color: '#92400e',
+                fontSize: '12px'
+              }}>
+                <strong>⚠️ Important:</strong> "Refresh from Cloud" will overwrite your local changes. 
+                Save to cloud first if you want to keep your current work.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Page Results View Component
+function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult, onDeleteResult, onReorderResults }) {
+  const totalResults = pageResults?.length || 0
+  
+  return (
+    <div>
+      {/* Header with back button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+        <button
+          onClick={onBack}
+          style={{
+            padding: '0.5rem',
+            border: '1px solid var(--border)',
+            borderRadius: '4px',
+            backgroundColor: 'var(--card-bg)',
+            color: 'var(--text)',
+            cursor: 'pointer',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          ← Back to All Pages
+        </button>
+        <div>
+          <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
+            {page.name} - Search Results
+            <span style={{ 
+              marginLeft: '0.5rem', 
+              fontSize: '12px', 
+              fontWeight: 'normal',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '12px',
+              backgroundColor: page.type === 'custom' ? '#3b82f6' : '#8b5cf6',
+              color: 'white'
+            }}>
+              {page.type === 'custom' ? 'Custom' : 'Built-in'}
+            </span>
+          </h3>
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
+            {totalResults} search results • Drag and drop to reorder
+          </p>
+        </div>
+      </div>
+
+      {/* Add New Result Button */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <button
+          onClick={onAddResult}
+          style={{
+            padding: '0.75rem 1.5rem',
+            border: 'none',
+            borderRadius: '6px',
+            backgroundColor: '#16a34a',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          + Add New Search Result
+        </button>
+      </div>
+
+      {/* Results List */}
+      {totalResults > 0 ? (
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          {pageResults.map((result, index) => (
+            <div 
+              key={result.id} 
+              draggable={true}
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/plain', index.toString())
                 e.currentTarget.style.opacity = '0.5'
@@ -3384,89 +3641,6 @@ function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult,
           >
             Add First Search Result
           </button>
-        </div>
-      )}
-    </div>
-  )
-}
-              <div style={{ color: 'var(--text)', fontSize: '14px', marginBottom: '0.5rem' }}>
-                <strong>Current User:</strong> {currentUser || 'Not logged in'}
-              </div>
-              <div style={{ color: 'var(--muted)', fontSize: '12px' }}>
-                All changes are saved locally until you sync to cloud
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem'
-            }}>
-              {/* Save to Cloud */}
-              <button
-                onClick={handleManualSync}
-                disabled={manualSyncing || !currentUser}
-                style={{
-                  padding: '0.75rem 1rem',
-                  backgroundColor: manualSyncing ? '#6b7280' : '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: manualSyncing ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <span className={`material-symbols-outlined ${manualSyncing ? 'animate-spin' : ''}`}>
-                  {manualSyncing ? 'sync' : 'cloud_upload'}
-                </span>
-                {manualSyncing ? 'Saving to Cloud...' : 'Save All Changes to Cloud'}
-              </button>
-
-              {/* Refresh from Cloud */}
-              <button
-                onClick={handleRefreshFromCloud}
-                disabled={backgroundSyncing || !currentUser}
-                style={{
-                  padding: '0.75rem 1rem',
-                  backgroundColor: backgroundSyncing ? '#6b7280' : '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: backgroundSyncing ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <span className={`material-symbols-outlined ${backgroundSyncing ? 'animate-spin' : ''}`}>
-                  {backgroundSyncing ? 'sync' : 'cloud_download'}
-                </span>
-                {backgroundSyncing ? 'Loading from Cloud...' : 'Refresh from Cloud'}
-              </button>
-
-              {/* Warning */}
-              <div style={{
-                padding: '1rem',
-                backgroundColor: '#fef3c7',
-                border: '1px solid #f59e0b',
-                borderRadius: '6px',
-                color: '#92400e',
-                fontSize: '12px'
-              }}>
-                <strong>⚠️ Important:</strong> "Refresh from Cloud" will overwrite your local changes. 
-                Save to cloud first if you want to keep your current work.
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>

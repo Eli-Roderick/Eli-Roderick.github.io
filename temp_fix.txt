@@ -1,0 +1,8 @@
+The file is corrupted with duplicate code. The proper ending should be:
+
+      )}
+    </div>
+  )
+}
+
+And that's it. Everything after line 3548 should be deleted.
