@@ -243,6 +243,9 @@ export default function SearchResultsPage() {
   const [manualSyncing, setManualSyncing] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [syncStatus, setSyncStatus] = useState('')
+  
+  // Debug log to check if component loads
+  console.log('SearchResultsPage component loaded, showSyncModal state:', showSyncModal)
 
   // User login/logout handlers - restore localStorage functionality
   const handleUserLogin = (username) => {
@@ -1136,49 +1139,15 @@ export default function SearchResultsPage() {
             </div>
           </div>
 
-          {/* Experimenter controls / profile icon - desktop only */}
+          {/* Desktop controls */}
           {isAdmin ? (
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-              {/* User Profile & Cloud Status */}
               {currentUser ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem'
-                }}>
-                  <UserAuth 
-                    currentUser={currentUser}
-                    onLogin={handleUserLogin}
-                    onLogout={handleUserLogout}
-                  />
-                  <div style={{
-                    padding: '0.5rem 0.75rem',
-                    backgroundColor: 'var(--card-bg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '6px',
-                    color: 'var(--muted)',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    {backgroundSyncing ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ 
-                          fontSize: '14px', 
-                          color: '#f59e0b',
-                          animation: 'spin 1s linear infinite'
-                        }}>sync</span>
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#6b7280' }}>save</span>
-                        Manual save only
-                      </>
-                    )}
-                  </div>
-                </div>
+                <UserAuth 
+                  currentUser={currentUser} 
+                  onLogin={handleUserLogin} 
+                  onLogout={handleUserLogout} 
+                />
               ) : null}
               
               {/* Cloud Sync Button */}
