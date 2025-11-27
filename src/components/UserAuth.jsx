@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { signInWithEmail, signUpWithEmail, getCurrentUser } from '../utils/supabase'
+import { signInWithEmail, signUpWithEmail, getCurrentUser, updateUser, signOut } from '../utils/supabase'
 
 export default function UserAuth({ currentUser, onLogin, onLogout }) {
   const [showLogin, setShowLogin] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showProfile, setShowProfile] = useState(false)
 
   // Check for existing session on mount
   useEffect(() => {
@@ -117,7 +118,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
             {currentUser.username || currentUser.email}
           </span>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowProfile(true)}
             style={{
               fontSize: '12px',
               color: 'var(--muted)',
@@ -567,4 +568,184 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
       `}</style>
     </div>
   )
+
+  // Profile Popup
+  if (showProfile) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 999999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }} onClick={() => setShowProfile(false)}>
+        <div style={{
+          backgroundColor: 'var(--card-bg)',
+          border: '1px solid var(--border)',
+          borderRadius: '16px',
+          padding: '2rem',
+          maxWidth: '400px',
+          width: '90%',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+          position: 'relative'
+        }} onClick={(e) => e.stopPropagation()}>
+          {/* Close button */}
+          <button
+            onClick={() => setShowProfile(false)}
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
+              cursor: 'pointer',
+              color: 'var(--muted)'
+            }}
+          >
+            ✕
+          </button>
+
+          {/* Profile Header */}
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              backgroundColor: '#1a73e8',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem auto',
+              fontSize: '36px',
+              color: 'white',
+              fontWeight: '600'
+            }}>
+              {currentUser.username?.charAt(0).toUpperCase() || currentUser.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <h3 style={{ 
+              margin: '0 0 0.5rem 0', 
+              color: 'var(--text)',
+              fontSize: '20px',
+              fontWeight: '600'
+            }}>
+              {currentUser.username || currentUser.email}
+            </h3>
+            <p style={{ 
+              margin: 0, 
+              color: 'var(--muted)',
+              fontSize: '14px'
+            }}>
+              Account Active
+            </p>
+          </div>
+
+          {/* Account Info */}
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              padding: '0.75rem 0',
+              borderBottom: '1px solid var(--border)'
+            }}>
+              <span style={{ color: 'var(--muted)', fontSize: '14px' }}>Username</span>
+              <span style={{ color: 'var(--text)', fontSize: '14px', fontWeight: '500' }}>
+                {currentUser.username || 'Not set'}
+              </span>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              padding: '0.75rem 0',
+              borderBottom: '1px solid var(--border)'
+            }}>
+              <span style={{ color: 'var(--muted)', fontSize: '14px' }}>Email</span>
+              <span style={{ color: 'var(--text)', fontSize: '14px', fontWeight: '500' }}>
+                {currentUser.email || 'Not available'}
+              </span>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              padding: '0.75rem 0'
+            }}>
+              <span style={{ color: 'var(--muted)', fontSize: '14px' }}>Status</span>
+              <span style={{ 
+                color: '#34a853', 
+                fontSize: '14px', 
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}>
+                ● Online
+              </span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <button
+              onClick={() => {
+                setShowProfile(false)
+                setShowLogin(true)
+              }}
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'var(--bg)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                color: 'var(--text)',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'var(--muted)'
+                e.target.style.color = 'white'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'var(--bg)'
+                e.target.style.color = 'var(--text)'
+              }}
+            >
+              Switch to Different Account
+            </button>
+            
+            <button
+              onClick={async () => {
+                await handleLogout()
+                setShowProfile(false)
+              }}
+              style={{
+                padding: '0.75rem',
+                backgroundColor: '#ea4335',
+                border: 'none',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#d33b2c'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#ea4335'
+              }}
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 }

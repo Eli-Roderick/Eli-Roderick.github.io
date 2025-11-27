@@ -137,8 +137,35 @@ export default function App() {
   }, [order, current])
 
   const handleLogin = (user) => {
+    console.log('User logged in:', user)
     setCurrentUser(user)
-    console.log('User logged in:', user.email)
+    setShowProfileMenu(false)
+    
+    // Load user's cloud data after login
+    if (user) {
+      import('./utils/cloudData').then(({ loadUserSettings, loadAIOverviews, loadCurrentAIText, loadResultImages }) => {
+        loadUserSettings().then(settings => {
+          if (settings) {
+            // Apply user settings
+          }
+        })
+        loadAIOverviews().then(overviews => {
+          if (overviews) {
+            setAIOverviews(overviews)
+          }
+        })
+        loadCurrentAIText().then(text => {
+          if (text) {
+            setUserAIText(text)
+          }
+        })
+        loadResultImages().then(images => {
+          if (images) {
+            setResultImages(images)
+          }
+        })
+      })
+    }
   }
 
   const handleLogout = async () => {

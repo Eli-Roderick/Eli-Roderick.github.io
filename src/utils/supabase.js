@@ -61,7 +61,9 @@ export const signUpWithEmail = async (email, password) => {
       emailRedirectTo: window.location.origin,
       data: {
         skip_email_verification: true
-      }
+      },
+      // Disable email confirmation for local development
+      noEmailCode: true
     }
   })
   return { data, error }
