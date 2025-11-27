@@ -198,6 +198,14 @@ export default function App() {
   }, [config, userAIText])
 
   const handlePaste = (e) => {
+    // Require authentication for AI Overview functionality
+    if (!currentUser) {
+      e.preventDefault()
+      alert('Please sign in to use AI Overview features')
+      setShowProfileMenu(true)
+      return
+    }
+    
     const clipboard = e.clipboardData
     const html = clipboard?.getData('text/html') || ''
     const text = clipboard?.getData('text') || ''
@@ -218,6 +226,13 @@ export default function App() {
   }
 
   const openPasteModal = () => {
+    // Require authentication for AI Overview functionality
+    if (!currentUser) {
+      alert('Please sign in to use AI Overview features')
+      setShowProfileMenu(true)
+      return
+    }
+    
     // Determine which view to show
     if (selectedAIOverviewId || userAIText) {
       setModalView('editor')
@@ -236,6 +251,13 @@ export default function App() {
   }
 
   const savePasteModal = () => {
+    // Require authentication for saving AI overviews
+    if (!currentUser) {
+      alert('Please sign in to save AI overviews')
+      setShowProfileMenu(true)
+      return
+    }
+    
     if (selectedAIOverviewId) {
       // Update existing AI overview
       updateAIOverview(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
@@ -302,11 +324,25 @@ export default function App() {
   }
 
   const openImageManager = (result) => {
+    // Require authentication for image management
+    if (!currentUser) {
+      alert('Please sign in to manage images')
+      setShowProfileMenu(true)
+      return
+    }
+    
     setSelectedResultForImages(result)
     setShowImageManager(true)
   }
 
   const clearAllImages = () => {
+    // Require authentication for clearing images
+    if (!currentUser) {
+      alert('Please sign in to manage images')
+      setShowProfileMenu(true)
+      return
+    }
+    
     setResultImages({})
     try {
       localStorage.removeItem('result_images')
@@ -439,6 +475,13 @@ export default function App() {
 
   // AI Overview management functions
   const createAIOverview = (title, text) => {
+    // Require authentication for creating AI overviews
+    if (!currentUser) {
+      alert('Please sign in to create AI overviews')
+      setShowProfileMenu(true)
+      return null
+    }
+    
     const newOverview = {
       id: Date.now().toString(),
       title: title.trim() || `AI Overview ${aiOverviews.length + 1}`,
@@ -457,6 +500,13 @@ export default function App() {
   }
 
   const deleteAIOverview = (id) => {
+    // Require authentication for deleting AI overviews
+    if (!currentUser) {
+      alert('Please sign in to delete AI overviews')
+      setShowProfileMenu(true)
+      return
+    }
+    
     const updatedOverviews = aiOverviews.filter(overview => overview.id !== id)
     setAIOverviews(updatedOverviews)
     
@@ -468,6 +518,13 @@ export default function App() {
   }
 
   const updateAIOverview = (id, title, text) => {
+    // Require authentication for updating AI overviews
+    if (!currentUser) {
+      alert('Please sign in to update AI overviews')
+      setShowProfileMenu(true)
+      return
+    }
+    
     const updatedOverviews = aiOverviews.map(overview => 
       overview.id === id 
         ? { ...overview, title: title.trim(), text: text.trim() }
@@ -560,7 +617,7 @@ export default function App() {
               onClick={() => setShowProfileMenu(true)}
             >
               <span className="text-white text-base font-medium">
-                {currentUser.email?.charAt(0).toUpperCase() || 'U'}
+                {currentUser.username?.charAt(0).toUpperCase() || currentUser.email?.charAt(0).toUpperCase() || 'U'}
               </span>
             </div>
           ) : (
@@ -585,8 +642,12 @@ export default function App() {
                 value={query}
                 readOnly
                 onPaste={handlePaste}
-                placeholder="Paste text here to set AI Overview"
-                title={userAIText ? 'AI Overview text overridden by pasted content' : 'Paste to override AI Overview'}
+                placeholder={currentUser ? "Paste text here to set AI Overview" : "Sign in required to set AI Overview"}
+                title={userAIText ? 'AI Overview text overridden by pasted content' : (currentUser ? 'Paste to override AI Overview' : 'Sign in required to use AI Overview features')}
+                style={{
+                  opacity: currentUser ? 1 : 0.7,
+                  cursor: currentUser ? 'text' : 'not-allowed'
+                }}
               />
               <div className="search-affordances">
                 {/* Clear button (non-functional) */}
@@ -606,8 +667,12 @@ export default function App() {
                 value={query}
                 readOnly
                 onPaste={handlePaste}
-                placeholder="Paste text here to set AI Overview"
-                title={userAIText ? 'AI Overview text overridden by pasted content' : 'Paste to override AI Overview'}
+                placeholder={currentUser ? "Paste text here to set AI Overview" : "Sign in required to set AI Overview"}
+                title={userAIText ? 'AI Overview text overridden by pasted content' : (currentUser ? 'Paste to override AI Overview' : 'Sign in required to use AI Overview features')}
+                style={{
+                  opacity: currentUser ? 1 : 0.7,
+                  cursor: currentUser ? 'text' : 'not-allowed'
+                }}
               />
               <div className="search-affordances">
                 {/* Clear button (non-functional) */}
@@ -627,20 +692,22 @@ export default function App() {
               ))}
             </select>
             <button
-              className="border rounded px-2 py-1 text-sm whitespace-nowrap"
+              className={`${currentUser ? 'border' : 'border border-gray-300 opacity-50 cursor-not-allowed'} rounded px-2 py-1 text-sm whitespace-nowrap`}
               onClick={openPasteModal}
-              title="Set AI Overview text"
+              title={currentUser ? "Set AI Overview text" : "Sign in required to set AI Overview"}
+              disabled={!currentUser}
             >
               <span className="material-symbols-outlined align-middle mr-1">edit</span>
               Set AI Text
             </button>
             <button
-              className="border rounded px-2 py-1 text-sm whitespace-nowrap"
-              onClick={() => setShowImageManager(true)}
-              title="Manage images for search results"
+              className={`${currentUser ? 'border' : 'border border-gray-300 opacity-50 cursor-not-allowed'} rounded px-2 py-1 text-sm whitespace-nowrap`}
+              onClick={() => currentUser && openImageManager(null)}
+              title={currentUser ? "Manage result images" : "Sign in required to manage images"}
+              disabled={!currentUser}
             >
               <span className="material-symbols-outlined align-middle mr-1">image</span>
-              Manage Images
+              Images
             </button>
             <button
               className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-orange-500 text-white"
@@ -1229,25 +1296,35 @@ export default function App() {
               
               <div>
                 <button
-                  className="w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white mb-2"
+                  className={`${currentUser ? 'w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white mb-2' : 'w-full border rounded px-3 py-2 text-sm bg-gray-400 text-white mb-2 cursor-not-allowed'}`}
                   onClick={() => {
+                    if (!currentUser) {
+                      setShowProfileMenu(false)
+                      return
+                    }
                     setShowProfileMenu(false)
                     openPasteModal()
                   }}
+                  disabled={!currentUser}
                 >
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">edit</span>
-                  Set AI Overview Text
+                  Set AI Overview {currentUser ? 'Text' : '(Sign in required)'}
                 </button>
                 
                 <button
-                  className="w-full border rounded px-3 py-2 text-sm"
+                  className={`${currentUser ? 'w-full border rounded px-3 py-2 text-sm' : 'w-full border rounded px-3 py-2 text-sm opacity-50 cursor-not-allowed'}`}
                   onClick={() => {
+                    if (!currentUser) {
+                      setShowProfileMenu(false)
+                      return
+                    }
                     setShowProfileMenu(false)
                     setShowImageManager(true)
                   }}
+                  disabled={!currentUser}
                 >
                   <span className="material-symbols-outlined align-middle mr-2 text-sm">image</span>
-                  Manage Images
+                  Manage Images {currentUser ? '' : '(Sign in required)'}
                 </button>
                 
                 <button
