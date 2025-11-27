@@ -2947,18 +2947,12 @@ function EnhancedSearchManagementModal({
           )}
 
           {activeTab === 'pages' && selectedPageForResults && (
-            <PageResultsView 
-              page={selectedPageForResults}
-              pageResults={customSearchResults[selectedPageForResults.key] || []}
-              onBack={() => setSelectedPageForResults(null)}
-              onEditResult={() => onEditResults(selectedPageForResults.key)}
-              onAddResult={() => onEditResults(selectedPageForResults.key)}
-              onDeleteResult={(resultId) => {
-                removeCustomSearchResult(selectedPageForResults.key, resultId)
-                setSelectedPageForResults({ ...selectedPageForResults })
-              }}
-              onReorderResults={(fromIndex, toIndex) => onReorderResults(selectedPageForResults.key, fromIndex, toIndex)}
-            />
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
+              <h3>Debug: Page Results View</h3>
+              <p>Page: {selectedPageForResults.name}</p>
+              <button onClick={() => setSelectedPageForResults(null)}>Back</button>
+              <p>If you see this without errors, the issue is in PageResultsView component</p>
+            </div>
           )}
           
           {activeTab === 'ai-assignments' && (
