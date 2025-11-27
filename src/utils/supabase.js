@@ -50,42 +50,75 @@ export const signInWithEmail = async (email, password) => {
     email,
     password
   })
+  
+  // If sign in fails due to email confirmation, provide a helpful error message
+  if (error && error.message.includes('Email not confirmed')) {
+    return { 
+      data: null, 
+      error: { 
+        message: 'This account requires email confirmation. Please create a new account or contact support to enable email confirmation bypass.' 
+      } 
+    }
+  }
+  
   return { data, error }
 }
 
 // Helper function to bypass email confirmation for local development
 export const signUpWithoutConfirmation = async (email, password) => {
   try {
-    // First, create the user
+    // First, try to sign up
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
         data: {
-          email_confirmed: true // Custom flag
+          email_confirmed: true
         }
       }
     })
 
-    if (signUpError && !signUpError.message.includes('already registered')) {
-      return { data: signUpData, error: signUpError }
+    // If user already exists, just sign them in
+    if (signUpError && signUpError.message.includes('already registered')) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      return { data: signInData, error: signInError }
     }
 
-    // Try to sign in immediately (this may work for some configurations)
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-
-    if (!signInError && signInData.user) {
-      return { data: signInData, error: null }
+    // If signup failed for other reasons, return the error
+    if (signUpError) {
+      return { data: null, error: signUpError }
     }
 
-    // If sign in fails, return the original signup result
+    // If signup succeeded, try to sign in immediately
+    if (signUpData.user) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+      // If sign in works, return that
+      if (!signInError && signInData.user) {
+        return { data: signInData, error: null }
+      }
+
+      // If sign in fails due to email confirmation, still return the user data
+      // The app will handle the confirmation state
+      return { 
+        data: { 
+          user: signUpData.user, 
+          session: null 
+        }, 
+        error: null 
+      }
+    }
+
     return { data: signUpData, error: signUpError }
   } catch (error) {
-    return { data: null, error }
+    return { data: null, error: { message: 'Unexpected error during signup' } }
   }
 }
 

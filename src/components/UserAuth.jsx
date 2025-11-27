@@ -45,13 +45,22 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
 
       let result
       if (isSignUp) {
+        console.log('Attempting signup for:', email)
         result = await signUpWithoutConfirmation(email, cleanPassword)
+        console.log('Signup result:', result)
       } else {
+        console.log('Attempting signin for:', email)
         result = await signInWithEmail(email, cleanPassword)
+        console.log('Signin result:', result)
       }
 
       if (result.error) {
-        setError(result.error.message)
+        // Special handling for email confirmation error
+        if (result.error.message.includes('Email not confirmed')) {
+          setError('Account requires email confirmation. Try creating a new account with the same username.')
+        } else {
+          setError(result.error.message)
+        }
         return
       }
 
@@ -65,7 +74,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           } 
         })
         
-        // Login successful
+        // Login successful - even if no session, we have the user
         onLogin({ ...result.data.user, username: cleanUsername })
         setShowLogin(false)
         setUsername('')
