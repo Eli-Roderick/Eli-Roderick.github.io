@@ -8,8 +8,37 @@ import { supabase } from './supabase'
 // ============================================================================
 
 export const ensureUserExists = async (username) => {
-  // For simple username system, just return the username as the user identifier
-  return username
+  try {
+    // Check if user exists in user_profiles table
+    const { data: existingUser, error: checkError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('username', username)
+      .single()
+
+    if (checkError && checkError.code === 'PGRST116') {
+      // User doesn't exist, create them
+      const { data: newUser, error: createError } = await supabase
+        .from('user_profiles')
+        .insert({ username })
+        .select('id')
+        .single()
+
+      if (createError) {
+        console.error('Error creating user:', createError)
+        return null
+      }
+      return newUser.id
+    } else if (checkError) {
+      console.error('Error checking user:', checkError)
+      return null
+    }
+
+    return existingUser.id
+  } catch (error) {
+    console.error('Error in ensureUserExists:', error)
+    return null
+  }
 }
 
 // ============================================================================
@@ -17,17 +46,20 @@ export const ensureUserExists = async (username) => {
 // ============================================================================
 
 export const saveCustomSearchPages = async (username, pages) => {
+  const userId = await ensureUserExists(username)
+  if (!userId) return false
+
   try {
-    // Delete existing pages for this username
+    // Delete existing pages for this user
     await supabase
       .from('custom_search_pages')
       .delete()
-      .eq('username', username)
+      .eq('user_id', userId)
 
     // Insert new pages
     if (Object.keys(pages).length > 0) {
       const pageData = Object.entries(pages).map(([queryKey, page]) => ({
-        username: username,
+        user_id: userId,
         query_key: queryKey,
         search_key: page.key,
         query: page.query,
@@ -53,11 +85,14 @@ export const saveCustomSearchPages = async (username, pages) => {
 }
 
 export const loadCustomSearchPages = async (username) => {
+  const userId = await ensureUserExists(username)
+  if (!userId) return {}
+
   try {
     const { data, error } = await supabase
       .from('custom_search_pages')
       .select('*')
-      .eq('username', username)
+      .eq('user_id', userId)
 
     if (error) {
       console.error('Error loading custom search pages:', error)
@@ -87,18 +122,21 @@ export const loadCustomSearchPages = async (username) => {
 // ============================================================================
 
 export const saveAIOverviews = async (username, overviews) => {
+  const userId = await ensureUserExists(username)
+  if (!userId) return false
+
   try {
     // Delete existing overviews
     await supabase
       .from('ai_overviews')
       .delete()
-      .eq('username', username)
+      .eq('user_id', userId)
 
     // Insert new overviews
     if (overviews.length > 0) {
       const overviewData = overviews.map(overview => ({
         id: overview.id, // Preserve the original ID for updates
-        username: username,
+        user_id: userId,
         title: overview.title,
         content: overview.content
       }))
@@ -125,11 +163,14 @@ export const saveAIOverviews = async (username, overviews) => {
 }
 
 export const loadAIOverviews = async (username) => {
+  const userId = await ensureUserExists(username)
+  if (!userId) return []
+
   try {
     const { data, error } = await supabase
       .from('ai_overviews')
       .select('*')
-      .eq('username', username)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (error) {
