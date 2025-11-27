@@ -243,9 +243,6 @@ export default function SearchResultsPage() {
   const [manualSyncing, setManualSyncing] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [syncStatus, setSyncStatus] = useState('')
-  
-  // Debug log to check if component loads
-  console.log('SearchResultsPage component loaded, showSyncModal state:', showSyncModal)
 
   // User login/logout handlers - restore localStorage functionality
   const handleUserLogin = (username) => {
