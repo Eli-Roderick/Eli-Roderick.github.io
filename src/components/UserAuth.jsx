@@ -24,9 +24,15 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
     }
     
     if (showProfile) {
+      console.log('showProfile changed to true, adding ESC listener')
       window.addEventListener('keydown', handleEsc)
       return () => window.removeEventListener('keydown', handleEsc)
     }
+  }, [showProfile])
+
+  // Debug showProfile changes
+  useEffect(() => {
+    console.log('showProfile state changed:', showProfile)
   }, [showProfile])
 
   // Check for existing session on mount
@@ -152,8 +158,9 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                console.log('Switch User clicked')
+                console.log('Switch User clicked, showProfile before:', showProfile)
                 setShowProfile(true)
+                console.log('Switch User clicked, showProfile after:', true)
               }}
               style={{
                 fontSize: '12px',
@@ -634,6 +641,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
 
   // Profile Popup
   if (showProfile) {
+    console.log('Rendering profile popup - showProfile is true')
     return (
       <div style={{
         position: 'fixed',
