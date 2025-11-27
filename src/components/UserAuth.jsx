@@ -151,8 +151,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         margin: '0 auto',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         position: 'relative',
-        overflow: 'hidden',
-        aspectRatio: '16/10'
+        overflow: 'hidden'
       }}>
         {/* Decorative gradient overlay */}
         <div style={{
@@ -260,8 +259,8 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: '2rem',
-      padding: '3rem 4rem',
+      gap: '1.5rem',
+      padding: '2.5rem 3rem',
       background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--bg) 100%)',
       border: '1px solid var(--border)',
       borderRadius: '16px',
@@ -270,8 +269,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
       margin: '0 auto',
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
       position: 'relative',
-      overflow: 'hidden',
-      aspectRatio: '16/10'
+      overflow: 'hidden'
     }}>
       {/* Decorative gradient overlay */}
       <div style={{
@@ -347,7 +345,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         width: '100%', 
         display: 'flex', 
         flexDirection: 'column', 
-        gap: '1.5rem' 
+        gap: '1rem' 
       }}>
         <div>
           <label style={{ 
@@ -362,7 +360,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           <div style={{ position: 'relative' }}>
             <span style={{
               position: 'absolute',
-              left: '1.25rem',
+              left: '1rem',
               top: '50%',
               transform: 'translateY(-50%)',
               color: 'var(--muted)',
@@ -375,7 +373,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
               placeholder="Enter your username"
               style={{
                 width: '100%',
-                padding: '1.25rem 1.25rem 1.25rem 3.5rem',
+                padding: '1rem 1rem 1rem 3rem',
                 border: '2px solid var(--border)',
                 borderRadius: '12px',
                 backgroundColor: 'var(--bg)',
@@ -411,7 +409,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           <div style={{ position: 'relative' }}>
             <span style={{
               position: 'absolute',
-              left: '1.25rem',
+              left: '1rem',
               top: '50%',
               transform: 'translateY(-50%)',
               color: 'var(--muted)',
@@ -424,7 +422,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
               placeholder="Enter your password"
               style={{
                 width: '100%',
-                padding: '1.25rem 1.25rem 1.25rem 3.5rem',
+                padding: '1rem 1rem 1rem 3rem',
                 border: '2px solid var(--border)',
                 borderRadius: '12px',
                 backgroundColor: 'var(--bg)',
