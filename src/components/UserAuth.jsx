@@ -10,6 +10,11 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
   const [error, setError] = useState('')
   const [showProfile, setShowProfile] = useState(false)
 
+  // Force close profile popup on mount
+  useEffect(() => {
+    setShowProfile(false)
+  }, [])
+
   // Add ESC key listener to close profile popup
   useEffect(() => {
     const handleEsc = (e) => {
@@ -113,49 +118,84 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
 
   if (currentUser) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.5rem',
-        backgroundColor: 'var(--card-bg)',
-        border: '1px solid var(--border)',
-        borderRadius: '6px'
-      }}>
+      <>
         <div style={{
-          width: '32px',
-          height: '32px',
-          backgroundColor: '#1a73e8',
-          borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '14px',
-          fontWeight: '600'
+          gap: '0.5rem',
+          padding: '0.5rem',
+          backgroundColor: 'var(--card-bg)',
+          border: '1px solid var(--border)',
+          borderRadius: '6px',
+          position: 'relative',
+          zIndex: 1
         }}>
-          {currentUser.username?.charAt(0).toUpperCase() || currentUser.email?.charAt(0).toUpperCase() || 'U'}
+          <div style={{
+            width: '32px',
+            height: '32px',
+            backgroundColor: '#1a73e8',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: '600'
+          }}>
+            {currentUser.username?.charAt(0).toUpperCase() || currentUser.email?.charAt(0).toUpperCase() || 'U'}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+              {currentUser.username || currentUser.email}
+            </span>
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                console.log('Switch User clicked')
+                setShowProfile(true)
+              }}
+              style={{
+                fontSize: '12px',
+                color: 'var(--muted)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                padding: 0,
+                position: 'relative',
+                zIndex: 2
+              }}
+            >
+              Switch User
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
-            {currentUser.username || currentUser.email}
-          </span>
+        
+        {/* Debug force close button */}
+        {showProfile && (
           <button
-            onClick={() => setShowProfile(true)}
+            onClick={() => {
+              console.log('Force closing profile popup')
+              setShowProfile(false)
+            }}
             style={{
-              fontSize: '12px',
-              color: 'var(--muted)',
-              background: 'none',
+              position: 'fixed',
+              top: '10px',
+              left: '10px',
+              zIndex: 1000001,
+              backgroundColor: 'red',
+              color: 'white',
               border: 'none',
-              cursor: 'pointer',
-              textAlign: 'left',
-              padding: 0
+              padding: '5px 10px',
+              borderRadius: '5px',
+              fontSize: '12px'
             }}
           >
-            Switch User
+            FORCE CLOSE
           </button>
-        </div>
-      </div>
+        )}
+      </>
     )
   }
 
