@@ -141,16 +141,18 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '1.5rem',
-        padding: '2.5rem',
+        gap: '2rem',
+        padding: '3rem 4rem',
         background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--bg) 100%)',
         border: '1px solid var(--border)',
         borderRadius: '16px',
-        maxWidth: '420px',
+        maxWidth: '600px',
+        width: '90%',
         margin: '0 auto',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        aspectRatio: '16/10'
       }}>
         {/* Decorative gradient overlay */}
         <div style={{
@@ -165,17 +167,17 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         
         {/* Icon */}
         <div style={{
-          width: '64px',
-          height: '64px',
+          width: '80px',
+          height: '80px',
           background: 'linear-gradient(135deg, #1a73e8, #4285f4)',
-          borderRadius: '16px',
+          borderRadius: '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '0.5rem'
+          marginBottom: '1rem'
         }}>
           <span style={{
-            fontSize: '32px',
+            fontSize: '40px',
             color: 'white',
             fontWeight: '300'
           }}>🔐</span>
@@ -183,9 +185,9 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ 
-            margin: '0 0 0.5rem 0', 
+            margin: '0 0 0.75rem 0', 
             color: 'var(--text)',
-            fontSize: '24px',
+            fontSize: '28px',
             fontWeight: '600',
             letterSpacing: '-0.5px'
           }}>
@@ -195,7 +197,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
             margin: 0, 
             color: 'var(--muted)', 
             textAlign: 'center',
-            fontSize: '14px',
+            fontSize: '16px',
             lineHeight: '1.5'
           }}>
             Sign in to access your personalized search experiments and sync across devices
@@ -205,13 +207,13 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         <button
           onClick={() => setShowLogin(true)}
           style={{
-            padding: '1rem 2rem',
+            padding: '1.25rem 3rem',
             background: 'linear-gradient(135deg, #1a73e8, #4285f4)',
             color: 'white',
             border: 'none',
             borderRadius: '12px',
             cursor: 'pointer',
-            fontSize: '16px',
+            fontSize: '18px',
             fontWeight: '600',
             width: '100%',
             transition: 'all 0.2s ease',
@@ -232,8 +234,8 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '1rem',
-          fontSize: '12px',
+          gap: '1.5rem',
+          fontSize: '14px',
           color: 'var(--muted)',
           width: '100%'
         }}>
@@ -244,7 +246,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         
         <div style={{
           textAlign: 'center',
-          fontSize: '13px',
+          fontSize: '15px',
           color: 'var(--muted)'
         }}>
           Continue without account to use locally only
@@ -258,16 +260,18 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: '1.5rem',
-      padding: '2.5rem',
+      gap: '2rem',
+      padding: '3rem 4rem',
       background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--bg) 100%)',
       border: '1px solid var(--border)',
       borderRadius: '16px',
-      maxWidth: '420px',
+      maxWidth: '600px',
+      width: '90%',
       margin: '0 auto',
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      aspectRatio: '16/10'
     }}>
       {/* Decorative gradient overlay */}
       <div style={{
@@ -283,26 +287,26 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
       {/* Header */}
       <div style={{ textAlign: 'center', width: '100%' }}>
         <div style={{
-          width: '48px',
-          height: '48px',
+          width: '60px',
+          height: '60px',
           background: 'linear-gradient(135deg, #1a73e8, #4285f4)',
-          borderRadius: '12px',
+          borderRadius: '15px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 1rem auto'
         }}>
           <span style={{
-            fontSize: '24px',
+            fontSize: '30px',
             color: 'white',
             fontWeight: '300'
           }}>👤</span>
         </div>
         
         <h2 style={{ 
-          margin: '0 0 0.5rem 0', 
+          margin: '0 0 0.75rem 0', 
           color: 'var(--text)',
-          fontSize: '22px',
+          fontSize: '26px',
           fontWeight: '600',
           letterSpacing: '-0.5px'
         }}>
@@ -311,7 +315,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         <p style={{ 
           margin: 0, 
           color: 'var(--muted)', 
-          fontSize: '14px',
+          fontSize: '16px',
           lineHeight: '1.4'
         }}>
           {isSignUp 
@@ -323,18 +327,18 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
       
       {error && (
         <div style={{
-          padding: '1rem',
+          padding: '1rem 1.5rem',
           background: 'linear-gradient(135deg, #fee, #fdd)',
           border: '1px solid #fcc',
           borderRadius: '12px',
           color: '#c00',
-          fontSize: '14px',
+          fontSize: '15px',
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem'
+          gap: '1rem'
         }}>
-          <span style={{ fontSize: '18px' }}>⚠️</span>
+          <span style={{ fontSize: '20px' }}>⚠️</span>
           {error}
         </div>
       )}
@@ -343,26 +347,26 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         width: '100%', 
         display: 'flex', 
         flexDirection: 'column', 
-        gap: '1.25rem' 
+        gap: '1.5rem' 
       }}>
         <div>
           <label style={{ 
             display: 'block', 
-            marginBottom: '0.5rem', 
-            fontSize: '14px', 
+            marginBottom: '0.75rem', 
+            fontSize: '15px', 
             color: 'var(--text)',
-            fontWeight: '500'
+            fontWeight: '600'
           }}>
             Username
           </label>
           <div style={{ position: 'relative' }}>
             <span style={{
               position: 'absolute',
-              left: '1rem',
+              left: '1.25rem',
               top: '50%',
               transform: 'translateY(-50%)',
               color: 'var(--muted)',
-              fontSize: '18px'
+              fontSize: '20px'
             }}>👤</span>
             <input
               type="text"
@@ -371,12 +375,12 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
               placeholder="Enter your username"
               style={{
                 width: '100%',
-                padding: '1rem 1rem 1rem 3rem',
+                padding: '1.25rem 1.25rem 1.25rem 3.5rem',
                 border: '2px solid var(--border)',
                 borderRadius: '12px',
                 backgroundColor: 'var(--bg)',
                 color: 'var(--text)',
-                fontSize: '15px',
+                fontSize: '16px',
                 outline: 'none',
                 transition: 'all 0.2s ease',
                 boxSizing: 'border-box'
@@ -397,21 +401,21 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         <div>
           <label style={{ 
             display: 'block', 
-            marginBottom: '0.5rem', 
-            fontSize: '14px', 
+            marginBottom: '0.75rem', 
+            fontSize: '15px', 
             color: 'var(--text)',
-            fontWeight: '500'
+            fontWeight: '600'
           }}>
             Password
           </label>
           <div style={{ position: 'relative' }}>
             <span style={{
               position: 'absolute',
-              left: '1rem',
+              left: '1.25rem',
               top: '50%',
               transform: 'translateY(-50%)',
               color: 'var(--muted)',
-              fontSize: '18px'
+              fontSize: '20px'
             }}>🔒</span>
             <input
               type="password"
@@ -420,12 +424,12 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
               placeholder="Enter your password"
               style={{
                 width: '100%',
-                padding: '1rem 1rem 1rem 3rem',
+                padding: '1.25rem 1.25rem 1.25rem 3.5rem',
                 border: '2px solid var(--border)',
                 borderRadius: '12px',
                 backgroundColor: 'var(--bg)',
                 color: 'var(--text)',
-                fontSize: '15px',
+                fontSize: '16px',
                 outline: 'none',
                 transition: 'all 0.2s ease',
                 boxSizing: 'border-box'
@@ -447,7 +451,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           type="submit"
           disabled={loading}
           style={{
-            padding: '1rem',
+            padding: '1.25rem',
             background: loading 
               ? 'linear-gradient(135deg, #ccc, #999)' 
               : 'linear-gradient(135deg, #1a73e8, #4285f4)',
@@ -455,7 +459,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
             border: 'none',
             borderRadius: '12px',
             cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '16px',
+            fontSize: '18px',
             fontWeight: '600',
             transition: 'all 0.2s ease',
             boxShadow: loading 
@@ -478,11 +482,11 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           }}
         >
           {loading ? (
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
               <span style={{ 
                 display: 'inline-block',
-                width: '16px',
-                height: '16px',
+                width: '18px',
+                height: '18px',
                 border: '2px solid rgba(255,255,255,0.3)',
                 borderTop: '2px solid white',
                 borderRadius: '50%',
@@ -499,7 +503,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
       {/* Toggle between sign in/up */}
       <div style={{
         textAlign: 'center',
-        fontSize: '14px',
+        fontSize: '15px',
         color: 'var(--muted)',
         width: '100%'
       }}>
@@ -514,7 +518,7 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
             border: 'none',
             color: '#1a73e8',
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: '15px',
             fontWeight: '500',
             textDecoration: 'underline',
             textDecorationStyle: 'dotted'
@@ -538,9 +542,9 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           border: '1px solid var(--border)',
           color: 'var(--muted)',
           cursor: 'pointer',
-          fontSize: '14px',
-          padding: '0.75rem 1.5rem',
-          borderRadius: '8px',
+          fontSize: '15px',
+          padding: '1rem 2rem',
+          borderRadius: '10px',
           transition: 'all 0.2s ease',
           width: '100%'
         }}

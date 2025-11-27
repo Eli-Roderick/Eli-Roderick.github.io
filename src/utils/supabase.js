@@ -56,8 +56,19 @@ export const signInWithEmail = async (email, password) => {
 export const signUpWithEmail = async (email, password) => {
   const { data, error } = await supabase.auth.signUp({
     email,
-    password
+    password,
+    options: {
+      emailRedirectTo: window.location.origin,
+      data: {
+        skip_email_verification: true
+      }
+    }
   })
+  return { data, error }
+}
+
+export const updateUser = async (updates) => {
+  const { data, error } = await supabase.auth.updateUser(updates)
   return { data, error }
 }
 
