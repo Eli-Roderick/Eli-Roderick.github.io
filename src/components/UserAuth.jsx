@@ -1,54 +1,73 @@
 import React, { useState, useEffect } from 'react'
+import { signInWithEmail, signUpWithEmail, getCurrentUser } from '../utils/supabase'
 
 export default function UserAuth({ currentUser, onLogin, onLogout }) {
   const [showLogin, setShowLogin] = useState(false)
-  const [username, setUsername] = useState('')
-  const [recentUsers, setRecentUsers] = useState([])
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  // Load recent users from localStorage
+  // Check for existing session on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('recent_users')
-      if (saved) {
-        setRecentUsers(JSON.parse(saved))
+    const checkSession = async () => {
+      try {
+        const user = await getCurrentUser()
+        if (user) {
+          onLogin(user)
+        }
+      } catch (error) {
+        console.error('Error checking session:', error)
       }
-    } catch (error) {
-      console.warn('Failed to load recent users:', error)
     }
-  }, [])
+    checkSession()
+  }, [onLogin])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!username.trim()) {
-      alert('Please enter a username')
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter email and password')
       return
     }
 
+    setLoading(true)
+    setError('')
+
     try {
-      const cleanUsername = username.trim().toLowerCase()
+      const cleanEmail = email.trim().toLowerCase()
+      const cleanPassword = password.trim()
 
-      // Add to recent users
-      const updatedRecent = [
-        cleanUsername,
-        ...recentUsers.filter(u => u !== cleanUsername)
-      ].slice(0, 5)
-      
-      setRecentUsers(updatedRecent)
-      localStorage.setItem('recent_users', JSON.stringify(updatedRecent))
+      let result
+      if (isSignUp) {
+        result = await signUpWithEmail(cleanEmail, cleanPassword)
+      } else {
+        result = await signInWithEmail(cleanEmail, cleanPassword)
+      }
 
-      // Login successful
-      onLogin(cleanUsername)
-      setShowLogin(false)
-      setUsername('')
+      if (result.error) {
+        setError(result.error.message)
+        return
+      }
+
+      if (result.data.user) {
+        // Login successful
+        onLogin(result.data.user)
+        setShowLogin(false)
+        setEmail('')
+        setPassword('')
+      }
       
     } catch (error) {
       console.error('Authentication error:', error)
-      alert('Login failed. Please try again.')
+      setError('Authentication failed. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleQuickLogin = (user) => {
+  const handleQuickLogin = async (user) => {
     onLogin(user)
   }
 
@@ -79,11 +98,11 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           fontSize: '14px',
           fontWeight: '600'
         }}>
-          {currentUser.charAt(0).toUpperCase()}
+          {currentUser.email?.charAt(0).toUpperCase() || 'U'}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
-            {currentUser}
+            {currentUser.email}
           </span>
           <button
             onClick={handleLogout}
@@ -123,50 +142,6 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
           Sign in to access your personalized search experiments
         </p>
         
-        {recentUsers.length > 0 && (
-          <div style={{ width: '100%' }}>
-            <h3 style={{ fontSize: '14px', margin: '0 0 0.5rem 0', color: 'var(--text)' }}>
-              Recent Users:
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {recentUsers.map(user => (
-                <button
-                  key={user}
-                  onClick={() => handleQuickLogin(user)}
-                  style={{
-                    padding: '0.75rem',
-                    backgroundColor: 'var(--bg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '6px',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    backgroundColor: '#1a73e8',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}>
-                    {user.charAt(0).toUpperCase()}
-                  </div>
-                  {user}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        
         <button
           onClick={() => setShowLogin(true)}
           style={{
@@ -200,19 +175,56 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
       margin: '0 auto'
     }}>
       <h2 style={{ margin: 0, color: 'var(--text)' }}>
-        Sign In
+        {isSignUp ? 'Sign Up' : 'Sign In'}
       </h2>
+      
+      {error && (
+        <div style={{
+          padding: '0.75rem',
+          backgroundColor: '#fee',
+          border: '1px solid #fcc',
+          borderRadius: '6px',
+          color: '#c00',
+          fontSize: '14px',
+          width: '100%'
+        }}>
+          {error}
+        </div>
+      )}
       
       <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', color: 'var(--text)' }}>
-            Username:
+            Email:
           </label>
           <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter your username (e.g., eli, carter)"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              backgroundColor: 'var(--bg)',
+              color: 'var(--text)',
+              fontSize: '14px',
+              outline: 'none'
+            }}
+            required
+          />
+        </div>
+        
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', color: 'var(--text)' }}>
+            Password:
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
             style={{
               width: '100%',
               padding: '0.75rem',
@@ -229,23 +241,42 @@ export default function UserAuth({ currentUser, onLogin, onLogout }) {
         
         <button
           type="submit"
+          disabled={loading}
           style={{
             padding: '0.75rem',
-            backgroundColor: '#1a73e8',
+            backgroundColor: loading ? '#ccc' : '#1a73e8',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
-            cursor: 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
             fontSize: '14px',
             fontWeight: '500'
           }}
         >
-          Sign In
+          {loading ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Sign In')}
         </button>
       </form>
       
       <button
-        onClick={() => setShowLogin(false)}
+        type="button"
+        onClick={() => setIsSignUp(!isSignUp)}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'var(--muted)',
+          cursor: 'pointer',
+          fontSize: '12px'
+        }}
+      >
+        {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+      </button>
+      
+      <button
+        onClick={() => {
+          setShowLogin(false)
+          setError('')
+          setIsSignUp(false)
+        }}
         style={{
           background: 'none',
           border: 'none',

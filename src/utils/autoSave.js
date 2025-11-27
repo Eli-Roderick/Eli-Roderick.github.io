@@ -56,52 +56,52 @@ const autoSave = async (key, saveFunction, ...args) => {
 // AUTO-SAVE FUNCTIONS (replace setUserData calls)
 // ============================================================================
 
-export const autoSaveCustomSearchPages = async (username, pages) => {
-  return autoSave('custom_search_pages', saveCustomSearchPages, username, pages)
+export const autoSaveCustomSearchPages = async (pages) => {
+  return autoSave('custom_search_pages', saveCustomSearchPages, pages)
 }
 
-export const autoSaveCustomPage = async (username, queryKey, pageData) => {
-  return autoSave(`custom_page_${queryKey}`, saveIndividualCustomPage, username, queryKey, pageData)
+export const autoSaveCustomPage = async (queryKey, pageData) => {
+  return autoSave(`custom_page_${queryKey}`, saveIndividualCustomPage, queryKey, pageData)
 }
 
-export const autoSaveAIOverviews = async (username, overviews) => {
-  return autoSave('ai_overviews', saveAIOverviews, username, overviews)
+export const autoSaveAIOverviews = async (overviews) => {
+  return autoSave('ai_overviews', saveAIOverviews, overviews)
 }
 
-export const autoSaveAIOverview = async (username, overview) => {
-  return autoSave(`ai_overview_${overview.id}`, saveIndividualAIOverview, username, overview)
+export const autoSaveAIOverview = async (overview) => {
+  return autoSave(`ai_overview_${overview.id}`, saveIndividualAIOverview, overview)
 }
 
-export const autoSaveCurrentAIText = async (username, text) => {
-  return autoSave('current_ai_text', saveCurrentAIText, username, text)
+export const autoSaveCurrentAIText = async (text) => {
+  return autoSave('current_ai_text', saveCurrentAIText, text)
 }
 
-export const autoSaveSearchResultAssignments = async (username, assignments) => {
-  return autoSave('search_result_assignments', saveSearchResultAssignments, username, assignments)
+export const autoSaveSearchResultAssignments = async (assignments) => {
+  return autoSave('search_result_assignments', saveSearchResultAssignments, assignments)
 }
 
-export const autoSaveCustomSearchResults = async (username, results) => {
-  return autoSave('custom_search_results', saveCustomSearchResults, username, results)
+export const autoSaveCustomSearchResults = async (results) => {
+  return autoSave('custom_search_results', saveCustomSearchResults, results)
 }
 
-export const autoSaveSearchResults = async (username, searchType, results) => {
-  return autoSave(`search_results_${searchType}`, saveIndividualSearchResults, username, searchType, results)
+export const autoSaveSearchResults = async (searchType, results) => {
+  return autoSave(`search_results_${searchType}`, saveIndividualSearchResults, searchType, results)
 }
 
-export const autoSaveResultImages = async (username, images) => {
-  return autoSave('result_images', saveResultImages, username, images)
+export const autoSaveResultImages = async (images) => {
+  return autoSave('result_images', saveResultImages, images)
 }
 
-export const autoSaveDeletedBuiltinPages = async (username, deletedPages) => {
-  return autoSave('deleted_builtin_pages', saveDeletedBuiltinPages, username, deletedPages)
+export const autoSaveDeletedBuiltinPages = async (deletedPages) => {
+  return autoSave('deleted_builtin_pages', saveDeletedBuiltinPages, deletedPages)
 }
 
-export const autoSaveAIOverviewEnabled = async (username, enabled) => {
-  return autoSave('ai_overview_enabled', saveSetting, username, 'ai_overview_enabled', enabled)
+export const autoSaveAIOverviewEnabled = async (enabled) => {
+  return autoSave('ai_overview_enabled', saveSetting, 'ai_overview_enabled', enabled)
 }
 
-export const autoSavePageAIOverviewSettings = async (username, settings) => {
-  return autoSave('page_ai_overview_settings', saveSetting, username, 'page_ai_overview_settings', settings)
+export const autoSavePageAIOverviewSettings = async (settings) => {
+  return autoSave('page_ai_overview_settings', saveSetting, 'page_ai_overview_settings', settings)
 }
 
 // ============================================================================
@@ -138,43 +138,43 @@ export const debouncedAutoSaveCurrentAIText = debouncedAutoSave(
 // BATCH SAVE (for multiple related changes)
 // ============================================================================
 
-export const batchAutoSave = async (username, updates) => {
+export const batchAutoSave = async (updates) => {
   const savePromises = []
   
   if (updates.customSearchPages) {
-    savePromises.push(autoSaveCustomSearchPages(username, updates.customSearchPages))
+    savePromises.push(autoSaveCustomSearchPages(updates.customSearchPages))
   }
   
   if (updates.aiOverviews) {
-    savePromises.push(autoSaveAIOverviews(username, updates.aiOverviews))
+    savePromises.push(autoSaveAIOverviews(updates.aiOverviews))
   }
   
   if (updates.searchResultAssignments) {
-    savePromises.push(autoSaveSearchResultAssignments(username, updates.searchResultAssignments))
+    savePromises.push(autoSaveSearchResultAssignments(updates.searchResultAssignments))
   }
   
   if (updates.customSearchResults) {
-    savePromises.push(autoSaveCustomSearchResults(username, updates.customSearchResults))
+    savePromises.push(autoSaveCustomSearchResults(updates.customSearchResults))
   }
   
   if (updates.resultImages) {
-    savePromises.push(autoSaveResultImages(username, updates.resultImages))
+    savePromises.push(autoSaveResultImages(updates.resultImages))
   }
   
   if (updates.deletedBuiltinPages) {
-    savePromises.push(autoSaveDeletedBuiltinPages(username, updates.deletedBuiltinPages))
+    savePromises.push(autoSaveDeletedBuiltinPages(updates.deletedBuiltinPages))
   }
   
   if (updates.currentAIText !== undefined) {
-    savePromises.push(autoSaveCurrentAIText(username, updates.currentAIText))
+    savePromises.push(autoSaveCurrentAIText(updates.currentAIText))
   }
   
   if (updates.aiOverviewEnabled !== undefined) {
-    savePromises.push(autoSaveAIOverviewEnabled(username, updates.aiOverviewEnabled))
+    savePromises.push(autoSaveAIOverviewEnabled(updates.aiOverviewEnabled))
   }
   
   if (updates.pageAIOverviewSettings) {
-    savePromises.push(autoSavePageAIOverviewSettings(username, updates.pageAIOverviewSettings))
+    savePromises.push(autoSavePageAIOverviewSettings(updates.pageAIOverviewSettings))
   }
   
   const results = await Promise.all(savePromises)

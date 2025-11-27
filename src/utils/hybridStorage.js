@@ -1,55 +1,31 @@
 // Hybrid storage system - saves to both localStorage and Supabase
-import { supabase } from './supabase'
+import { supabase, getCurrentUser } from './supabase'
 import { setUserData, getUserData } from './userData'
 
-// Direct Supabase save functions that work with our current user system
-const saveCustomSearchPagesToSupabase = async (pages, userEmail) => {
+// Direct Supabase save functions that work with proper authentication
+const saveCustomSearchPagesToSupabase = async (pages) => {
   try {
-    console.log('🔍 saveCustomSearchPagesToSupabase called with:', { userEmail, pageCount: Object.keys(pages).length })
+    console.log('🔍 saveCustomSearchPagesToSupabase called with:', { pageCount: Object.keys(pages).length })
     
-    // First, ensure user profile exists
-    console.log('🔍 Checking if user profile exists...')
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('username', userEmail)
-      .single()
-    
-    console.log('🔍 Profile check result:', { profile, profileError })
-
-    let userId
-    if (profileError && profileError.code === 'PGRST116') {
-      // Profile doesn't exist, create it (let database generate UUID)
-      const { data: newProfile, error: insertError } = await supabase
-        .from('user_profiles')
-        .insert({
-          username: userEmail
-        })
-        .select('id')
-        .single()
-
-      if (insertError) {
-        console.error('Error creating user profile:', insertError)
-        return false
-      }
-      userId = newProfile.id
-    } else if (profileError) {
-      console.error('Error checking user profile:', profileError)
+    // Get current authenticated user
+    const user = await getCurrentUser()
+    if (!user) {
+      console.error('No authenticated user found')
       return false
-    } else {
-      userId = profile.id
     }
+    
+    console.log('🔍 Using authenticated user:', user.id)
 
     // Delete existing pages for this user
     await supabase
       .from('custom_search_pages')
       .delete()
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
 
     // Insert new pages if any exist
     if (Object.keys(pages).length > 0) {
       const pageData = Object.entries(pages).map(([queryKey, page]) => ({
-        user_id: userId,
+        user_id: user.id,
         query_key: queryKey,
         search_key: page.key,
         query: page.query,
@@ -73,32 +49,25 @@ const saveCustomSearchPagesToSupabase = async (pages, userEmail) => {
   }
 }
 
-const saveAIOverviewsToSupabase = async (overviews, userEmail) => {
+const saveAIOverviewsToSupabase = async (overviews) => {
   try {
-    // Get user profile
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('username', userEmail)
-      .single()
-
-    if (profileError) {
-      console.error('Error getting user profile for AI overviews:', profileError)
+    // Get current authenticated user
+    const user = await getCurrentUser()
+    if (!user) {
+      console.error('No authenticated user found')
       return false
     }
-
-    const userId = profile.id
 
     // Delete existing AI overviews for this user
     await supabase
       .from('ai_overviews')
       .delete()
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
 
     // Insert new overviews if any exist
     if (overviews.length > 0) {
       const overviewData = overviews.map(overview => ({
-        user_id: userId,
+        user_id: user.id,
         title: overview.title,
         content: overview.content
       }))
@@ -121,7 +90,7 @@ const saveAIOverviewsToSupabase = async (overviews, userEmail) => {
 }
 
 // Save to both localStorage and Supabase
-export const hybridSave = async (key, data, userId) => {
+export const hybridSave = async (key, data) => {
   // Always save to localStorage first (for immediate access)
   const localStorageSuccess = setUserData(key, data)
   
@@ -131,11 +100,11 @@ export const hybridSave = async (key, data, userId) => {
     switch (key) {
       case 'custom_search_pages':
         console.log('Saving custom search pages to Supabase...', Object.keys(data).length, 'pages')
-        supabaseSuccess = await saveCustomSearchPagesToSupabase(data, userId)
+        supabaseSuccess = await saveCustomSearchPagesToSupabase(data)
         break
       case 'ai_overviews':
         console.log('Saving AI overviews to Supabase...', data.length, 'items')
-        supabaseSuccess = await saveAIOverviewsToSupabase(data, userId)
+        supabaseSuccess = await saveAIOverviewsToSupabase(data)
         break
       default:
         console.log(`Supabase sync not yet implemented for ${key}`)
@@ -165,21 +134,24 @@ export const hybridLoad = async (key, defaultValue = null) => {
     return localData
   }
   
-  // If no local data, try Supabase
+  // If no local data, try Supabase (using cloudData functions)
   try {
     let supabaseData = null
     switch (key) {
       case 'custom_search_pages':
-        supabaseData = await supabaseGetPages()
+        // Import dynamically to avoid circular dependencies
+        const { loadCustomSearchPages } = await import('./cloudData')
+        supabaseData = await loadCustomSearchPages()
         break
       case 'ai_overviews':
-        supabaseData = await supabaseGetOverviews()
+        const { loadAIOverviews } = await import('./cloudData')
+        supabaseData = await loadAIOverviews()
         break
       default:
         console.log(`Supabase load not yet implemented for ${key}`)
     }
     
-    if (supabaseData && Object.keys(supabaseData).length > 0) {
+    if (supabaseData && (typeof supabaseData === 'object' ? Object.keys(supabaseData).length > 0 : supabaseData.length > 0)) {
       console.log(`📖 Loaded ${key} from Supabase, syncing to localStorage`)
       setUserData(key, supabaseData) // Sync back to localStorage
       return supabaseData

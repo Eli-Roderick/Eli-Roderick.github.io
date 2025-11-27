@@ -5,9 +5,11 @@ import AdResult from './components/AdResult'
 import ImageManager from './components/ImageManager'
 import RichTextEditor from './components/RichTextEditor'
 import SearchPage from './pages/SearchPage'
+import UserAuth from './components/UserAuth'
 // import SimpleSupabaseTest from './components/SimpleSupabaseTest'
 import { ClickLogger } from './utils/logger'
 import { loadConfigList, loadConfigByPath } from './utils/config'
+import { supabase, signOut } from './utils/supabase'
 
 const logger = new ClickLogger()
 
@@ -21,6 +23,7 @@ function shuffle(arr) {
 }
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(null)
   const [configIndex, setConfigIndex] = useState([])
   const [order, setOrder] = useState([])
   const [current, setCurrent] = useState(0)
@@ -91,9 +94,23 @@ export default function App() {
   useEffect(() => {
     try {
       const savedText = localStorage.getItem('ai_overview_text')
-      if (savedText) setUserAIText(savedText)
+      if (savedText) {
+        setUserAIText(savedText)
+      }
+      
+      // If authenticated, try to load from Supabase as well
+      if (currentUser) {
+        import('./utils/cloudData').then(({ loadCurrentAIText }) => {
+          loadCurrentAIText().then(cloudText => {
+            if (cloudText && cloudText !== savedText) {
+              setUserAIText(cloudText)
+              localStorage.setItem('ai_overview_text', cloudText)
+            }
+          })
+        })
+      }
     } catch {}
-  }, [])
+  }, [currentUser])
 
   useEffect(() => {
     (async () => {
@@ -118,6 +135,31 @@ export default function App() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
   }, [order, current])
+
+  const handleLogin = (user) => {
+    setCurrentUser(user)
+    console.log('User logged in:', user.email)
+  }
+
+  const handleLogout = async () => {
+    await signOut()
+    setCurrentUser(null)
+    setShowProfileMenu(false)
+    console.log('User logged out')
+  }
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session.user) {
+        setCurrentUser(session.user)
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const query = config?.query ?? ''
 
@@ -163,7 +205,15 @@ export default function App() {
     if (content) {
       e.preventDefault()
       setUserAIText(content)
-      try { localStorage.setItem('ai_overview_text', content) } catch {}
+      try { 
+        localStorage.setItem('ai_overview_text', content)
+        // Also save to Supabase if authenticated
+        if (currentUser) {
+          import('./utils/cloudData').then(({ saveCurrentAIText }) => {
+            saveCurrentAIText(content)
+          })
+        }
+      } catch {}
     }
   }
 
@@ -235,6 +285,20 @@ export default function App() {
     }
     
     setResultImages(newResultImages)
+    
+    // Save to localStorage
+    try {
+      localStorage.setItem('result_images', JSON.stringify(newResultImages))
+    } catch (error) {
+      console.warn('Failed to save images to localStorage:', error)
+    }
+    
+    // Also save to Supabase if authenticated
+    if (currentUser) {
+      import('./utils/cloudData').then(({ saveResultImages }) => {
+        saveResultImages(newResultImages)
+      })
+    }
   }
 
   const openImageManager = (result) => {
@@ -248,6 +312,13 @@ export default function App() {
       localStorage.removeItem('result_images')
     } catch (error) {
       console.warn('Failed to clear images from localStorage:', error)
+    }
+    
+    // Also clear from Supabase if authenticated
+    if (currentUser) {
+      import('./utils/cloudData').then(({ saveResultImages }) => {
+        saveResultImages({})
+      })
     }
   }
 
@@ -340,14 +411,21 @@ export default function App() {
     }
   }, [selectedAIOverviewId])
 
-  // Save AI overview enabled state to localStorage whenever it changes
+  // Save AI Overview enabled setting to localStorage and Supabase
   useEffect(() => {
     try {
       localStorage.setItem('ai_overview_enabled', JSON.stringify(aiOverviewEnabled))
+      
+      // Also save to Supabase if authenticated
+      if (currentUser) {
+        import('./utils/cloudData').then(({ saveSetting }) => {
+          saveSetting('ai_overview_enabled', aiOverviewEnabled)
+        })
+      }
     } catch (error) {
-      console.warn('Failed to save AI overview enabled state to localStorage:', error)
+      console.warn('Failed to save AI Overview enabled setting:', error)
     }
-  }, [aiOverviewEnabled])
+  }, [aiOverviewEnabled, currentUser])
 
   // Update userAIText when selected AI overview changes
   useEffect(() => {
@@ -475,13 +553,25 @@ export default function App() {
       <header className="search-header">
         {/* Profile row - mobile only */}
         <div className="md:hidden flex justify-end px-4 pt-3 pb-2">
-          <div 
-            className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer" 
-            title="Profile"
-            onClick={() => setShowProfileMenu(true)}
-          >
-            <span className="text-white text-base font-medium">E</span>
-          </div>
+          {currentUser ? (
+            <div 
+              className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer" 
+              title="Profile"
+              onClick={() => setShowProfileMenu(true)}
+            >
+              <span className="text-white text-base font-medium">
+                {currentUser.email?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
+          ) : (
+            <div 
+              className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center cursor-pointer" 
+              title="Sign in"
+              onClick={() => setShowProfileMenu(true)}
+            >
+              <span className="text-white text-base font-medium">?</span>
+            </div>
+          )}
         </div>
         
         {/* Top row: search bar + controls */}
@@ -1115,6 +1205,15 @@ export default function App() {
             </div>
             
             <div className="space-y-4">
+              {/* Authentication Section */}
+              <div>
+                <UserAuth 
+                  currentUser={currentUser}
+                  onLogin={handleLogin}
+                  onLogout={handleLogout}
+                />
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium mb-2">Query Selection</label>
                 <select 

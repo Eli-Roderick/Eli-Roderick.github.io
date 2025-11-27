@@ -1,42 +1,22 @@
 // Complete Cloud Data Layer - Replaces ALL localStorage operations
 // Every function here corresponds to a localStorage operation in the original code
 
-import { supabase } from './supabase'
+import { supabase, getCurrentUser, ensureUserProfile } from './supabase'
 
 // ============================================================================
 // USER MANAGEMENT
 // ============================================================================
 
-export const ensureUserExists = async (username) => {
+export const getCurrentUserId = async () => {
   try {
-    // Check if user exists in user_profiles table
-    const { data: existingUser, error: checkError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('username', username)
-      .single()
-
-    if (checkError && checkError.code === 'PGRST116') {
-      // User doesn't exist, create them
-      const { data: newUser, error: createError } = await supabase
-        .from('user_profiles')
-        .insert({ username })
-        .select('id')
-        .single()
-
-      if (createError) {
-        console.error('Error creating user:', createError)
-        return null
-      }
-      return newUser.id
-    } else if (checkError) {
-      console.error('Error checking user:', checkError)
-      return null
-    }
-
-    return existingUser.id
+    const user = await getCurrentUser()
+    if (!user) return null
+    
+    // Ensure user profile exists
+    await ensureUserProfile(user)
+    return user.id
   } catch (error) {
-    console.error('Error in ensureUserExists:', error)
+    console.error('Error getting current user ID:', error)
     return null
   }
 }
@@ -45,8 +25,8 @@ export const ensureUserExists = async (username) => {
 // CUSTOM SEARCH PAGES (replaces custom_search_pages localStorage)
 // ============================================================================
 
-export const saveCustomSearchPages = async (username, pages) => {
-  const userId = await ensureUserExists(username)
+export const saveCustomSearchPages = async (pages) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -84,8 +64,8 @@ export const saveCustomSearchPages = async (username, pages) => {
   }
 }
 
-export const loadCustomSearchPages = async (username) => {
-  const userId = await ensureUserExists(username)
+export const loadCustomSearchPages = async () => {
+  const userId = await getCurrentUserId()
   if (!userId) return {}
 
   try {
@@ -121,8 +101,8 @@ export const loadCustomSearchPages = async (username) => {
 // AI OVERVIEWS (replaces ai_overviews localStorage)
 // ============================================================================
 
-export const saveAIOverviews = async (username, overviews) => {
-  const userId = await ensureUserExists(username)
+export const saveAIOverviews = async (overviews) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -162,8 +142,8 @@ export const saveAIOverviews = async (username, overviews) => {
   }
 }
 
-export const loadAIOverviews = async (username) => {
-  const userId = await ensureUserExists(username)
+export const loadAIOverviews = async () => {
+  const userId = await getCurrentUserId()
   if (!userId) return []
 
   try {
@@ -197,14 +177,18 @@ export const loadAIOverviews = async (username) => {
 // CURRENT AI TEXT (replaces ai_overview_text localStorage)
 // ============================================================================
 
-export const saveCurrentAIText = async (username, content) => {
+export const saveCurrentAIText = async (content) => {
+  const userId = await getCurrentUserId()
+  if (!userId) return false
+
   try {
     const { error } = await supabase
-      .from('user_settings')
+      .from('current_ai_text')
       .upsert({
-        username: username,
-        setting_key: 'current_ai_text',
-        setting_value: content
+        user_id: userId,
+        content: content
+      }, {
+        onConflict: 'user_id'
       })
 
     if (error) {
@@ -220,13 +204,15 @@ export const saveCurrentAIText = async (username, content) => {
   }
 }
 
-export const loadCurrentAIText = async (username) => {
+export const loadCurrentAIText = async () => {
+  const userId = await getCurrentUserId()
+  if (!userId) return ''
+
   try {
     const { data, error } = await supabase
-      .from('user_settings')
-      .select('setting_value')
-      .eq('username', username)
-      .eq('setting_key', 'current_ai_text')
+      .from('current_ai_text')
+      .select('content')
+      .eq('user_id', userId)
       .single()
 
     if (error && error.code === 'PGRST116') {
@@ -237,8 +223,8 @@ export const loadCurrentAIText = async (username) => {
       return ''
     }
 
-    console.log(`📖 Loaded current AI text from cloud (${data.setting_value.length} chars)`)
-    return data.setting_value
+    console.log(`📖 Loaded current AI text from cloud (${data.content.length} chars)`)
+    return data.content
   } catch (error) {
     console.error('Error in loadCurrentAIText:', error)
     return ''
@@ -249,8 +235,8 @@ export const loadCurrentAIText = async (username) => {
 // SEARCH RESULT ASSIGNMENTS (replaces search_result_assignments localStorage)
 // ============================================================================
 
-export const saveSearchResultAssignments = async (username, assignments) => {
-  const userId = await ensureUserExists(username)
+export const saveSearchResultAssignments = async (assignments) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -286,8 +272,8 @@ export const saveSearchResultAssignments = async (username, assignments) => {
   }
 }
 
-export const loadSearchResultAssignments = async (username) => {
-  const userId = await ensureUserExists(username)
+export const loadSearchResultAssignments = async () => {
+  const userId = await getCurrentUserId()
   if (!userId) return {}
 
   try {
@@ -319,8 +305,8 @@ export const loadSearchResultAssignments = async (username) => {
 // CUSTOM SEARCH RESULTS (replaces custom_search_results localStorage)
 // ============================================================================
 
-export const saveCustomSearchResults = async (username, results) => {
-  const userId = await ensureUserExists(username)
+export const saveCustomSearchResults = async (results) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -374,8 +360,8 @@ export const saveCustomSearchResults = async (username, results) => {
   }
 }
 
-export const loadCustomSearchResults = async (username) => {
-  const userId = await ensureUserExists(username)
+export const loadCustomSearchResults = async () => {
+  const userId = await getCurrentUserId()
   if (!userId) return {}
 
   try {
@@ -417,8 +403,8 @@ export const loadCustomSearchResults = async (username) => {
 // RESULT IMAGES (replaces result_images localStorage)
 // ============================================================================
 
-export const saveResultImages = async (username, images) => {
-  const userId = await ensureUserExists(username)
+export const saveResultImages = async (images) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -460,8 +446,8 @@ export const saveResultImages = async (username, images) => {
   }
 }
 
-export const loadResultImages = async (username) => {
-  const userId = await ensureUserExists(username)
+export const loadResultImages = async () => {
+  const userId = await getCurrentUserId()
   if (!userId) return {}
 
   try {
@@ -498,8 +484,8 @@ export const loadResultImages = async (username) => {
 // USER SETTINGS (replaces various settings localStorage keys)
 // ============================================================================
 
-export const saveSetting = async (username, key, value) => {
-  const userId = await ensureUserExists(username)
+export const saveSetting = async (key, value) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -524,8 +510,8 @@ export const saveSetting = async (username, key, value) => {
   }
 }
 
-export const loadSetting = async (username, key, defaultValue = null) => {
-  const userId = await ensureUserExists(username)
+export const loadSetting = async (key, defaultValue = null) => {
+  const userId = await getCurrentUserId()
   if (!userId) return defaultValue
 
   try {
@@ -556,8 +542,8 @@ export const loadSetting = async (username, key, defaultValue = null) => {
 // DELETED BUILTIN PAGES (replaces deleted_builtin_pages localStorage)
 // ============================================================================
 
-export const saveDeletedBuiltinPages = async (username, deletedPages) => {
-  const userId = await ensureUserExists(username)
+export const saveDeletedBuiltinPages = async (deletedPages) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -592,8 +578,8 @@ export const saveDeletedBuiltinPages = async (username, deletedPages) => {
   }
 }
 
-export const loadDeletedBuiltinPages = async (username) => {
-  const userId = await ensureUserExists(username)
+export const loadDeletedBuiltinPages = async () => {
+  const userId = await getCurrentUserId()
   if (!userId) return []
 
   try {
@@ -620,8 +606,8 @@ export const loadDeletedBuiltinPages = async (username) => {
 // CLICK LOGS (replaces click_logs localStorage)
 // ============================================================================
 
-export const saveClickLog = async (username, searchQuery, resultUrl, resultTitle) => {
-  const userId = await ensureUserExists(username)
+export const saveClickLog = async (searchQuery, resultUrl, resultTitle) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -646,8 +632,8 @@ export const saveClickLog = async (username, searchQuery, resultUrl, resultTitle
   }
 }
 
-export const loadClickLogs = async (username) => {
-  const userId = await ensureUserExists(username)
+export const loadClickLogs = async () => {
+  const userId = await getCurrentUserId()
   if (!userId) return {}
 
   try {
@@ -689,8 +675,8 @@ export const loadClickLogs = async (username) => {
 // ============================================================================
 
 // Save a single AI overview (for when he edits one overview)
-export const saveIndividualAIOverview = async (username, overview) => {
-  const userId = await ensureUserExists(username)
+export const saveIndividualAIOverview = async (overview) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -720,8 +706,8 @@ export const saveIndividualAIOverview = async (username, overview) => {
 }
 
 // Save a single custom search page (for when he creates/edits a page)
-export const saveIndividualCustomPage = async (username, queryKey, pageData) => {
-  const userId = await ensureUserExists(username)
+export const saveIndividualCustomPage = async (queryKey, pageData) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -752,8 +738,8 @@ export const saveIndividualCustomPage = async (username, queryKey, pageData) => 
 }
 
 // Save results for a single search type (for when he edits one search's results)
-export const saveIndividualSearchResults = async (username, searchType, searchResults) => {
-  const userId = await ensureUserExists(username)
+export const saveIndividualSearchResults = async (searchType, searchResults) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -795,8 +781,8 @@ export const saveIndividualSearchResults = async (username, searchType, searchRe
 }
 
 // Delete a single AI overview (for when he deletes an overview)
-export const deleteIndividualAIOverview = async (username, overviewId) => {
-  const userId = await ensureUserExists(username)
+export const deleteIndividualAIOverview = async (overviewId) => {
+  const userId = await getCurrentUserId()
   if (!userId) return false
 
   try {
@@ -823,8 +809,8 @@ export const deleteIndividualAIOverview = async (username, overviewId) => {
 // MIGRATION FROM LOCALSTORAGE
 // ============================================================================
 
-export const migrateFromLocalStorage = async (username) => {
-  console.log(`🔄 Starting migration from localStorage for user: ${username}`)
+export const migrateFromLocalStorage = async () => {
+  console.log(`🔄 Starting migration from localStorage`)
   
   try {
     // Import userData functions to read from localStorage
@@ -871,7 +857,7 @@ export const migrateFromLocalStorage = async (username) => {
     })
     
     // Save all data to Supabase
-    const success = await saveAllUserData(username, localData)
+    const success = await saveAllUserData(localData)
     
     if (success) {
       console.log('✅ Migration completed successfully')
@@ -893,8 +879,8 @@ export const migrateFromLocalStorage = async (username) => {
 // ============================================================================
 
 // Load ALL user data at once (replaces all individual localStorage.getItem calls)
-export const loadAllUserData = async (username) => {
-  console.log(`🔄 Loading all data for user: ${username}`)
+export const loadAllUserData = async () => {
+  console.log(`🔄 Loading all data for user`)
   
   const [
     customSearchPages,
@@ -908,19 +894,19 @@ export const loadAllUserData = async (username) => {
     pageAIOverviewSettings,
     clickLogs
   ] = await Promise.all([
-    loadCustomSearchPages(username),
-    loadAIOverviews(username),
-    loadCurrentAIText(username),
-    loadSearchResultAssignments(username),
-    loadCustomSearchResults(username),
-    loadResultImages(username),
-    loadDeletedBuiltinPages(username),
-    loadSetting(username, 'ai_overview_enabled', true),
-    loadSetting(username, 'page_ai_overview_settings', {}),
-    loadClickLogs(username)
+    loadCustomSearchPages(),
+    loadAIOverviews(),
+    loadCurrentAIText(),
+    loadSearchResultAssignments(),
+    loadCustomSearchResults(),
+    loadResultImages(),
+    loadDeletedBuiltinPages(),
+    loadSetting('ai_overview_enabled', true),
+    loadSetting('page_ai_overview_settings', {}),
+    loadClickLogs()
   ])
 
-  console.log(`✅ Loaded all data for user: ${username}`)
+  console.log(`✅ Loaded all data for user`)
   
   return {
     customSearchPages,
@@ -937,27 +923,27 @@ export const loadAllUserData = async (username) => {
 }
 
 // Save ALL user data at once (replaces all individual localStorage.setItem calls)
-export const saveAllUserData = async (username, data) => {
-  console.log(`🔄 Saving all data for user: ${username}`)
+export const saveAllUserData = async (data) => {
+  console.log(`🔄 Saving all data for user`)
   
   const results = await Promise.all([
-    saveCustomSearchPages(username, data.customSearchPages || {}),
-    saveAIOverviews(username, data.aiOverviews || []),
-    saveCurrentAIText(username, data.currentAIText || ''),
-    saveSearchResultAssignments(username, data.searchResultAssignments || {}),
-    saveCustomSearchResults(username, data.customSearchResults || {}),
-    saveResultImages(username, data.resultImages || {}),
-    saveDeletedBuiltinPages(username, data.deletedBuiltinPages || []),
-    saveSetting(username, 'ai_overview_enabled', data.aiOverviewEnabled !== undefined ? data.aiOverviewEnabled : true),
-    saveSetting(username, 'page_ai_overview_settings', data.pageAIOverviewSettings || {})
+    saveCustomSearchPages(data.customSearchPages || {}),
+    saveAIOverviews(data.aiOverviews || []),
+    saveCurrentAIText(data.currentAIText || ''),
+    saveSearchResultAssignments(data.searchResultAssignments || {}),
+    saveCustomSearchResults(data.customSearchResults || {}),
+    saveResultImages(data.resultImages || {}),
+    saveDeletedBuiltinPages(data.deletedBuiltinPages || []),
+    saveSetting('ai_overview_enabled', data.aiOverviewEnabled !== undefined ? data.aiOverviewEnabled : true),
+    saveSetting('page_ai_overview_settings', data.pageAIOverviewSettings || {})
   ])
 
   const allSuccessful = results.every(result => result === true)
   
   if (allSuccessful) {
-    console.log(`✅ Successfully saved all data for user: ${username}`)
+    console.log(`✅ Successfully saved all data for user`)
   } else {
-    console.warn(`⚠️ Some data failed to save for user: ${username}`)
+    console.warn(`⚠️ Some data failed to save for user`)
   }
   
   return allSuccessful
