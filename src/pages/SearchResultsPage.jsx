@@ -2947,12 +2947,18 @@ function EnhancedSearchManagementModal({
           )}
 
           {activeTab === 'pages' && selectedPageForResults && (
-            <div style={{ padding: '2rem', textAlign: 'center' }}>
-              <h3>Debug: Page Results View</h3>
-              <p>Page: {selectedPageForResults.name}</p>
-              <button onClick={() => setSelectedPageForResults(null)}>Back</button>
-              <p>If you see this without errors, the issue is in PageResultsView component</p>
-            </div>
+            <PageResultsView 
+              page={selectedPageForResults}
+              pageResults={customSearchResults[selectedPageForResults.key] || []}
+              onBack={() => setSelectedPageForResults(null)}
+              onEditResult={() => onEditResults(selectedPageForResults.key)}
+              onAddResult={() => onEditResults(selectedPageForResults.key)}
+              onDeleteResult={(resultId) => {
+                removeCustomSearchResult(selectedPageForResults.key, resultId)
+                setSelectedPageForResults({ ...selectedPageForResults })
+              }}
+              onReorderResults={(fromIndex, toIndex) => onReorderResults(selectedPageForResults.key, fromIndex, toIndex)}
+            />
           )}
           
           {activeTab === 'ai-assignments' && (
@@ -3380,83 +3386,9 @@ function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult,
           </button>
         </div>
       )}
-
-      {/* Cloud Sync Modal */}
-      {showSyncModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999999
-        }}>
-          <div style={{
-            backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            padding: '2rem',
-            maxWidth: '500px',
-            width: '90%',
-            maxHeight: '80vh',
-            overflow: 'auto'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <h2 style={{ 
-                margin: 0, 
-                color: 'var(--text)',
-                fontSize: '1.25rem',
-                fontWeight: '600'
-              }}>
-                Cloud Sync Management
-              </h2>
-              <button
-                onClick={() => setShowSyncModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--muted)',
-                  cursor: 'pointer',
-                  fontSize: '1.5rem'
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Status Display */}
-            {syncStatus && (
-              <div style={{
-                padding: '1rem',
-                backgroundColor: 'var(--bg)',
-                border: '1px solid var(--border)',
-                borderRadius: '6px',
-                marginBottom: '1.5rem',
-                color: 'var(--text)',
-                fontSize: '14px',
-                fontFamily: 'monospace'
-              }}>
-                {syncStatus}
-              </div>
-            )}
-
-            {/* Current User Info */}
-            <div style={{
-              padding: '1rem',
-              backgroundColor: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              marginBottom: '1.5rem'
-            }}>
+    </div>
+  )
+}
               <div style={{ color: 'var(--text)', fontSize: '14px', marginBottom: '0.5rem' }}>
                 <strong>Current User:</strong> {currentUser || 'Not logged in'}
               </div>
