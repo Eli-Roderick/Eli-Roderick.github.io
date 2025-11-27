@@ -241,6 +241,8 @@ export default function SearchResultsPage() {
   const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState({})
   const [backgroundSyncing, setBackgroundSyncing] = useState(false)
   const [manualSyncing, setManualSyncing] = useState(false)
+  const [showSyncModal, setShowSyncModal] = useState(false)
+  const [syncStatus, setSyncStatus] = useState('')
 
   // User login/logout handlers - restore localStorage functionality
   const handleUserLogin = (username) => {
@@ -279,11 +281,12 @@ export default function SearchResultsPage() {
   // Manual sync function to save all changes to Supabase
   const handleManualSync = async () => {
     if (!currentUser) {
-      alert('Please log in to save to cloud')
+      setSyncStatus('❌ Please log in to save to cloud')
       return
     }
 
     setManualSyncing(true)
+    setSyncStatus('💾 Saving all data to cloud...')
     
     try {
       console.log(`💾 Manual sync starting for user: ${currentUser}`)
@@ -301,8 +304,10 @@ export default function SearchResultsPage() {
         savePageAIOverviewSettings
       } = await import('../utils/cloudData')
 
-      // Save all current state to Supabase
-      await Promise.all([
+      setSyncStatus('📄 Saving pages and settings...')
+      
+      // Save all current state to Supabase with individual error handling
+      const results = await Promise.allSettled([
         saveCustomSearchPages(currentUser, customSearchPages),
         saveAIOverviews(currentUser, aiOverviews),
         saveCurrentAIText(currentUser, userAIText),
@@ -314,14 +319,60 @@ export default function SearchResultsPage() {
         savePageAIOverviewSettings(currentUser, pageAIOverviewSettings)
       ])
 
-      console.log(`✅ Manual sync complete - all data saved to Supabase`)
-      alert('✅ All changes saved to cloud successfully!')
+      // Check if any saves failed
+      const failures = results.filter(result => result.status === 'rejected')
+      
+      if (failures.length === 0) {
+        console.log(`✅ Manual sync complete - all data saved to Supabase`)
+        setSyncStatus('✅ All changes saved successfully!')
+      } else {
+        console.warn(`⚠️ Some saves failed:`, failures)
+        setSyncStatus(`⚠️ Saved with ${failures.length} errors. Check console for details.`)
+      }
       
     } catch (error) {
       console.error('❌ Manual sync failed:', error)
-      alert('❌ Failed to save to cloud. Please try again.')
+      setSyncStatus('❌ Save failed. Check console for details.')
     } finally {
       setManualSyncing(false)
+    }
+  }
+
+  // Load fresh data from Supabase
+  const handleRefreshFromCloud = async () => {
+    if (!currentUser) {
+      setSyncStatus('❌ Please log in to refresh from cloud')
+      return
+    }
+
+    setBackgroundSyncing(true)
+    setSyncStatus('🔄 Loading fresh data from cloud...')
+    
+    try {
+      console.log(`🔄 Refreshing data from Supabase for user: ${currentUser}`)
+      
+      const { loadAllUserData } = await import('../utils/cloudData')
+      const cloudData = await loadAllUserData(currentUser)
+      
+      // Update all state with fresh cloud data
+      setCustomSearchPages(cloudData.customSearchPages || {})
+      setDeletedBuiltinPages(cloudData.deletedBuiltinPages || [])
+      setAIOverviews(cloudData.aiOverviews || [])
+      setSearchResultAssignments(cloudData.searchResultAssignments || {})
+      setCustomSearchResults(cloudData.customSearchResults || {})
+      setResultImages(cloudData.resultImages || {})
+      setUserAIText(cloudData.currentAIText || '')
+      setAIOverviewEnabled(cloudData.aiOverviewEnabled !== undefined ? cloudData.aiOverviewEnabled : true)
+      setPageAIOverviewSettings(cloudData.pageAIOverviewSettings || {})
+
+      setSyncStatus('✅ Data refreshed from cloud successfully!')
+      console.log(`✅ Data refreshed from Supabase`)
+      
+    } catch (error) {
+      console.error('❌ Refresh failed:', error)
+      setSyncStatus('❌ Refresh failed. Check console for details.')
+    } finally {
+      setBackgroundSyncing(false)
     }
   }
 
@@ -1130,23 +1181,17 @@ export default function SearchResultsPage() {
                 </div>
               ) : null}
               
-              {/* Manual Sync Button */}
+              {/* Cloud Sync Button */}
               <button
-                className={`border rounded px-2 py-1 text-sm whitespace-nowrap text-white ${
-                  manualSyncing 
-                    ? 'bg-gray-500 cursor-not-allowed' 
-                    : 'bg-blue-500 hover:bg-blue-600'
-                }`}
-                onClick={() => handleManualSync()}
-                disabled={manualSyncing}
-                title="Save all changes to cloud"
+                className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-blue-500 text-white hover:bg-blue-600"
+                onClick={() => {
+                  setSyncStatus('')
+                  setShowSyncModal(true)
+                }}
+                title="Manage cloud sync"
               >
-                <span className={`material-symbols-outlined align-middle mr-1 ${
-                  manualSyncing ? 'animate-spin' : ''
-                }`}>
-                  {manualSyncing ? 'sync' : 'cloud_upload'}
-                </span>
-                {manualSyncing ? 'Saving...' : 'Save to Cloud'}
+                <span className="material-symbols-outlined align-middle mr-1">cloud_sync</span>
+                Cloud Sync
               </button>
               
               {/* Search Management Button */}
@@ -3373,6 +3418,163 @@ function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult,
           >
             Add First Search Result
           </button>
+        </div>
+      )}
+
+      {/* Cloud Sync Modal */}
+      {showSyncModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 999999
+        }}>
+          <div style={{
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            padding: '2rem',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{ 
+                margin: 0, 
+                color: 'var(--text)',
+                fontSize: '1.25rem',
+                fontWeight: '600'
+              }}>
+                Cloud Sync Management
+              </h2>
+              <button
+                onClick={() => setShowSyncModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--muted)',
+                  cursor: 'pointer',
+                  fontSize: '1.5rem'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Status Display */}
+            {syncStatus && (
+              <div style={{
+                padding: '1rem',
+                backgroundColor: 'var(--bg)',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                marginBottom: '1.5rem',
+                color: 'var(--text)',
+                fontSize: '14px',
+                fontFamily: 'monospace'
+              }}>
+                {syncStatus}
+              </div>
+            )}
+
+            {/* Current User Info */}
+            <div style={{
+              padding: '1rem',
+              backgroundColor: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ color: 'var(--text)', fontSize: '14px', marginBottom: '0.5rem' }}>
+                <strong>Current User:</strong> {currentUser || 'Not logged in'}
+              </div>
+              <div style={{ color: 'var(--muted)', fontSize: '12px' }}>
+                All changes are saved locally until you sync to cloud
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              {/* Save to Cloud */}
+              <button
+                onClick={handleManualSync}
+                disabled={manualSyncing || !currentUser}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: manualSyncing ? '#6b7280' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: manualSyncing ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span className={`material-symbols-outlined ${manualSyncing ? 'animate-spin' : ''}`}>
+                  {manualSyncing ? 'sync' : 'cloud_upload'}
+                </span>
+                {manualSyncing ? 'Saving to Cloud...' : 'Save All Changes to Cloud'}
+              </button>
+
+              {/* Refresh from Cloud */}
+              <button
+                onClick={handleRefreshFromCloud}
+                disabled={backgroundSyncing || !currentUser}
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: backgroundSyncing ? '#6b7280' : '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: backgroundSyncing ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span className={`material-symbols-outlined ${backgroundSyncing ? 'animate-spin' : ''}`}>
+                  {backgroundSyncing ? 'sync' : 'cloud_download'}
+                </span>
+                {backgroundSyncing ? 'Loading from Cloud...' : 'Refresh from Cloud'}
+              </button>
+
+              {/* Warning */}
+              <div style={{
+                padding: '1rem',
+                backgroundColor: '#fef3c7',
+                border: '1px solid #f59e0b',
+                borderRadius: '6px',
+                color: '#92400e',
+                fontSize: '12px'
+              }}>
+                <strong>⚠️ Important:</strong> "Refresh from Cloud" will overwrite your local changes. 
+                Save to cloud first if you want to keep your current work.
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
