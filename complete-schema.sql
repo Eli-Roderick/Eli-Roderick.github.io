@@ -147,7 +147,7 @@ CREATE INDEX idx_ai_overviews_user_id ON public.ai_overviews(user_id);
 CREATE INDEX idx_search_result_assignments_user_search ON public.search_result_assignments(user_id, search_type);
 CREATE INDEX idx_custom_search_results_user_search ON public.custom_search_results(user_id, search_type);
 CREATE INDEX idx_custom_search_results_order ON public.custom_search_results(user_id, search_type, display_order);
-CREATE INDEX idx_result_images_user_url ON public.result_images(user_id, result_url);
+CREATE INDEX idx_result_images_user_url ON public.result_images(user_id, result_url); 
 CREATE INDEX idx_deleted_builtin_pages_user ON public.deleted_builtin_pages(user_id);
 CREATE INDEX idx_user_settings_user_key ON public.user_settings(user_id, setting_key);
 CREATE INDEX idx_click_logs_user_id ON public.click_logs(user_id);
