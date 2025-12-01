@@ -540,8 +540,34 @@ export default function HomePage() {
                           {pageResults.length} custom results • {aiAssignments[page.id] ? 'AI assigned' : 'No AI assigned'}
                         </p>
                         {page.type === 'custom' && (
-                          <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)' }}>
-                            URL: /session?q={page.queryKey}
+                          <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>URL: /session?q={page.queryKey}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const fullUrl = `https://eli-roderick.github.io/session?q=${encodeURIComponent(page.queryKey)}`
+                                const icon = e.currentTarget.querySelector('span')
+                                navigator.clipboard.writeText(fullUrl)
+                                  .then(() => {
+                                    icon.textContent = 'check'
+                                    setTimeout(() => { icon.textContent = 'content_copy' }, 1500)
+                                  })
+                                  .catch(() => alert('Failed to copy'))
+                              }}
+                              style={{
+                                padding: '0.125rem',
+                                border: 'none',
+                                borderRadius: '3px',
+                                backgroundColor: 'transparent',
+                                color: 'var(--muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center'
+                              }}
+                              title="Copy URL"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>content_copy</span>
+                            </button>
                           </p>
                         )}
                       </div>
