@@ -2,18 +2,18 @@ import React from 'react'
 
 export default function AdResult({ title, url, snippet, company, query, onClick }) {
   const handleClick = () => {
-    onClick?.({ query, url })
+    onClick?.({ query, url, title, type: 'ad' })
     window.open(url, '_blank', 'noopener,noreferrer')
   }
   const displayUrl = url.replace(/^https?:\/\//, '')
   const domain = (() => { try { return new URL(url).hostname } catch { return displayUrl.split('/')[0] } })()
   
-  // Use Google's favicon service for consistency with SearchResult component
+  // Use DuckDuckGo's favicon service for transparent icons
   const getFaviconUrl = (domain) => {
     try {
-      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+      return `https://icons.duckduckgo.com/ip3/${domain}.ico`
     } catch {
-      return `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+      return `https://icons.duckduckgo.com/ip3/example.com.ico`
     }
   }
   
@@ -34,8 +34,8 @@ export default function AdResult({ title, url, snippet, company, query, onClick 
             loading="lazy"
             onError={(e) => {
               // Fallback to a generic icon if favicon fails to load
-              if (e.target.src !== `https://www.google.com/s2/favicons?domain=example.com&sz=32`) {
-                e.target.src = `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+              if (e.target.src !== `https://icons.duckduckgo.com/ip3/example.com.ico`) {
+                e.target.src = `https://icons.duckduckgo.com/ip3/example.com.ico`
               } else {
                 // If even the fallback fails, hide the image
                 e.target.style.display = 'none'

@@ -23,7 +23,10 @@ export default function SearchPage({
           {/* AI Overview */}
           {aiOverview?.show && aiOverviewEnabled && (userAIText || aiOverview.text) && (
             <div className="mt-0 md:mt-4 mb-4">
-              <SimpleAIOverview htmlContent={userAIText || aiOverview.text} />
+              <SimpleAIOverview 
+                htmlContent={userAIText || aiOverview.text} 
+                onLinkClick={onResultClick}
+              />
               <div className="ai-separator" />
             </div>
           )}

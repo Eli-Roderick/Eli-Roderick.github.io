@@ -205,7 +205,7 @@ function updateScrollIndicators(containerId) {
   }
 }
 
-export default function SimpleAIOverview({ htmlContent }) {
+export default function SimpleAIOverview({ htmlContent, onLinkClick }) {
   if (!htmlContent) {
     return null
   }
@@ -287,6 +287,21 @@ export default function SimpleAIOverview({ htmlContent }) {
     }
   }
 
+  // Handle link clicks within AI overview content
+  const handleContentClick = (e) => {
+    const link = e.target.closest('a')
+    if (link && link.href) {
+      // Track the click if callback provided
+      if (onLinkClick) {
+        onLinkClick({
+          url: link.href,
+          title: link.textContent || link.href,
+          type: 'ai_link'
+        })
+      }
+    }
+  }
+
 
   return (
     <section className="ai-card">
@@ -300,6 +315,7 @@ export default function SimpleAIOverview({ htmlContent }) {
       <div
         className={`ai-body ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
         dangerouslySetInnerHTML={{ __html: processedContent }}
+        onClick={handleContentClick}
       />
 
       {/* Show more control */}

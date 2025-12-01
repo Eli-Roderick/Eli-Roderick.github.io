@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import SimpleAIOverview from '../components/SimpleAIOverview'
 import SearchResult from '../components/SearchResult'
@@ -8,12 +8,10 @@ import RichTextEditor from '../components/RichTextEditor'
 import SearchPage from './SearchPage'
 import UserAuth from '../components/UserAuth'
 import SavingIndicator from '../components/SavingIndicator'
-import { ClickLogger } from '../utils/logger'
 import { loadConfigByPath } from '../utils/config'
-import { initializeUserData, getUserData, setUserData, migrateExistingData } from '../utils/userData'
-// REMOVED auto-save imports - now using manual save only to prevent data conflicts
-
-const logger = new ClickLogger()
+import useRealtimeData from '../hooks/useRealtimeData'
+import { getCurrentUser } from '../utils/supabase'
+import { getAnyActiveSession, addSessionActivity } from '../utils/cloudDataV2'
 
 // Query to config path mapping (only keep hiking boots page as built-in)
 const queryToConfig = {
@@ -38,18 +36,11 @@ function shuffle(arr) {
 export default function SearchResultsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const isAdmin = typeof window !== 'undefined' && window.location.href.toLowerCase().endsWith('admin')
-  
-  // Helper function to preserve admin parameter in navigation
-  const navigateWithAdmin = (url) => {
-    const finalUrl = isAdmin ? `${url}admin` : url
-    navigate(finalUrl)
-  }
   
   // Get search query from URL parameters
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
   
-  // User management state - restore localStorage for now
+  // User management state - use cached user immediately, verify in background
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       return localStorage.getItem('current_user') || null
@@ -57,122 +48,227 @@ export default function SearchResultsPage() {
       return null
     }
   })
-  const [loading, setLoading] = useState(true)
+  const [authChecked, setAuthChecked] = useState(!!localStorage.getItem('current_user'))
   
-  // Data state - loaded from Supabase
-  const [customSearchPages, setCustomSearchPages] = useState({})
-  const [deletedBuiltinPages, setDeletedBuiltinPages] = useState([])
-  const [aiOverviews, setAIOverviews] = useState([])
-  const [searchResultAssignments, setSearchResultAssignments] = useState({})
-  const [customSearchResults, setCustomSearchResults] = useState({})
-  const [resultImages, setResultImages] = useState({})
-  
-  // Initialize user data manager when user changes
+  // Verify Supabase session in background
   useEffect(() => {
-    if (currentUser) {
-      initializeUserData(currentUser)
+    const checkAuth = async () => {
+      try {
+        const user = await getCurrentUser()
+        if (user) {
+          const username = user.user_metadata?.username || 
+                          user.user_metadata?.display_name || 
+                          user.email?.split('@')[0] || 
+                          'user'
+          setCurrentUser(username)
+          localStorage.setItem('current_user', username)
+        } else {
+          // No valid Supabase session - clear localStorage
+          setCurrentUser(null)
+          localStorage.removeItem('current_user')
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error)
+        setCurrentUser(null)
+      } finally {
+        setAuthChecked(true)
+      }
     }
-  }, [currentUser])
+    checkAuth()
+  }, [])
   
-  // Fast load: Show cached data instantly, then sync from Supabase in background
+  // Use realtime data hook for live sync
+  const {
+    pages: realtimePages,
+    resultsByPage,
+    aiOverviews: realtimeAIOverviews,
+    aiAssignments,
+    loading: realtimeLoading,
+    realtimeConnected,
+    addPage,
+    editPage,
+    removePage,
+    addResult,
+    editResult,
+    removeResult,
+    reorderResults,
+    addAIOverview,
+    editAIOverview,
+    removeAIOverview,
+    assignAI,
+    unassignAI,
+    getPageById,
+    getPageByQueryKey,
+    getResultsForPage,
+    getAIOverviewForPage,
+    refresh: refreshRealtimeData
+  } = useRealtimeData(currentUser)
+  
+  // Active session tracking
+  const [activeSession, setActiveSession] = useState(null)
+  const lastScrollY = React.useRef(0)
+  const scrollDebounceTimer = React.useRef(null)
+  
+  // Load active session on mount
   useEffect(() => {
-    const fastLoadWithBackgroundSync = async () => {
+    const loadActiveSession = async () => {
       if (!currentUser) {
-        // Clear all data when no user
-        setCustomSearchPages({})
-        setDeletedBuiltinPages([])
-        setAIOverviews([])
-        setSearchResultAssignments({})
-        setCustomSearchResults({})
-        setResultImages({})
-        setUserAIText('')
-        setPageAIOverviewSettings({})
-        setLoading(false)
+        setActiveSession(null)
         return
       }
-
-      console.log(`⚡ Fast loading cached data for user: ${currentUser}`)
-
-      // PHASE 1: Instant render from localStorage cache
-      try {
-        setCustomSearchPages(getUserData('custom_search_pages', {}))
-        setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
-        setAIOverviews(getUserData('ai_overviews', []))
-        setSearchResultAssignments(getUserData('search_result_assignments', {}))
-        setCustomSearchResults(getUserData('custom_search_results', {}))
-        setUserAIText(getUserData('ai_overview_text', ''))
-        setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
-        setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
+      const session = await getAnyActiveSession()
+      setActiveSession(session)
+    }
+    loadActiveSession()
+    
+    // Poll for session changes every 5 seconds (in case session started/ended elsewhere)
+    const interval = setInterval(loadActiveSession, 5000)
+    return () => clearInterval(interval)
+  }, [currentUser])
+  
+  // Track scroll activity
+  useEffect(() => {
+    if (!activeSession) return
+    
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      const scrollDirection = currentScrollY > lastScrollY.current ? 'SCROLL_DOWN' : 'SCROLL_UP'
+      
+      // Only track if scrolled more than 10px
+      if (Math.abs(currentScrollY - lastScrollY.current) > 10) {
+        // Debounce scroll events
+        if (scrollDebounceTimer.current) {
+          clearTimeout(scrollDebounceTimer.current)
+        }
         
-        try {
-          const savedImages = localStorage.getItem('result_images')
-          if (savedImages) setResultImages(JSON.parse(savedImages))
-        } catch (imgError) {
-          console.warn('Failed to load result images:', imgError)
-        }
-
-        console.log(`✅ Instant render complete - showing cached data`)
-        setLoading(false) // Show UI immediately with cached data
-      } catch (error) {
-        console.warn('Failed to load cached data:', error)
-        setLoading(false)
+        scrollDebounceTimer.current = setTimeout(() => {
+          addSessionActivity(activeSession.id, scrollDirection, {
+            from: lastScrollY.current,
+            to: currentScrollY,
+            query: searchQuery
+          })
+          lastScrollY.current = currentScrollY
+        }, 500)
       }
-
-      // PHASE 2: Background sync from Supabase (non-blocking)
-      setTimeout(async () => {
-        try {
-          setBackgroundSyncing(true)
-          console.log(`🔄 Background sync starting for user: ${currentUser}`)
-          
-          // Import cloud data functions
-          const {
-            loadAllUserData,
-            migrateFromLocalStorage
-          } = await import('../utils/cloudData')
-
-          // Check if this is first time - migrate from localStorage if needed
-          const hasCloudData = await checkIfUserHasCloudData(currentUser)
-          if (!hasCloudData) {
-            console.log('🔄 First time user - migrating from localStorage...')
-            await migrateFromLocalStorage(currentUser)
-          }
-
-          // Load fresh data from Supabase
-          const cloudData = await loadAllUserData(currentUser)
-          
-          // Update state with fresh cloud data (this will re-render with latest data)
-          setCustomSearchPages(cloudData.customSearchPages || {})
-          setDeletedBuiltinPages(cloudData.deletedBuiltinPages || [])
-          setAIOverviews(cloudData.aiOverviews || [])
-          setSearchResultAssignments(cloudData.searchResultAssignments || {})
-          setCustomSearchResults(cloudData.customSearchResults || {})
-          setResultImages(cloudData.resultImages || {})
-          setUserAIText(cloudData.currentAIText || '')
-          setAIOverviewEnabled(cloudData.aiOverviewEnabled !== undefined ? cloudData.aiOverviewEnabled : true)
-          setPageAIOverviewSettings(cloudData.pageAIOverviewSettings || {})
-
-          console.log(`✅ Background sync complete - data updated from Supabase`)
-        } catch (error) {
-          console.error('❌ Background sync failed:', error)
-          // Keep using cached data if sync fails
-        } finally {
-          setBackgroundSyncing(false)
-        }
-      }, 100) // Small delay to let UI render first
+    }
+    
+    lastScrollY.current = window.scrollY
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (scrollDebounceTimer.current) {
+        clearTimeout(scrollDebounceTimer.current)
+      }
+    }
+  }, [activeSession, searchQuery])
+  
+  // Function to track URL clicks
+  const trackUrlClick = useCallback(async (url, title, type = 'link') => {
+    if (!activeSession) return
+    
+    await addSessionActivity(activeSession.id, 'URL_CLICK', {
+      url,
+      title,
+      type, // 'link', 'result', 'ad', 'ai_link', etc.
+      query: searchQuery
+    })
+  }, [activeSession, searchQuery])
+  
+  // Convert realtime pages array to object format for backward compatibility
+  const customSearchPages = useMemo(() => {
+    const pagesObj = {}
+    realtimePages.forEach(page => {
+      pagesObj[page.query_key] = {
+        id: page.id,
+        key: page.search_key,
+        query: page.query,
+        displayName: page.display_name
+      }
+    })
+    return pagesObj
+  }, [realtimePages])
+  
+  // Convert resultsByPage to old format (keyed by search_key instead of page_id)
+  const customSearchResults = useMemo(() => {
+    const resultsObj = {}
+    realtimePages.forEach(page => {
+      const pageResults = resultsByPage[page.id] || []
+      resultsObj[page.search_key] = pageResults.map(r => ({
+        id: r.id,
+        title: r.title,
+        url: r.url,
+        snippet: r.snippet,
+        favicon: r.favicon
+      }))
+    })
+    return resultsObj
+  }, [realtimePages, resultsByPage])
+  
+  // Convert AI overviews to old format
+  const aiOverviews = useMemo(() => {
+    return realtimeAIOverviews.map(o => ({
+      id: o.id,
+      title: o.title,
+      text: o.content,
+      createdAt: o.created_at
+    }))
+  }, [realtimeAIOverviews])
+  
+  // Convert AI assignments to old format (keyed by search_key)
+  const searchResultAssignments = useMemo(() => {
+    const assignments = {}
+    realtimePages.forEach(page => {
+      const aiOverviewId = aiAssignments[page.id]
+      if (aiOverviewId) {
+        assignments[page.search_key] = aiOverviewId
+      }
+    })
+    return assignments
+  }, [realtimePages, aiAssignments])
+  
+  const [loading, setLoading] = useState(true)
+  const [deletedBuiltinPages, setDeletedBuiltinPages] = useState([])
+  const [resultImages, setResultImages] = useState({})
+  
+  // Sync loading state with realtime hook
+  useEffect(() => {
+    setLoading(realtimeLoading)
+  }, [realtimeLoading])
+  
+  // Load cached settings from localStorage (for settings not yet in realtime)
+  useEffect(() => {
+    if (!currentUser) {
+      setDeletedBuiltinPages([])
+      setResultImages({})
+      setUserAIText('')
+      setPageAIOverviewSettings({})
+      return
     }
 
-    fastLoadWithBackgroundSync()
+    try {
+      setDeletedBuiltinPages(getUserData('deleted_builtin_pages', []))
+      setUserAIText(getUserData('ai_overview_text', ''))
+      setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
+      setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
+      
+      const savedImages = localStorage.getItem('result_images')
+      if (savedImages) setResultImages(JSON.parse(savedImages))
+    } catch (error) {
+      console.warn('Failed to load cached settings:', error)
+    }
   }, [currentUser])
 
-  // Helper function to check if user has any data in Supabase
-  const checkIfUserHasCloudData = async (username) => {
-    try {
-      const { loadCustomSearchPages } = await import('../utils/cloudData')
-      const pages = await loadCustomSearchPages(username)
-      return Object.keys(pages).length > 0
-    } catch (error) {
-      return false
+  // Log realtime connection status
+  useEffect(() => {
+    if (realtimeConnected) {
+      console.log('📡 Realtime sync connected')
     }
+  }, [realtimeConnected])
+
+  // Helper function kept for backward compatibility
+  const checkIfUserHasCloudData = async (username) => {
+    return realtimePages.length > 0
   }
   
   // Find matching config - use useMemo to recalculate when customSearchPages changes
@@ -224,25 +320,18 @@ export default function SearchResultsPage() {
   const [userAIText, setUserAIText] = useState('')
   const [showPasteModal, setShowPasteModal] = useState(false)
   const [draftAIText, setDraftAIText] = useState('')
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showImageManager, setShowImageManager] = useState(false)
   const [selectedResultForImages, setSelectedResultForImages] = useState(null)
   const [showAIOverviewManager, setShowAIOverviewManager] = useState(false)
   const [modalView, setModalView] = useState('editor')
   const [draftTitle, setDraftTitle] = useState('')
-  const [showClickTracker, setShowClickTracker] = useState(false)
-  const [currentUserId, setCurrentUserId] = useState('')
-  const [clickLogs, setClickLogs] = useState({})
   const [selectedAIOverviewId, setSelectedAIOverviewId] = useState(null)
   const [showSearchManagement, setShowSearchManagement] = useState(false)
   const [showSearchResultsEditor, setShowSearchResultsEditor] = useState(false)
   const [showNewPageEditor, setShowNewPageEditor] = useState(false)
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(true)
   const [pageAIOverviewSettings, setPageAIOverviewSettings] = useState({})
-  const [backgroundSyncing, setBackgroundSyncing] = useState(false)
-  const [manualSyncing, setManualSyncing] = useState(false)
-  const [showSyncModal, setShowSyncModal] = useState(false)
-  const [syncStatus, setSyncStatus] = useState('')
+  const [showFinalizeDialog, setShowFinalizeDialog] = useState(false)
 
   // User login/logout handlers - restore localStorage functionality
   const handleUserLogin = (username) => {
@@ -256,8 +345,17 @@ export default function SearchResultsPage() {
     // Data will be loaded by the useEffect that watches currentUser
   }
 
-  const handleUserLogout = () => {
+  const handleUserLogout = async () => {
     console.log(`🔐 User logged out: ${currentUser}`)
+    
+    // Sign out from Supabase
+    try {
+      const { signOut } = await import('../utils/supabase')
+      await signOut()
+    } catch (error) {
+      console.warn('Supabase signOut error:', error)
+    }
+    
     setCurrentUser(null)
     try {
       localStorage.removeItem('current_user')
@@ -265,115 +363,17 @@ export default function SearchResultsPage() {
       console.warn('Failed to remove user from localStorage:', error)
     }
     
-    // Clear all user-specific state
-    setCustomSearchPages({})
+    // Clear local-only state (realtime hook clears its own data)
     setDeletedBuiltinPages([])
-    setAIOverviews([])
-    setSearchResultAssignments({})
-    setCustomSearchResults({})
     setResultImages({})
     setUserAIText('')
     setPageAIOverviewSettings({})
     setSelectedAIOverviewId(null)
-    setClickLogs({})
   }
 
-  // Manual sync function to save all changes to Supabase
-  const handleManualSync = async () => {
-    if (!currentUser) {
-      setSyncStatus('❌ Please log in to save to cloud')
-      return
-    }
-
-    setManualSyncing(true)
-    setSyncStatus('💾 Saving all data to cloud...')
-    
-    try {
-      console.log(`💾 Manual sync starting for user: ${currentUser}`)
-      
-      // Import cloud data functions
-      const {
-        saveCustomSearchPages,
-        saveAIOverviews,
-        saveCurrentAIText,
-        saveSearchResultAssignments,
-        saveCustomSearchResults,
-        saveResultImages,
-        saveDeletedBuiltinPages,
-        saveAIOverviewEnabled,
-        savePageAIOverviewSettings
-      } = await import('../utils/cloudData')
-
-      setSyncStatus('📄 Saving pages and settings...')
-      
-      // Save all current state to Supabase with individual error handling
-      const results = await Promise.allSettled([
-        saveCustomSearchPages(currentUser, customSearchPages),
-        saveAIOverviews(currentUser, aiOverviews),
-        saveCurrentAIText(currentUser, userAIText),
-        saveSearchResultAssignments(currentUser, searchResultAssignments),
-        saveCustomSearchResults(currentUser, customSearchResults),
-        saveResultImages(currentUser, resultImages),
-        saveDeletedBuiltinPages(currentUser, deletedBuiltinPages),
-        saveAIOverviewEnabled(currentUser, aiOverviewEnabled),
-        savePageAIOverviewSettings(currentUser, pageAIOverviewSettings)
-      ])
-
-      // Check if any saves failed
-      const failures = results.filter(result => result.status === 'rejected')
-      
-      if (failures.length === 0) {
-        console.log(`✅ Manual sync complete - all data saved to Supabase`)
-        setSyncStatus('✅ All changes saved successfully!')
-      } else {
-        console.warn(`⚠️ Some saves failed:`, failures)
-        setSyncStatus(`⚠️ Saved with ${failures.length} errors. Check console for details.`)
-      }
-      
-    } catch (error) {
-      console.error('❌ Manual sync failed:', error)
-      setSyncStatus('❌ Save failed. Check console for details.')
-    } finally {
-      setManualSyncing(false)
-    }
-  }
-
-  // Load fresh data from Supabase
-  const handleRefreshFromCloud = async () => {
-    if (!currentUser) {
-      setSyncStatus('❌ Please log in to refresh from cloud')
-      return
-    }
-
-    setBackgroundSyncing(true)
-    setSyncStatus('🔄 Loading fresh data from cloud...')
-    
-    try {
-      console.log(`🔄 Refreshing data from Supabase for user: ${currentUser}`)
-      
-      const { loadAllUserData } = await import('../utils/cloudData')
-      const cloudData = await loadAllUserData(currentUser)
-      
-      // Update all state with fresh cloud data
-      setCustomSearchPages(cloudData.customSearchPages || {})
-      setDeletedBuiltinPages(cloudData.deletedBuiltinPages || [])
-      setAIOverviews(cloudData.aiOverviews || [])
-      setSearchResultAssignments(cloudData.searchResultAssignments || {})
-      setCustomSearchResults(cloudData.customSearchResults || {})
-      setResultImages(cloudData.resultImages || {})
-      setUserAIText(cloudData.currentAIText || '')
-      setAIOverviewEnabled(cloudData.aiOverviewEnabled !== undefined ? cloudData.aiOverviewEnabled : true)
-      setPageAIOverviewSettings(cloudData.pageAIOverviewSettings || {})
-
-      setSyncStatus('✅ Data refreshed from cloud successfully!')
-      console.log(`✅ Data refreshed from Supabase`)
-      
-    } catch (error) {
-      console.error('❌ Refresh failed:', error)
-      setSyncStatus('❌ Refresh failed. Check console for details.')
-    } finally {
-      setBackgroundSyncing(false)
-    }
+  // Refresh data from realtime hook
+  const handleRefreshFromCloud = () => {
+    refreshRealtimeData()
   }
 
 
@@ -461,12 +461,10 @@ export default function SearchResultsPage() {
   
   const displayQuery = getDisplayQuery()
 
-  const handleResultClick = ({ query, url }) => {
-    logger.log({ query, url })
-    logClick('search_result', url)
+  const handleResultClick = ({ query, url, title, type = 'result' }) => {
+    // Track session activity
+    trackUrlClick(url, title || url, type)
   }
-
-  const handleDownload = () => logger.downloadCSV()
 
   const effectiveConfig = useMemo(() => {
     try {
@@ -551,13 +549,12 @@ export default function SearchResultsPage() {
     setShowPasteModal(true)
   }
 
-  const savePasteModal = () => {
+  const savePasteModal = async () => {
     if (selectedAIOverviewId) {
-      updateAIOverview(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
+      await updateAIOverviewHandler(selectedAIOverviewId, draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
     } else if (modalView === 'editor' && draftAIText !== userAIText) {
-      const newId = createAIOverview(draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
-      // Only select the new overview if we're creating it for the current context
-      setSelectedAIOverviewId(newId)
+      const newId = await createAIOverviewHandler(draftTitle.trim() || `AI Overview ${aiOverviews.length + 1}`, draftAIText)
+      if (newId) setSelectedAIOverviewId(newId)
     }
     setUserAIText(draftAIText)
     setShowPasteModal(false)
@@ -642,64 +639,6 @@ export default function SearchResultsPage() {
     }
   }
 
-  // Click tracking functions
-  const logClick = (element, url = null) => {
-    if (!currentUserId) return
-    
-    const clickData = {
-      timestamp: new Date().toISOString(),
-      element: element,
-      url: url,
-      query: config?.query || '',
-      page: window.location.href
-    }
-    
-    const userLogs = clickLogs[currentUserId] || []
-    const updatedLogs = {
-      ...clickLogs,
-      [currentUserId]: [...userLogs, clickData]
-    }
-    
-    setClickLogs(updatedLogs)
-    try {
-      localStorage.setItem('click_logs', JSON.stringify(updatedLogs))
-    } catch (error) {
-      console.warn('Failed to save click logs:', error)
-    }
-  }
-
-  const setUserId = (userId) => {
-    setCurrentUserId(userId)
-    try {
-      localStorage.setItem('click_tracking_user_id', userId)
-    } catch (error) {
-      console.warn('Failed to save user ID:', error)
-    }
-  }
-
-  const downloadClickLogs = (userId) => {
-    const userLogs = clickLogs[userId] || []
-    if (userLogs.length === 0) {
-      alert('No click logs found for this user')
-      return
-    }
-    
-    const csv = [
-      'Timestamp,Element,URL,Query,Page',
-      ...userLogs.map(log => 
-        `"${log.timestamp}","${log.element}","${log.url || ''}","${log.query}","${log.page}"`
-      )
-    ].join('\n')
-    
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `click_logs_${userId}_${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   // REMOVED ALL AUTO-SAVE useEffect hooks to prevent data conflicts
   // All saves are now manual only to prevent overwrites when multiple users
   // are logged into the same account on different computers
@@ -714,28 +653,21 @@ export default function SearchResultsPage() {
     }
   }, [selectedAIOverviewId, aiOverviews])
 
-  // AI Overview management functions
-  const createAIOverview = (title, text) => {
-    const newOverview = {
-      id: Date.now().toString(),
+  // AI Overview management functions - now using realtime hook
+  const createAIOverviewHandler = async (title, text) => {
+    const newOverview = await addAIOverview({
       title: title.trim() || `AI Overview ${aiOverviews.length + 1}`,
-      text: text.trim(),
-      createdAt: new Date().toISOString()
-    }
-    
-    const updatedOverviews = [...aiOverviews, newOverview]
-    setAIOverviews(updatedOverviews)
-    // Don't automatically select the new overview - let user explicitly choose
-    return newOverview.id
+      content: text.trim()
+    })
+    return newOverview?.id || null
   }
 
   const selectAIOverview = (id) => {
     setSelectedAIOverviewId(id)
   }
 
-  const deleteAIOverview = (id) => {
-    const updatedOverviews = aiOverviews.filter(overview => overview.id !== id)
-    setAIOverviews(updatedOverviews)
+  const deleteAIOverviewHandler = async (id) => {
+    await removeAIOverview(id)
     
     if (selectedAIOverviewId === id) {
       setSelectedAIOverviewId(null)
@@ -743,13 +675,11 @@ export default function SearchResultsPage() {
     }
   }
 
-  const updateAIOverview = (id, title, text) => {
-    const updatedOverviews = aiOverviews.map(overview => 
-      overview.id === id 
-        ? { ...overview, title: title.trim(), text: text.trim() }
-        : overview
-    )
-    setAIOverviews(updatedOverviews)
+  const updateAIOverviewHandler = async (id, title, text) => {
+    await editAIOverview(id, {
+      title: title.trim(),
+      content: text.trim()
+    })
   }
 
   // Generate shareable URL for current AI overview
@@ -762,24 +692,22 @@ export default function SearchResultsPage() {
     
     // Create URL-friendly slug from title
     const slug = overview.title.toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-      .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .replace(/-+/g, '-') // Replace multiple hyphens with single
-      .trim('-') // Remove leading/trailing hyphens
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim('-')
     
     const baseUrl = `${window.location.origin}/search/${searchType}`
     return `${baseUrl}?ai=${slug}`
   }
 
-  // Assign AI overview to search result type
-  const assignAIOverviewToSearch = (searchResultType, overviewId) => {
-    const newAssignments = {
-      ...searchResultAssignments,
-      [searchResultType]: overviewId
+  // Assign AI overview to search result type - now using realtime hook
+  const assignAIOverviewToSearch = async (searchResultType, overviewId) => {
+    // Find the page by search_key
+    const page = realtimePages.find(p => p.search_key === searchResultType)
+    if (page) {
+      await assignAI(page.id, overviewId)
     }
-    setSearchResultAssignments(newAssignments)
-    
-    // REMOVED auto-save - now manual save only
     
     // If we're assigning to the current search type, update immediately
     if (searchResultType === searchType) {
@@ -787,24 +715,21 @@ export default function SearchResultsPage() {
       if (overview) {
         setSelectedAIOverviewId(overviewId)
         setUserAIText(overview.text)
-        // REMOVED auto-save - now manual save only
       }
     }
   }
 
-  // Remove AI overview assignment from search result type
-  const removeAIOverviewFromSearch = (searchResultType) => {
-    const newAssignments = { ...searchResultAssignments }
-    delete newAssignments[searchResultType]
-    setSearchResultAssignments(newAssignments)
-    
-    // REMOVED auto-save - now manual save only
+  // Remove AI overview assignment from search result type - now using realtime hook
+  const removeAIOverviewFromSearch = async (searchResultType) => {
+    const page = realtimePages.find(p => p.search_key === searchResultType)
+    if (page) {
+      await unassignAI(page.id)
+    }
     
     // If we're removing from current search type, clear immediately
     if (searchResultType === searchType) {
       setSelectedAIOverviewId(null)
       setUserAIText('')
-      // REMOVED auto-save - now manual save only
     }
   }
 
@@ -846,183 +771,129 @@ export default function SearchResultsPage() {
     }
   }
 
-  // Generate favicon URL from domain
+  // Generate favicon URL from domain - use DuckDuckGo for better transparency
   const getFaviconUrl = (url) => {
     try {
       const domain = new URL(url).hostname
-      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+      return `https://icons.duckduckgo.com/ip3/${domain}.ico`
     } catch {
-      return `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+      return `https://icons.duckduckgo.com/ip3/example.com.ico`
     }
   }
 
-  // Seed editable custom results from built-in config results when none exist yet
-  useEffect(() => {
-    if (!config || !config.results || !config.results.length || !searchType) return
-    const existing = customSearchResults[searchType]
-    if (existing && existing.length > 0) return
+  // Note: Seeding of results is now handled by the realtime data layer
+  // Built-in results come from config files, custom results from the database
 
-    const seeded = config.results.map((r) => ({
-      id: `${Date.now().toString()}-${Math.random().toString(36).slice(2)}`,
-      title: r.title,
-      url: r.url,
-      snippet: r.snippet,
-      favicon: getFaviconUrl(r.url),
-      createdAt: new Date().toISOString(),
-    }))
-
-    const newResults = {
-      ...customSearchResults,
-      [searchType]: seeded,
+  // Add custom search result - now uses realtime hook
+  const addCustomSearchResult = async (searchResultType, result) => {
+    // Find the page by search_key
+    const page = realtimePages.find(p => p.search_key === searchResultType)
+    if (!page) {
+      console.warn('Cannot add result: page not found for', searchResultType)
+      return
     }
-    setCustomSearchResults(newResults)
-  }, [config, searchType])
-
-  // Add custom search result
-  const addCustomSearchResult = (searchResultType, result) => {
-    const newResults = {
-      ...customSearchResults,
-      [searchResultType]: [
-        ...(customSearchResults[searchResultType] || []),
-        {
-          ...result,
-          id: Date.now().toString(),
-          favicon: getFaviconUrl(result.url),
-          createdAt: new Date().toISOString()
-        }
-      ]
-    }
-    setCustomSearchResults(newResults)
     
-    // REMOVED auto-save - now manual save only
+    await addResult(page.id, {
+      searchType: searchResultType,
+      title: result.title,
+      url: result.url,
+      snippet: result.snippet || '',
+      favicon: getFaviconUrl(result.url)
+    })
   }
 
-  // Update custom search result
-  const updateCustomSearchResult = (searchResultType, resultId, updatedResult) => {
-    const newResults = {
-      ...customSearchResults,
-      [searchResultType]: (customSearchResults[searchResultType] || []).map(result =>
-        result.id === resultId 
-          ? { ...result, ...updatedResult, favicon: getFaviconUrl(updatedResult.url) }
-          : result
-      )
-    }
-    setCustomSearchResults(newResults)
+  // Update custom search result - now uses realtime hook
+  const updateCustomSearchResult = async (searchResultType, resultId, updatedResult) => {
+    const page = realtimePages.find(p => p.search_key === searchResultType)
+    if (!page) return
     
-    // REMOVED auto-save - now manual save only
+    await editResult(resultId, page.id, {
+      title: updatedResult.title,
+      url: updatedResult.url,
+      snippet: updatedResult.snippet || '',
+      favicon: getFaviconUrl(updatedResult.url)
+    })
   }
 
-  // Remove custom search result
-  const removeCustomSearchResult = (searchResultType, resultId) => {
-    const newResults = {
-      ...customSearchResults,
-      [searchResultType]: (customSearchResults[searchResultType] || []).filter(result => result.id !== resultId)
-    }
-    setCustomSearchResults(newResults)
+  // Remove custom search result - now uses realtime hook
+  const removeCustomSearchResult = async (searchResultType, resultId) => {
+    const page = realtimePages.find(p => p.search_key === searchResultType)
+    if (!page) return
     
-    // REMOVED auto-save - now manual save only
+    await removeResult(resultId, page.id)
   }
 
-  // Add custom search page
-  const addCustomSearchPage = (pageData) => {
+  // Add custom search page - now uses realtime hook
+  const addCustomSearchPage = async (pageData) => {
     const queryKey = pageData.query.toLowerCase().replace(/\s+/g, '+')
     const searchKey = pageData.query.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
     
-    const newPages = {
-      ...customSearchPages,
-      [queryKey]: {
-        ...pageData,
-        key: searchKey,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString()
-      }
-    }
-    setCustomSearchPages(newPages)
+    const newPage = await addPage({
+      queryKey,
+      searchKey,
+      query: pageData.query,
+      displayName: pageData.displayName || pageData.query
+    })
     
-    // REMOVED auto-save - now manual save only
-    
-    // Initialize empty custom results for this page
-    const newResults = {
-      ...customSearchResults,
-      [searchKey]: []
-    }
-    setCustomSearchResults(newResults)
-    
-    // REMOVED auto-save - now manual save only
-    
-    return queryKey
+    return newPage ? queryKey : null
   }
 
-  // Update page display name (search bar text)
-  const updatePageDisplayName = (pageKey, pageType, newDisplayName) => {
+  // Update page display name - now uses realtime hook
+  const updatePageDisplayName = async (pageKey, pageType, newDisplayName) => {
     if (pageType === 'custom') {
-      // Find the custom page by its key and update its displayName
-      const updatedPages = { ...customSearchPages }
-      Object.keys(updatedPages).forEach(queryKey => {
-        if (updatedPages[queryKey].key === pageKey) {
-          updatedPages[queryKey] = {
-            ...updatedPages[queryKey],
-            displayName: newDisplayName
-          }
-        }
-      })
-      setCustomSearchPages(updatedPages)
-      
-      // REMOVED auto-save - now manual save only
+      // Find the page by search_key
+      const page = realtimePages.find(p => p.search_key === pageKey)
+      if (page) {
+        await editPage(page.id, { display_name: newDisplayName })
+      }
     } else {
-      // For built-in pages, we'll store custom display names separately
+      // For built-in pages, store in localStorage for now
       const updatedDisplayNames = {
         ...displayNames,
         [pageKey]: newDisplayName
       }
-      // Note: This won't persist across page reloads for built-in pages
-      // You might want to store this in localStorage if persistence is needed
       Object.assign(displayNames, updatedDisplayNames)
     }
   }
 
-  // Remove custom search page
-  const removeCustomSearchPage = (pageKey) => {
-    const updatedPages = { ...customSearchPages }
-    delete updatedPages[pageKey]
-    setCustomSearchPages(updatedPages)
-    
-    // REMOVED auto-save - now manual save only
-  }
-
-  const reorderSearchResults = (searchType, fromIndex, toIndex) => {
-    const results = [...(customSearchResults[searchType] || [])]
-    const [movedItem] = results.splice(fromIndex, 1)
-    results.splice(toIndex, 0, movedItem)
-    
-    const updatedResults = {
-      ...customSearchResults,
-      [searchType]: results
+  // Remove custom search page - now uses realtime hook
+  const removeCustomSearchPage = async (pageKey) => {
+    const page = realtimePages.find(p => p.query_key === pageKey)
+    if (page) {
+      await removePage(page.id)
     }
-    
-    setCustomSearchResults(updatedResults)
-    
-    // REMOVED auto-save - now manual save only
   }
 
-  // Delete built-in page
+  // Reorder search results - now uses realtime hook
+  const reorderSearchResultsHandler = async (searchType, fromIndex, toIndex) => {
+    const page = realtimePages.find(p => p.search_key === searchType)
+    if (!page) return
+    
+    const results = resultsByPage[page.id] || []
+    const reorderedIds = [...results.map(r => r.id)]
+    const [movedId] = reorderedIds.splice(fromIndex, 1)
+    reorderedIds.splice(toIndex, 0, movedId)
+    
+    await reorderResults(page.id, reorderedIds)
+  }
+
+  // Delete built-in page (still uses local state for now)
   const deleteBuiltinPage = (pageKey) => {
     const updatedDeleted = [...deletedBuiltinPages, pageKey]
     setDeletedBuiltinPages(updatedDeleted)
-    
-    // REMOVED auto-save - now manual save only
-    
-    // Also remove any custom results for this page
-    const updatedCustomResults = { ...customSearchResults }
-    delete updatedCustomResults[pageKey]
-    setCustomSearchResults(updatedCustomResults)
-    
-    // REMOVED auto-save - now manual save only
+    setUserData('deleted_builtin_pages', updatedDeleted)
+  }
+
+  // Show loading while checking auth - use theme background to prevent flash
+  if (!authChecked) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }} />
+    )
   }
 
   // Do not render a dedicated loading screen; allow the page shell to appear immediately.
   if (loading && !config) {
-    return null
+    return <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }} />
   }
 
   if (error) {
@@ -1057,17 +928,10 @@ export default function SearchResultsPage() {
     )
   }
 
-  // Show login modal if no user is logged in
+  // Redirect to home if no user is logged in
   if (!currentUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <UserAuth 
-          currentUser={currentUser}
-          onLogin={handleUserLogin}
-          onLogout={handleUserLogout}
-        />
-      </div>
-    )
+    navigate('/')
+    return null
   }
 
   return (
@@ -1077,23 +941,13 @@ export default function SearchResultsPage() {
       <header className="search-header relative">
         {/* Profile row - mobile only */}
         <div className="md:hidden flex justify-end px-4 pt-3 pb-2">
-          {isAdmin ? (
-            <div className="profile-menu-wrapper" onClick={() => setShowProfileMenu((open) => !open)}>
-              <div className="profile-avatar">
-                <div className="profile-avatar-inner">
-                  <span className="profile-avatar-initial">{currentUser ? currentUser.charAt(0).toUpperCase() : 'U'}</span>
-                </div>
+          <div className="profile-menu-wrapper">
+            <div className="profile-avatar">
+              <div className="profile-avatar-inner">
+                <span className="profile-avatar-initial">{currentUser ? currentUser.charAt(0).toUpperCase() : 'U'}</span>
               </div>
             </div>
-          ) : (
-            <div className="profile-menu-wrapper">
-              <div className="profile-avatar">
-                <div className="profile-avatar-inner">
-                  <span className="profile-avatar-initial">{currentUser ? currentUser.charAt(0).toUpperCase() : 'U'}</span>
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
         
         {/* Top row: search bar + controls */}
@@ -1137,87 +991,21 @@ export default function SearchResultsPage() {
           </div>
 
           {/* Desktop controls */}
-          {isAdmin ? (
-            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-              {currentUser ? (
-                <UserAuth 
-                  currentUser={currentUser} 
-                  onLogin={handleUserLogin} 
-                  onLogout={handleUserLogout} 
-                />
-              ) : null}
-              
-              {/* Cloud Sync Button */}
-              <button
-                className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-blue-500 text-white hover:bg-blue-600"
-                onClick={() => {
-                  setSyncStatus('')
-                  setShowSyncModal(true)
-                }}
-                title="Manage cloud sync"
-              >
-                <span className="material-symbols-outlined align-middle mr-1">cloud_sync</span>
-                Cloud Sync
-              </button>
-              
-              {/* Search Management Button */}
-              <button
-                className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-purple-500 text-white"
-                onClick={() => setShowSearchManagement(true)}
-                title="Manage search results and AI overviews"
-              >
-                <span className="material-symbols-outlined align-middle mr-1">settings</span>
-                Manage Search Results
-              </button>
-              <button
-                className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-blue-600 text-white"
-                onClick={() => setShowNewPageEditor(true)}
-                title="Create entirely new search pages"
-              >
-                <span className="material-symbols-outlined align-middle mr-1">add_circle</span>
-                New Page
-              </button>
-              <button
-                className="border rounded px-2 py-1 text-sm whitespace-nowrap"
-                onClick={openPasteModal}
-                title="Set AI Overview text"
-              >
-                <span className="material-symbols-outlined align-middle mr-1">edit</span>
-                Set AI Text
-              </button>
-              <button
-                className="border rounded px-2 py-1 text-sm whitespace-nowrap"
-                onClick={() => setShowImageManager(true)}
-                title="Manage images for search results"
-              >
-                <span className="material-symbols-outlined align-middle mr-1">image</span>
-                Manage Images
-              </button>
-              <button
-                className="border rounded px-2 py-1 text-sm whitespace-nowrap bg-orange-500 text-white"
-                onClick={() => setShowClickTracker(true)}
-                title="Click tracking admin panel"
-              >
-                <span className="material-symbols-outlined align-middle mr-1">analytics</span>
-                Click Tracker
-              </button>
-            </div>
-          ) : (
-            <div className="hidden md:flex items-center gap-4 flex-shrink-0">
-              <div className="profile-menu-wrapper" onClick={() => setShowProfileMenu((open) => !open)}>
-                <div className="profile-avatar">
-                  <div className="profile-avatar-inner">
-                    <span className="profile-avatar-initial">E</span>
-                  </div>
+          <div className="hidden md:flex items-center gap-4 flex-shrink-0">
+            <div className="profile-menu-wrapper" style={{ cursor: 'default' }} onClick={(e) => {
+              if (e.ctrlKey) {
+                e.preventDefault()
+                e.stopPropagation()
+                navigate('/')
+              }
+            }}>
+              <div className="profile-avatar">
+                <div className="profile-avatar-inner">
+                  <span className="profile-avatar-initial">{currentUser ? currentUser.charAt(0).toUpperCase() : 'U'}</span>
                 </div>
-                {showProfileMenu && (
-                  <div className="profile-dropdown">
-                    this feature is not available during the survey
-                  </div>
-                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Tabs row */}
@@ -1263,7 +1051,6 @@ export default function SearchResultsPage() {
           displayNames={displayNames}
           customSearchPages={customSearchPages}
           customSearchResults={customSearchResults}
-          setCustomSearchResults={setCustomSearchResults}
           searchResultAssignments={searchResultAssignments}
           aiOverviews={aiOverviews}
           onNavigate={(queryKey) => {
@@ -1278,7 +1065,7 @@ export default function SearchResultsPage() {
             setShowSearchManagement(false)
             setShowSearchResultsEditor(true)
           }}
-          onReorderResults={reorderSearchResults}
+          onReorderResults={reorderSearchResultsHandler}
           removeCustomSearchResult={removeCustomSearchResult}
           updatePageDisplayName={updatePageDisplayName}
           pageAIOverviewSettings={pageAIOverviewSettings}
@@ -1681,294 +1468,74 @@ export default function SearchResultsPage() {
         onClearAll={clearAllImages}
       />
 
-      {/* Click Tracker Modal */}
-      {showClickTracker && (
+      {/* Finalize Study Session Dialog */}
+      {showFinalizeDialog && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
           zIndex: 999999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
-        }} onClick={() => setShowClickTracker(false)}>
+        }} onClick={() => setShowFinalizeDialog(false)}>
           <div style={{
-            width: '90%',
-            maxWidth: '600px',
             backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-            maxHeight: '80vh',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+            textAlign: 'center'
           }} onClick={(e) => e.stopPropagation()}>
-            
-            <div style={{
-              padding: '1rem',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: '#f97316',
-              color: 'white'
-            }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Click Tracking Admin</h2>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--tab-active)' }}>
+                task_alt
+              </span>
+            </div>
+            <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
+              Finalize Study Session
+            </h2>
+            <p style={{ margin: '0 0 1.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
+              Are you ready to end this study session and return to the home page?
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
               <button
+                onClick={() => setShowFinalizeDialog(false)}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  color: 'white'
+                  padding: '0.75rem 1.5rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--card-bg)',
+                  color: 'var(--text)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
                 }}
-                onClick={() => setShowClickTracker(false)}
               >
-                ✕
+                Cancel
               </button>
-            </div>
-
-            <div style={{
-              padding: '1rem',
-              flex: 1,
-              overflow: 'auto'
-            }}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '0.5rem', 
-                  fontSize: '14px', 
-                  fontWeight: '500' 
-                }}>
-                  Current User ID for Tracking:
-                </label>
-                <input
-                  type="text"
-                  value={currentUserId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  placeholder="Enter user ID to track clicks..."
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid var(--border)',
-                    borderRadius: '4px',
-                    backgroundColor: 'var(--card-bg)',
-                    color: 'var(--text)',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                />
-                <p style={{ 
-                  margin: '0.5rem 0 0 0', 
-                  fontSize: '12px', 
-                  color: 'var(--muted)' 
-                }}>
-                  {currentUserId ? `Currently tracking clicks for: ${currentUserId}` : 'No user ID set - clicks will not be tracked'}
-                </p>
-              </div>
-
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '0.5rem', 
-                  fontSize: '14px', 
-                  fontWeight: '500' 
-                }}>
-                  Download Click Logs:
-                </label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    placeholder="User ID to download logs for..."
-                    id="downloadUserId"
-                    style={{
-                      flex: 1,
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '4px',
-                      backgroundColor: 'var(--card-bg)',
-                      color: 'var(--text)',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  />
-                  <button
-                    onClick={() => {
-                      const userId = document.getElementById('downloadUserId').value
-                      if (userId) downloadClickLogs(userId)
-                    }}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    Download CSV
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '0.5rem' }}>
-                  Tracked Users ({Object.keys(clickLogs).length})
-                </h3>
-                {Object.keys(clickLogs).length === 0 ? (
-                  <p style={{ color: 'var(--muted)', fontSize: '14px' }}>No click data recorded yet</p>
-                ) : (
-                  <div style={{ maxHeight: '200px', overflow: 'auto' }}>
-                    {Object.entries(clickLogs).map(([userId, logs]) => (
-                      <div key={userId} style={{
-                        padding: '0.5rem',
-                        border: '1px solid var(--border)',
-                        borderRadius: '4px',
-                        marginBottom: '0.5rem',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <div>
-                          <strong>{userId}</strong>
-                          <span style={{ color: 'var(--muted)', fontSize: '12px', marginLeft: '0.5rem' }}>
-                            {logs.length} clicks
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => downloadClickLogs(userId)}
-                          style={{
-                            padding: '0.25rem 0.5rem',
-                            backgroundColor: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
-                        >
-                          Download
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Profile menu - mobile only */}
-      {showProfileMenu && (
-        <div className="profile-menu md:hidden" onClick={() => setShowProfileMenu(false)}>
-          <div className="profile-menu-content" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium">Settings</h3>
-              <button 
-                className="material-symbols-outlined icon-plain text-xl" 
-                onClick={() => setShowProfileMenu(false)}
-                aria-label="Close"
+              <button
+                onClick={() => {
+                  setShowFinalizeDialog(false)
+                  navigate('/')
+                }}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--tab-active)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
               >
-                close
+                OK
               </button>
-            </div>
-            
-            {/* User Info Section */}
-            {currentUser && (
-              <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">{currentUser.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">User: {currentUser}</div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false)
-                      handleUserLogout()
-                    }}
-                    className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                  >
-                    Switch
-                  </button>
-                </div>
-                
-                {/* Sync Button */}
-                <div className="w-full border rounded px-3 py-2 text-sm bg-green-100 text-green-800 flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-sm">cloud_done</span>
-                  Auto-sync Active
-                </div>
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              <div>
-                <button
-                  className="w-full border rounded px-3 py-2 text-sm bg-purple-600 text-white mb-2"
-                  onClick={() => {
-                    setShowProfileMenu(false)
-                    setShowSearchManagement(true)
-                  }}
-                >
-                  <span className="material-symbols-outlined align-middle mr-2 text-sm">settings</span>
-                  Manage Search Results
-                </button>
-                
-                <button
-                  className="w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white mb-2"
-                  onClick={() => {
-                    setShowProfileMenu(false)
-                    setShowNewPageEditor(true)
-                  }}
-                >
-                  <span className="material-symbols-outlined align-middle mr-2 text-sm">add_circle</span>
-                  New Page
-                </button>
-              </div>
-              
-              <div>
-                <button
-                  className="w-full border rounded px-3 py-2 text-sm bg-blue-600 text-white mb-2"
-                  onClick={() => {
-                    setShowProfileMenu(false)
-                    openPasteModal()
-                  }}
-                >
-                  <span className="material-symbols-outlined align-middle mr-2 text-sm">edit</span>
-                  Set AI Overview Text
-                </button>
-                
-                <button
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  onClick={() => {
-                    setShowProfileMenu(false)
-                    setShowImageManager(true)
-                  }}
-                >
-                  <span className="material-symbols-outlined align-middle mr-2 text-sm">image</span>
-                  Manage Images
-                </button>
-                
-                <button
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  onClick={() => {
-                    setShowProfileMenu(false)
-                    setShowClickTracker(true)
-                  }}
-                >
-                  <span className="material-symbols-outlined align-middle mr-2 text-sm">analytics</span>
-                  Click Tracking
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -2230,8 +1797,8 @@ function SearchResultsEditorModal({
                         alt="Favicon"
                         style={{ width: '20px', height: '20px', marginTop: '2px', flexShrink: 0, borderRadius: '50%', border: '1px solid var(--border)' }}
                         onError={(e) => {
-                          if (e.target.src !== `https://www.google.com/s2/favicons?domain=example.com&sz=32`) {
-                            e.target.src = `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+                          if (e.target.src !== `https://icons.duckduckgo.com/ip3/example.com.ico`) {
+                            e.target.src = `https://icons.duckduckgo.com/ip3/example.com.ico`
                           } else {
                             e.target.style.display = 'none'
                           }
@@ -2509,7 +2076,6 @@ function EnhancedSearchManagementModal({
   displayNames,
   customSearchPages,
   customSearchResults,
-  setCustomSearchResults,
   searchResultAssignments,
   aiOverviews,
   onNavigate,
@@ -2590,33 +2156,8 @@ function EnhancedSearchManagementModal({
     loadBuiltinResults()
   }, [isOpen, queryToConfig, displayNames, customSearchPages])
 
-  // Seed built-in results into customSearchResults so they become editable
-  useEffect(() => {
-    if (!isOpen || Object.keys(builtinResults).length === 0) return
-
-    const updatedCustomResults = { ...customSearchResults }
-    let hasChanges = false
-
-    Object.entries(builtinResults).forEach(([pageKey, results]) => {
-      const existing = customSearchResults[pageKey]
-      if (!existing || existing.length === 0) {
-        const seeded = results.map((r, index) => ({
-          id: `builtin-${pageKey}-${index}-${Date.now()}`,
-          title: r.title,
-          url: r.url,
-          snippet: r.snippet,
-          favicon: `https://www.google.com/s2/favicons?domain=${new URL(r.url).hostname}&sz=32`,
-          createdAt: new Date().toISOString(),
-        }))
-        updatedCustomResults[pageKey] = seeded
-        hasChanges = true
-      }
-    })
-
-    if (hasChanges) {
-      setCustomSearchResults(updatedCustomResults)
-    }
-  }, [isOpen, builtinResults, customSearchResults, setCustomSearchResults])
+  // Note: Seeding is now handled by the realtime data layer
+  // Built-in results are displayed from config, custom results from database
 
   // Filter pages based on search query
   const filteredPages = allPages.filter(page => 

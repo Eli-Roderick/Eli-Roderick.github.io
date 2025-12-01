@@ -6,10 +6,11 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Helper function to get current user
+// Helper function to get current user - uses cached session for speed
 export const getCurrentUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  // Use getSession() first - it returns cached session without network request
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.user || null
 }
 
 // Helper function to ensure user profile exists
@@ -44,40 +45,22 @@ export const ensureUserProfile = async (user) => {
   return profile
 }
 
-// Simple local authentication bypass
+// Sign in with Supabase auth
 export const signInWithEmail = async (email, password) => {
-  // For local development, just check if the user exists in localStorage
   try {
-    const username = email.split('@')[0]
-    const storedUsers = JSON.parse(localStorage.getItem('local_users') || '{}')
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
     
-    if (storedUsers[username] && storedUsers[username].password === password) {
-      return { 
-        data: { 
-          user: {
-            id: `local_${username}`,
-            email: email,
-            username: username,
-            aud: 'authenticated',
-            role: 'authenticated'
-          },
-          session: {
-            user: {
-              id: `local_${username}`,
-              email: email,
-              username: username
-            }
-          }
-        }, 
-        error: null 
-      }
-    } else {
-      return { 
-        data: null, 
-        error: { message: 'Invalid username or password' } 
-      }
+    if (error) {
+      console.error('Supabase sign in error:', error)
+      return { data: null, error }
     }
+    
+    return { data, error: null }
   } catch (error) {
+    console.error('Sign in error:', error)
     return { 
       data: null, 
       error: { message: 'Authentication failed' } 
@@ -85,85 +68,46 @@ export const signInWithEmail = async (email, password) => {
   }
 }
 
-// Helper function to bypass email confirmation for local development
+// Sign up with Supabase auth (with auto-confirm for development)
 export const signUpWithoutConfirmation = async (email, password) => {
   try {
-    const username = email.split('@')[0]
-    const storedUsers = JSON.parse(localStorage.getItem('local_users') || '{}')
+    // First try to sign up
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin
+      }
+    })
     
-    // Check if user already exists
-    if (storedUsers[username]) {
-      // User exists, try to sign them in
-      return await signInWithEmail(email, password)
+    if (signUpError) {
+      // If user already exists, try to sign in
+      if (signUpError.message.includes('already registered')) {
+        return await signInWithEmail(email, password)
+      }
+      console.error('Supabase sign up error:', signUpError)
+      return { data: null, error: signUpError }
     }
     
-    // Create new user in localStorage
-    storedUsers[username] = {
-      username: username,
-      email: email,
-      password: password,
-      created_at: new Date().toISOString()
+    // If signup succeeded but no session (email confirmation required),
+    // try to sign in anyway (works if email confirmation is disabled in Supabase)
+    if (signUpData.user && !signUpData.session) {
+      const signInResult = await signInWithEmail(email, password)
+      if (signInResult.data?.session) {
+        return signInResult
+      }
+      // Return signup data if sign in didn't work
+      return { data: signUpData, error: null }
     }
     
-    localStorage.setItem('local_users', JSON.stringify(storedUsers))
-    
-    return { 
-      data: { 
-        user: {
-          id: `local_${username}`,
-          email: email,
-          username: username,
-          aud: 'authenticated',
-          role: 'authenticated'
-        },
-        session: {
-          user: {
-            id: `local_${username}`,
-            email: email,
-            username: username
-          }
-        }
-      }, 
-      error: null 
-    }
+    return { data: signUpData, error: null }
   } catch (error) {
+    console.error('Sign up error:', error)
     return { 
       data: null, 
       error: { message: 'Failed to create account' } 
     }
   }
-}
-
-export const signUpWithEmail = async (email, password) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: window.location.origin,
-      data: {
-        skip_email_verification: true
-      }
-      // Remove noEmailCode as it's not a valid option
-    }
-  })
-  
-  // If signup is successful but requires email confirmation, try to sign in immediately
-  if (!error && data.user && !data.session) {
-    // User created but not confirmed, try to confirm and sign in
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-    
-    if (!signInError && signInData.user) {
-      return { data: signInData, error: null }
-    } else if (signInError) {
-      // If sign in fails, return the original signup data
-      return { data, error: signInError }
-    }
-  }
-  
-  return { data, error }
 }
 
 export const updateUser = async (updates) => {
@@ -172,6 +116,14 @@ export const updateUser = async (updates) => {
 }
 
 export const signOut = async () => {
+  // Clear user ID cache from cloudDataV2
+  try {
+    const { clearUserIdCache } = await import('./cloudDataV2')
+    clearUserIdCache()
+  } catch (e) {
+    // Ignore if cloudDataV2 not available
+  }
+  
   const { error } = await supabase.auth.signOut()
   return { error }
 }

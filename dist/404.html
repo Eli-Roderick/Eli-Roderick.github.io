@@ -1,15 +1,34 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Mock Google Search results for eye-tracking research" />
+    <meta
+      name="description"
+      content="Mock Google Search results for eye-tracking research"
+    />
     <title>Search Experiment</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
-    <script type="module" crossorigin src="/assets/main-CNnQxXVH.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/main-D0C965R9.css">
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+    />
+    <style>
+      /* Prevent white flash on load - match system theme */
+      @media (prefers-color-scheme: dark) {
+        html, body, #root {
+          background-color: #202124;
+        }
+      }
+      @media (prefers-color-scheme: light) {
+        html, body, #root {
+          background-color: #ffffff;
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/main-CSe3iLc-.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/main-DiXlbHC6.css">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
   </body>
 </html>

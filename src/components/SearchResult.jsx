@@ -20,19 +20,18 @@ export default function SearchResult({
   }, [images])
   
   const handleClick = () => {
-    onClick?.({ query, url })
+    onClick?.({ query, url, title, type: 'result' })
     window.open(url, '_blank', 'noopener,noreferrer')
   }
   const displayUrl = url.replace(/^https?:\/\//, '')
   const domain = (() => { try { return new URL(url).hostname } catch { return displayUrl.split('/')[0] } })()
   
-  // Use Google's favicon service with fallback for better reliability and theme compatibility
+  // Use DuckDuckGo's favicon service for transparent icons
   const getFaviconUrl = (domain) => {
     try {
-      // Google's favicon service is more reliable and handles different sizes better
-      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+      return `https://icons.duckduckgo.com/ip3/${domain}.ico`
     } catch {
-      return `https://www.google.com/s2/favicons?domain=example.com&sz=32`
+      return `https://icons.duckduckgo.com/ip3/example.com.ico`
     }
   }
   

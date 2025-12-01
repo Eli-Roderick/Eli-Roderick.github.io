@@ -9,7 +9,13 @@ export default defineConfig({
     port: 5173, 
     strictPort: true,
     // Enable client-side routing fallback
-    historyApiFallback: true
+    historyApiFallback: true,
+    // Disable caching in development
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
   },
   build: { 
     outDir: 'dist',
