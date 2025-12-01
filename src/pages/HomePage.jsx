@@ -581,6 +581,30 @@ export default function HomePage() {
                         >
                           Manage
                         </button>
+                        {page.type === 'custom' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (confirm(`Delete "${page.name}"? This will also delete all associated results.`)) {
+                                removePage(page.id)
+                              }
+                            }}
+                            style={{
+                              padding: '0.5rem',
+                              border: 'none',
+                              borderRadius: '4px',
+                              backgroundColor: 'transparent',
+                              color: '#dc2626',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Delete page"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

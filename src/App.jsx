@@ -178,7 +178,7 @@ export default function App() {
   // Listen for auth state changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session.user) {
+      if (event === 'SIGNED_IN' && session?.user) {
         setCurrentUser(session.user)
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null)
