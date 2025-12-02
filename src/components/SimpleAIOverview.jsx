@@ -205,7 +205,60 @@ function updateScrollIndicators(containerId) {
   }
 }
 
-export default function SimpleAIOverview({ htmlContent, onLinkClick }) {
+// Font size mapping (10pt to 24pt)
+const fontSizeMap = {
+  '10': '10pt',
+  '11': '11pt',
+  '12': '12pt',
+  '13': '13pt',
+  '14': '14pt',
+  '16': '16pt',
+  '18': '18pt',
+  '20': '20pt',
+  '22': '22pt',
+  '24': '24pt'
+}
+
+// Font family mapping
+const fontFamilyMap = {
+  // Sans-serif fonts
+  system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  arial: 'Arial, Helvetica, sans-serif',
+  helvetica: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  verdana: 'Verdana, Geneva, sans-serif',
+  tahoma: 'Tahoma, Geneva, sans-serif',
+  trebuchet: '"Trebuchet MS", Helvetica, sans-serif',
+  roboto: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+  opensans: '"Open Sans", "Helvetica Neue", Arial, sans-serif',
+  lato: 'Lato, "Helvetica Neue", Arial, sans-serif',
+  montserrat: 'Montserrat, "Helvetica Neue", Arial, sans-serif',
+  poppins: 'Poppins, "Helvetica Neue", Arial, sans-serif',
+  inter: 'Inter, "Helvetica Neue", Arial, sans-serif',
+  sourcesans: '"Source Sans Pro", "Helvetica Neue", Arial, sans-serif',
+  nunito: 'Nunito, "Helvetica Neue", Arial, sans-serif',
+  raleway: 'Raleway, "Helvetica Neue", Arial, sans-serif',
+  // Serif fonts
+  georgia: 'Georgia, "Times New Roman", serif',
+  times: '"Times New Roman", Times, serif',
+  palatino: '"Palatino Linotype", "Book Antiqua", Palatino, serif',
+  garamond: 'Garamond, "Times New Roman", serif',
+  bookman: '"Bookman Old Style", serif',
+  merriweather: 'Merriweather, Georgia, serif',
+  playfair: '"Playfair Display", Georgia, serif',
+  lora: 'Lora, Georgia, serif',
+  // Monospace fonts
+  courier: '"Courier New", Courier, monospace',
+  consolas: 'Consolas, Monaco, "Courier New", monospace',
+  monaco: 'Monaco, Consolas, monospace',
+  firacode: '"Fira Code", Consolas, monospace',
+  jetbrains: '"JetBrains Mono", Consolas, monospace',
+  // Display/decorative fonts
+  impact: 'Impact, Haettenschweiler, sans-serif',
+  comicsans: '"Comic Sans MS", cursive',
+  brushscript: '"Brush Script MT", cursive'
+}
+
+export default function SimpleAIOverview({ htmlContent, onLinkClick, fontSize = '14', fontFamily = 'system', fontColor = '#1f2937' }) {
   if (!htmlContent) {
     return null
   }
@@ -314,6 +367,11 @@ export default function SimpleAIOverview({ htmlContent, onLinkClick }) {
       
       <div
         className={`ai-body ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
+        style={{
+          fontSize: fontSizeMap[fontSize] || fontSizeMap['14'],
+          fontFamily: fontFamilyMap[fontFamily] || fontFamilyMap.system,
+          color: fontColor
+        }}
         dangerouslySetInnerHTML={{ __html: processedContent }}
         onClick={handleContentClick}
       />

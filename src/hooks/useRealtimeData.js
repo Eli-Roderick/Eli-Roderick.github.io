@@ -21,6 +21,7 @@ import {
   deleteAIOverview,
   assignAIToPage,
   removeAIFromPage,
+  updateAIAssignmentSettings,
   createParticipant,
   updateParticipant,
   deleteParticipant,
@@ -281,13 +282,18 @@ export function useRealtimeData(currentUser) {
   // AI ASSIGNMENT OPERATIONS
   // ============================================================================
 
-  const assignAI = useCallback(async (pageId, aiOverviewId) => {
-    const success = await assignAIToPage(pageId, aiOverviewId)
+  const assignAI = useCallback(async (pageId, aiOverviewId, options = {}) => {
+    const success = await assignAIToPage(pageId, aiOverviewId, options)
     if (success) {
       // Optimistic update
       setAIAssignments(prev => ({
         ...prev,
-        [pageId]: aiOverviewId
+        [pageId]: {
+          aiOverviewId,
+          fontSize: options.fontSize || '14',
+          fontFamily: options.fontFamily || 'system',
+          fontColor: options.fontColor || '#1f2937'
+        }
       }))
     }
     return success
@@ -302,6 +308,23 @@ export function useRealtimeData(currentUser) {
         delete updated[pageId]
         return updated
       })
+    }
+    return success
+  }, [])
+
+  const updateAISettings = useCallback(async (pageId, settings) => {
+    const success = await updateAIAssignmentSettings(pageId, settings)
+    if (success) {
+      // Optimistic update
+      setAIAssignments(prev => ({
+        ...prev,
+        [pageId]: {
+          ...prev[pageId],
+          fontSize: settings.fontSize ?? prev[pageId]?.fontSize ?? '14',
+          fontFamily: settings.fontFamily ?? prev[pageId]?.fontFamily ?? 'system',
+          fontColor: settings.fontColor ?? prev[pageId]?.fontColor ?? '#1f2937'
+        }
+      }))
     }
     return success
   }, [])
@@ -323,9 +346,16 @@ export function useRealtimeData(currentUser) {
   }, [resultsByPage])
 
   const getAIOverviewForPage = useCallback((pageId) => {
-    const overviewId = aiAssignments[pageId]
-    if (!overviewId) return null
-    return aiOverviews.find(o => o.id === overviewId) || null
+    const assignment = aiAssignments[pageId]
+    if (!assignment) return null
+    const overview = aiOverviews.find(o => o.id === assignment.aiOverviewId)
+    if (!overview) return null
+    return {
+      ...overview,
+      fontSize: assignment.fontSize || '14',
+      fontFamily: assignment.fontFamily || 'system',
+      fontColor: assignment.fontColor || '#1f2937'
+    }
   }, [aiAssignments, aiOverviews])
 
   // ============================================================================
@@ -411,6 +441,7 @@ export function useRealtimeData(currentUser) {
     // AI Assignment operations
     assignAI,
     unassignAI,
+    updateAISettings,
     
     // Participant operations
     addParticipant,

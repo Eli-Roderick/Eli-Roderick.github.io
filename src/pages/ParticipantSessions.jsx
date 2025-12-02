@@ -97,15 +97,18 @@ export default function ParticipantSessions() {
       setSessions(data)
       setLoading(false)
       
-      // Auto-expand session from URL param
+      // Auto-expand active session first, then check URL param
+      const activeSessionInList = data.find(s => s.status === 'active')
       const expandId = searchParams.get('expand')
-      if (expandId && data.some(s => s.id === expandId)) {
-        setExpandedSession(expandId)
+      const sessionToExpand = activeSessionInList?.id || (expandId && data.some(s => s.id === expandId) ? expandId : null)
+      
+      if (sessionToExpand) {
+        setExpandedSession(sessionToExpand)
         // Load activity for the expanded session
-        const activities = await loadSessionActivity(expandId)
+        const activities = await loadSessionActivity(sessionToExpand)
         setSessionActivities(prev => ({
           ...prev,
-          [expandId]: activities
+          [sessionToExpand]: activities
         }))
       }
     }
@@ -256,11 +259,12 @@ export default function ParticipantSessions() {
       'Session Duration',
       'Activity Type',
       'Activity Timestamp',
-      'Time Since Session Start',
+      'Time Since Start (ms)',
+      'Page ID',
+      'Page Name',
       'URL',
       'Title',
       'Click Type',
-      'Search Query',
       'Scroll From',
       'Scroll To',
       'Details (JSON)'
@@ -281,10 +285,11 @@ export default function ParticipantSessions() {
         '""', // Activity Type
         '""', // Activity Timestamp
         '""', // Time Since Start
+        '""', // Page ID
+        '""', // Page Name
         '""', // URL
         '""', // Title
         '""', // Click Type
-        '""', // Search Query
         '""', // Scroll From
         '""', // Scroll To
         '""'  // Details
@@ -293,8 +298,9 @@ export default function ParticipantSessions() {
       // Add a row for each activity
       activities.forEach(activity => {
         const activityTime = new Date(activity.activity_ts)
-        const timeSinceStart = Math.round((activityTime - sessionStart) / 1000) // seconds
         const details = activity.details || {}
+        // Use stored time_since_start_ms, or calculate as fallback
+        const timeSinceStartMs = activity.time_since_start_ms ?? Math.round(activityTime - sessionStart)
 
         rows.push([
           `"${participant?.name || 'Unknown'}"`,
@@ -304,11 +310,12 @@ export default function ParticipantSessions() {
           `"${duration}"`,
           `"${activity.activity_type}"`,
           `"${activityTime.toISOString()}"`,
-          `"${timeSinceStart}s"`,
+          `"${timeSinceStartMs}"`,
+          `"${(activity.page_id || '').replace(/"/g, '""')}"`,
+          `"${(activity.page_name || '').replace(/"/g, '""')}"`,
           `"${(details.url || '').replace(/"/g, '""')}"`,
           `"${(details.title || '').replace(/"/g, '""')}"`,
           `"${details.type || ''}"`,
-          `"${(details.query || '').replace(/"/g, '""')}"`,
           details.from !== undefined ? `"${details.from}"` : '""',
           details.to !== undefined ? `"${details.to}"` : '""',
           `"${JSON.stringify(details).replace(/"/g, '""')}"`
@@ -693,6 +700,9 @@ export default function ParticipantSessions() {
                             description = ''
                           }
                           
+                          // Get page name from activity
+                          const pageName = activity.page_name || ''
+                          
                           // Color based on activity type
                           const typeColors = {
                             'URL_CLICK': '#2563eb',
@@ -722,6 +732,17 @@ export default function ParticipantSessions() {
                               }}>
                                 {time}
                               </span>
+                              {pageName && (
+                                <span style={{ 
+                                  color: 'var(--text)',
+                                  fontWeight: '500',
+                                  flexShrink: 0,
+                                  fontSize: '11px',
+                                  marginRight: '0.5rem'
+                                }}>
+                                  Page: {pageName}
+                                </span>
+                              )}
                               <span style={{ 
                                 color: typeColors[activity.activity_type] || 'var(--text)',
                                 fontWeight: '600',

@@ -570,17 +570,29 @@ export default function HomePage() {
                           }}>
                             {page.type === 'custom' ? 'Custom' : 'Built-in'}
                           </span>
+                          {aiAssignments[page.id]?.aiOverviewId && (
+                            <span style={{ 
+                              fontSize: '12px', 
+                              fontWeight: 'normal',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '12px',
+                              backgroundColor: '#22c55e',
+                              color: 'white'
+                            }}>
+                              AI Overview Enabled
+                            </span>
+                          )}
                         </div>
                         <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
-                          {pageResults.length} custom results • {aiAssignments[page.id] ? 'AI assigned' : 'No AI assigned'}
+                          {pageResults.length} custom results • {aiAssignments[page.id]?.aiOverviewId ? 'AI assigned' : 'No AI assigned'}
                         </p>
                         {page.type === 'custom' && (
                           <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span>URL: /session?q={page.queryKey}</span>
+                            <span>URL: /session?p={page.id}</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                const fullUrl = `https://eli-roderick.github.io/session?q=${encodeURIComponent(page.queryKey)}`
+                                const fullUrl = `https://eli-roderick.github.io/session?p=${page.id}`
                                 const icon = e.currentTarget.querySelector('span')
                                 navigator.clipboard.writeText(fullUrl)
                                   .then(() => {
@@ -609,8 +621,12 @@ export default function HomePage() {
                       <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                         <button
                           onClick={() => {
-                            const query = page.type === 'custom' ? page.queryKey : page.queryKey?.replace(/\s+/g, '+')
-                            navigate(`/search?q=${encodeURIComponent(query || '')}&preview=true`)
+                            if (page.type === 'custom') {
+                              navigate(`/search?p=${page.id}&preview=true`)
+                            } else {
+                              const query = page.queryKey?.replace(/\s+/g, '+')
+                              navigate(`/search?q=${encodeURIComponent(query || '')}&preview=true`)
+                            }
                           }}
                           style={{
                             padding: '0.5rem 1rem',

@@ -11,7 +11,10 @@ export default function SearchPage({
   selectedResultForImages, 
   onCloseImageEditor,
   userAIText,
-  aiOverviewEnabled 
+  aiOverviewEnabled,
+  aiFontSize,
+  aiFontFamily,
+  aiFontColor
 }) {
   if (!config) return null
   const { query, aiOverview, results } = config
@@ -26,6 +29,9 @@ export default function SearchPage({
               <SimpleAIOverview 
                 htmlContent={userAIText || aiOverview.text} 
                 onLinkClick={onResultClick}
+                fontSize={aiFontSize}
+                fontFamily={aiFontFamily}
+                fontColor={aiFontColor}
               />
               <div className="ai-separator" />
             </div>
