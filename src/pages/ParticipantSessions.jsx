@@ -115,6 +115,42 @@ export default function ParticipantSessions() {
     }
   }, [participantId, searchParams])
 
+  // Subscribe to realtime sessions updates
+  useEffect(() => {
+    if (!participantId) return
+
+    const channel = supabase
+      .channel(`sessions_${participantId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sessions',
+          filter: `participant_id=eq.${participantId}`
+        },
+        async (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setSessions(prev => [payload.new, ...prev])
+            setActiveSession(payload.new.status === 'active' ? payload.new : activeSession)
+          } else if (payload.eventType === 'UPDATE') {
+            setSessions(prev => prev.map(s => s.id === payload.new.id ? payload.new : s))
+            // Update active session status
+            if (payload.new.status !== 'active' && activeSession?.id === payload.new.id) {
+              setActiveSession(null)
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setSessions(prev => prev.filter(s => s.id !== payload.old.id))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [participantId, activeSession])
+
   // Handle stop session
   const handleStopSession = async (sessionId) => {
     await endSession(sessionId)

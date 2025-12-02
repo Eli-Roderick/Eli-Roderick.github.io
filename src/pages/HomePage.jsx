@@ -4,7 +4,7 @@ import UserAuth from '../components/UserAuth'
 import RichTextEditor from '../components/RichTextEditor'
 import useRealtimeData from '../hooks/useRealtimeData'
 import { loadConfigByPath } from '../utils/config'
-import { getCurrentUser } from '../utils/supabase'
+import { getCurrentUser, supabase } from '../utils/supabase'
 import { getAnyActiveSession, createSession, endSession } from '../utils/cloudDataV2'
 
 // Query to config path mapping (same as SearchResultsPage)
@@ -110,6 +110,41 @@ export default function HomePage() {
     }
     loadActiveSession()
   }, [currentUser, participants])
+
+  // Subscribe to realtime session updates
+  useEffect(() => {
+    if (!currentUser) return
+
+    const channel = supabase
+      .channel('sessions_home')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sessions'
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT' && payload.new.status === 'active') {
+            setActiveSession(payload.new)
+          } else if (payload.eventType === 'UPDATE') {
+            // Session ended or status changed
+            if (payload.new.status !== 'active' && activeSession?.id === payload.new.id) {
+              setActiveSession(null)
+            } else if (payload.new.status === 'active') {
+              setActiveSession(payload.new)
+            }
+          } else if (payload.eventType === 'DELETE' && activeSession?.id === payload.old.id) {
+            setActiveSession(null)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [currentUser, activeSession])
 
   const handleStartSession = async (participantId) => {
     setSessionLoading(true)
