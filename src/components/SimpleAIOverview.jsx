@@ -258,7 +258,7 @@ const fontFamilyMap = {
   brushscript: '"Brush Script MT", cursive'
 }
 
-export default function SimpleAIOverview({ htmlContent, onLinkClick, fontSize = '14', fontFamily = 'system', fontColor = '#1f2937' }) {
+export default function SimpleAIOverview({ htmlContent, onLinkClick, fontSize = '14', fontFamily = 'system', fontColor = '' }) {
   if (!htmlContent) {
     return null
   }
@@ -370,7 +370,7 @@ export default function SimpleAIOverview({ htmlContent, onLinkClick, fontSize = 
         style={{
           fontSize: fontSizeMap[fontSize] || fontSizeMap['14'],
           fontFamily: fontFamilyMap[fontFamily] || fontFamilyMap.system,
-          color: fontColor
+          ...(fontColor && { color: fontColor })
         }}
         dangerouslySetInnerHTML={{ __html: processedContent }}
         onClick={handleContentClick}

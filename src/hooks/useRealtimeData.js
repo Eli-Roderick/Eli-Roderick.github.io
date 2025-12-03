@@ -292,7 +292,7 @@ export function useRealtimeData(currentUser) {
           aiOverviewId,
           fontSize: options.fontSize || '14',
           fontFamily: options.fontFamily || 'system',
-          fontColor: options.fontColor || '#1f2937'
+          fontColor: options.fontColor ?? ''
         }
       }))
     }
@@ -354,7 +354,7 @@ export function useRealtimeData(currentUser) {
       ...overview,
       fontSize: assignment.fontSize || '14',
       fontFamily: assignment.fontFamily || 'system',
-      fontColor: assignment.fontColor || '#1f2937'
+      fontColor: assignment.fontColor ?? ''
     }
   }, [aiAssignments, aiOverviews])
 

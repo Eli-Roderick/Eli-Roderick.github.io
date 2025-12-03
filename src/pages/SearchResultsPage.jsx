@@ -227,7 +227,7 @@ export default function SearchResultsPage() {
           aiOverviewId: assignment.aiOverviewId,
           fontSize: assignment.fontSize || '14',
           fontFamily: assignment.fontFamily || 'system',
-          fontColor: assignment.fontColor || '#1f2937'
+          fontColor: assignment.fontColor ?? ''
         }
       }
     })
@@ -534,7 +534,8 @@ export default function SearchResultsPage() {
     // Get font settings from assignment (using direct ID lookup)
     const aiFontSize = currentPageAssignment?.fontSize || '14'
     const aiFontFamily = currentPageAssignment?.fontFamily || 'system'
-    const aiFontColor = currentPageAssignment?.fontColor || '#1f2937'
+    // Use nullish coalescing to preserve empty string (theme default) vs undefined
+    const aiFontColor = currentPageAssignment?.fontColor ?? ''
     
     return {
       ...config,
