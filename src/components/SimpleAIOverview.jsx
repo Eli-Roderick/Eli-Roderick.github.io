@@ -379,27 +379,29 @@ export default function SimpleAIOverview({ htmlContent, onLinkClick, fontSize = 
         onClick={handleContentClick}
       />
 
-      {/* Show more control */}
-      {(!expanded && wasTruncated) ? (
+      {/* Show more/less control */}
+      {wasTruncated && (
         <div className="ai-showmore">
           <button
             className="ai-showmore-btn"
             onClick={() => {
-              setExpanded(true)
+              setExpanded(!expanded)
               if (onLinkClick) {
                 onLinkClick({
                   url: null,
-                  title: 'Show more',
-                  type: 'ai_show_more'
+                  title: expanded ? 'Show less' : 'Show more',
+                  type: expanded ? 'ai_show_less' : 'ai_show_more'
                 })
               }
             }}
           >
-            <span>Show more</span>
-            <span className="material-symbols-outlined text-blue-500 text-lg ml-2" aria-hidden="true">keyboard_arrow_down</span>
+            <span>{expanded ? 'Show less' : 'Show more'}</span>
+            <span className="material-symbols-outlined text-blue-500 text-lg ml-2" aria-hidden="true">
+              {expanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+            </span>
           </button>
         </div>
-      ) : null}
+      )}
 
       {/* Footer: show immediately if not truncated; otherwise only when expanded */}
       {(expanded || !wasTruncated) && (
