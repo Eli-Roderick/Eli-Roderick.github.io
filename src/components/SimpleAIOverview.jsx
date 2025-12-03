@@ -344,6 +344,9 @@ export default function SimpleAIOverview({ htmlContent, onLinkClick, fontSize = 
   const handleContentClick = (e) => {
     const link = e.target.closest('a')
     if (link && link.href) {
+      e.preventDefault()
+      // Open link in new tab
+      window.open(link.href, '_blank', 'noopener,noreferrer')
       // Track the click if callback provided
       if (onLinkClick) {
         onLinkClick({
