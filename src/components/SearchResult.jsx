@@ -45,7 +45,10 @@ export default function SearchResult({
   }
   
   const favicon = getFaviconUrl(domain)
-  const companyName = (company && String(company).trim()) || domain.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ')
+  const companyName = (company && String(company).trim()) || (() => {
+    const name = domain.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ')
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  })()
   const snippet150 = snippet && snippet.length > 150 ? `${snippet.slice(0, 150)}…` : snippet
   
   // Process images (limit to 3)

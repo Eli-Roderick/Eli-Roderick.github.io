@@ -215,6 +215,7 @@ export const createSearchResult = async (pageId, resultData) => {
         url: resultData.url,
         snippet: resultData.snippet || '',
         favicon: resultData.favicon || '',
+        company: resultData.company || '',
         display_order: nextOrder
       })
       .select()

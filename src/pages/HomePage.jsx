@@ -500,7 +500,7 @@ export default function HomePage() {
       </div>
 
       {/* Body */}
-      <div style={{ padding: '2rem', paddingTop: '2.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ padding: '2rem', paddingTop: '2.5rem', maxWidth: '80%', margin: '0 auto' }}>
         {activeTab === 'pages' && !selectedPageForResults && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>

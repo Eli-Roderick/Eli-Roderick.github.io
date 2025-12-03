@@ -15,6 +15,18 @@ const getFaviconUrl = (url) => {
   }
 }
 
+// Helper to generate company name from URL
+const getCompanyFromUrl = (url) => {
+  try {
+    const domain = new URL(url).hostname
+    const name = domain.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ')
+    // Capitalize first letter
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  } catch {
+    return ''
+  }
+}
+
 export default function SearchPageDetails() {
   const navigate = useNavigate()
   const { pageId } = useParams()
@@ -166,7 +178,8 @@ export default function SearchPageDetails() {
   const [formData, setFormData] = useState({
     title: '',
     url: '',
-    snippet: ''
+    snippet: '',
+    company: ''
   })
 
   // AI assignment state
@@ -191,6 +204,7 @@ export default function SearchPageDetails() {
         title: formData.title,
         url: formData.url,
         snippet: formData.snippet,
+        company: formData.company,
         favicon: getFaviconUrl(formData.url)
       })
     } else {
@@ -199,11 +213,12 @@ export default function SearchPageDetails() {
         title: formData.title,
         url: formData.url,
         snippet: formData.snippet,
+        company: formData.company,
         favicon: getFaviconUrl(formData.url)
       })
     }
 
-    setFormData({ title: '', url: '', snippet: '' })
+    setFormData({ title: '', url: '', snippet: '', company: '' })
     setEditingResult(null)
   }
 
@@ -212,12 +227,13 @@ export default function SearchPageDetails() {
     setFormData({
       title: result.title,
       url: result.url,
-      snippet: result.snippet
+      snippet: result.snippet,
+      company: result.company || getCompanyFromUrl(result.url)
     })
   }
 
   const handleCancel = () => {
-    setFormData({ title: '', url: '', snippet: '' })
+    setFormData({ title: '', url: '', snippet: '', company: '' })
     setEditingResult(null)
   }
 
@@ -412,7 +428,7 @@ export default function SearchPageDetails() {
       </div>
 
       {/* Body */}
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ padding: '2rem', maxWidth: '80%', margin: '0 auto' }}>
         {/* AI Assignment Section */}
         <div style={{
           padding: '1.5rem',
@@ -698,7 +714,12 @@ export default function SearchPageDetails() {
               <input
                 type="url"
                 value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                onChange={(e) => {
+                  const newUrl = e.target.value
+                  // Auto-generate company name if company field is empty
+                  const newCompany = formData.company ? formData.company : getCompanyFromUrl(newUrl)
+                  setFormData({ ...formData, url: newUrl, company: newCompany })
+                }}
                 placeholder="https://example.com/page"
                 style={{
                   width: '100%',
@@ -710,6 +731,27 @@ export default function SearchPageDetails() {
                   color: 'var(--text)'
                 }}
                 required
+              />
+            </div>
+            
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                Site Name
+              </label>
+              <input
+                type="text"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                placeholder="Company or website name"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--bg)',
+                  color: 'var(--text)'
+                }}
               />
             </div>
             
@@ -790,74 +832,87 @@ export default function SearchPageDetails() {
               No search results yet. Add one above to get started.
             </p>
           ) : (
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              {pageResults.map(result => (
-                <div key={result.id} style={{
-                  padding: '1rem',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--bg)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                    <img 
-                      src={result.favicon || getFaviconUrl(result.url)} 
-                      alt="Favicon"
-                      style={{ 
-                        width: '20px', 
-                        height: '20px', 
-                        marginTop: '2px', 
-                        flexShrink: 0, 
-                        borderRadius: '50%', 
-                        border: '1px solid var(--border)' 
-                      }}
-                      onError={(e) => {
-                        e.target.src = `https://icons.duckduckgo.com/ip3/example.com.ico`
-                      }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: '500', color: 'var(--link)' }}>
-                        {result.title}
-                      </h4>
-                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '12px', color: '#16a34a' }}>
-                        {result.url}
-                      </p>
-                      <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)', lineHeight: '1.4' }}>
-                        {result.snippet}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                      <button
-                        onClick={() => handleEdit(result)}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          border: 'none',
-                          borderRadius: '4px',
-                          backgroundColor: '#3b82f6',
-                          color: 'white',
-                          cursor: 'pointer',
-                          fontSize: '12px'
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              {pageResults.map(result => {
+                const displayUrl = result.url.replace(/^https?:\/\//, '')
+                const companyName = result.company || getCompanyFromUrl(result.url)
+                return (
+                  <div key={result.id} style={{
+                    padding: '1rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--bg)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                      <img 
+                        src={result.favicon || getFaviconUrl(result.url)} 
+                        alt=""
+                        style={{ 
+                          width: '28px', 
+                          height: '28px', 
+                          marginTop: '2px', 
+                          flexShrink: 0, 
+                          borderRadius: '50%', 
+                          border: '1px solid var(--border)',
+                          backgroundColor: 'var(--card-bg)'
                         }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(result.id)}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          border: 'none',
-                          borderRadius: '4px',
-                          backgroundColor: '#dc2626',
-                          color: 'white',
-                          cursor: 'pointer',
-                          fontSize: '12px'
+                        onError={(e) => {
+                          e.target.src = `https://icons.duckduckgo.com/ip3/example.com.ico`
                         }}
-                      >
-                        Delete
-                      </button>
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Company name and URL - like search results */}
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                            {companyName}
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {displayUrl}
+                          </div>
+                        </div>
+                        {/* Title - like search result link */}
+                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '18px', fontWeight: '400', color: 'var(--link)' }}>
+                          {result.title}
+                        </h4>
+                        {/* Snippet */}
+                        <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)', lineHeight: '1.4' }}>
+                          {result.snippet}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                        <button
+                          onClick={() => handleEdit(result)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '4px',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(result.id)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '4px',
+                            backgroundColor: '#dc2626',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

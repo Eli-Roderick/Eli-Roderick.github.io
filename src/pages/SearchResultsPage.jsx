@@ -201,7 +201,8 @@ export default function SearchResultsPage() {
         title: r.title,
         url: r.url,
         snippet: r.snippet,
-        favicon: r.favicon
+        favicon: r.favicon,
+        company: r.company
       }))
     })
     return resultsObj
@@ -520,7 +521,8 @@ export default function SearchResultsPage() {
       title: result.title,
       url: result.url,
       snippet: result.snippet,
-      favicon: result.favicon
+      favicon: result.favicon,
+      company: result.company
     }))
     
     // For custom pages, use userAIText only if there's content or an assignment
