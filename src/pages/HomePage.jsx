@@ -6,6 +6,7 @@ import useRealtimeData from '../hooks/useRealtimeData'
 import { loadConfigByPath } from '../utils/config'
 import { getCurrentUser, supabase } from '../utils/supabase'
 import { getAnyActiveSession, createSession, endSession } from '../utils/cloudDataV2'
+import { APP_NAME, APP_VERSION } from '../constants/app'
 
 // Query to config path mapping (same as SearchResultsPage)
 const queryToConfig = {
@@ -385,7 +386,7 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
-      {/* Breadcrumb Bar */}
+      {/* Header Bar */}
       <div style={{ 
         padding: '0.75rem 2rem', 
         backgroundColor: 'var(--card-bg)',
@@ -394,9 +395,16 @@ export default function HomePage() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
-          <span style={{ color: 'var(--text)', fontWeight: '500' }}>Home</span>
-        </nav>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--text)' }}>{APP_NAME}</h1>
+            <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '400' }}>v{APP_VERSION}</span>
+          </div>
+          <span style={{ color: 'var(--border)' }}>|</span>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
+            <span style={{ color: 'var(--text)', fontWeight: '500' }}>Home</span>
+          </nav>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {activeSession && (
             <button

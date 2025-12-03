@@ -9,6 +9,7 @@ import {
   endSession
 } from '../utils/cloudDataV2'
 import { supabase } from '../utils/supabase'
+import { APP_NAME, APP_VERSION } from '../constants/app'
 
 export default function ParticipantSessions() {
   const navigate = useNavigate()
@@ -395,7 +396,7 @@ export default function ParticipantSessions() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
-      {/* Breadcrumb Bar */}
+      {/* Header Bar */}
       <div style={{ 
         padding: '0.75rem 2rem', 
         backgroundColor: 'var(--card-bg)',
@@ -404,39 +405,46 @@ export default function ParticipantSessions() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
-          <button
-            onClick={() => navigate('/')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--link)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              padding: 0
-            }}
-          >
-            Home
-          </button>
-          <span style={{ color: 'var(--muted)' }}>/</span>
-          <button
-            onClick={() => navigate('/?tab=participants')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--link)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              padding: 0
-            }}
-          >
-            Participants
-          </button>
-          <span style={{ color: 'var(--muted)' }}>/</span>
-          <span style={{ color: 'var(--text)', fontWeight: '500' }}>{participant.name}</span>
-          <span style={{ color: 'var(--muted)' }}>/</span>
-          <span style={{ color: 'var(--text)', fontWeight: '500' }}>Sessions</span>
-        </nav>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--text)' }}>{APP_NAME}</h1>
+            <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '400' }}>v{APP_VERSION}</span>
+          </div>
+          <span style={{ color: 'var(--border)' }}>|</span>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--link)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                padding: 0
+              }}
+            >
+              Home
+            </button>
+            <span style={{ color: 'var(--muted)' }}>/</span>
+            <button
+              onClick={() => navigate('/?tab=participants')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--link)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                padding: 0
+              }}
+            >
+              Participants
+            </button>
+            <span style={{ color: 'var(--muted)' }}>/</span>
+            <span style={{ color: 'var(--text)', fontWeight: '500' }}>{participant.name}</span>
+            <span style={{ color: 'var(--muted)' }}>/</span>
+            <span style={{ color: 'var(--text)', fontWeight: '500' }}>Sessions</span>
+          </nav>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {activeSession && (
             <button
