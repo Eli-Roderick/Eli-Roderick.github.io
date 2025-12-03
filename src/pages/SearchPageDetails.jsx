@@ -119,7 +119,7 @@ export default function SearchPageDetails() {
     : null
   const currentFontSize = assignment?.fontSize || '14'
   const currentFontFamily = assignment?.fontFamily || 'system'
-  const currentFontColor = assignment?.fontColor || '#1f2937'
+  const currentFontColor = assignment?.fontColor ?? ''
 
   // Font family CSS mapping for preview
   const fontFamilyMap = {
@@ -527,21 +527,66 @@ export default function SearchPageDetails() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <label style={{ fontSize: '14px', color: 'var(--muted)' }}>Color:</label>
-                  <input
-                    type="color"
-                    value={currentFontColor}
-                    onChange={handleFontColorChange}
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      padding: '2px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      backgroundColor: 'var(--bg)',
-                      cursor: 'pointer'
-                    }}
-                  />
+                  {currentFontColor ? (
+                    <input
+                      type="color"
+                      value={currentFontColor}
+                      onChange={handleFontColorChange}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        padding: '2px',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        backgroundColor: 'var(--bg)',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  ) : (
+                    <div 
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border)',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        display: 'flex'
+                      }}
+                      onClick={() => {
+                        // Create a hidden color input and trigger it
+                        const input = document.createElement('input')
+                        input.type = 'color'
+                        input.value = '#000000'
+                        input.onchange = (e) => handleFontColorChange(e)
+                        input.click()
+                      }}
+                      title="Click to set custom color"
+                    >
+                      <div style={{ flex: 1, backgroundColor: '#000000' }} />
+                      <div style={{ flex: 1, backgroundColor: '#ffffff' }} />
+                    </div>
+                  )}
+                  {!currentFontColor && (
+                    <span style={{ fontSize: '11px', color: 'var(--muted)' }}>(theme default)</span>
+                  )}
                 </div>
+                <button
+                  onClick={() => updateAISettings(page.id, { fontSize: '14', fontFamily: 'system', fontColor: '' })}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    backgroundColor: 'var(--bg)',
+                    fontSize: '13px',
+                    color: 'var(--muted)',
+                    cursor: 'pointer',
+                    marginLeft: '0.5rem'
+                  }}
+                  title="Reset to defaults (14pt, System font, dark gray)"
+                >
+                  Reset
+                </button>
               </>
             )}
           </div>
@@ -571,7 +616,7 @@ export default function SearchPageDetails() {
                   <div style={{
                     fontSize: `${currentFontSize}pt`,
                     fontFamily: fontFamilyMap[currentFontFamily] || fontFamilyMap.system,
-                    color: currentFontColor,
+                    color: currentFontColor || '#000000',
                     lineHeight: '1.6',
                     padding: '0.5rem',
                     backgroundColor: '#ffffff',
@@ -587,7 +632,7 @@ export default function SearchPageDetails() {
                   <div style={{
                     fontSize: `${currentFontSize}pt`,
                     fontFamily: fontFamilyMap[currentFontFamily] || fontFamilyMap.system,
-                    color: currentFontColor,
+                    color: currentFontColor || '#ffffff',
                     lineHeight: '1.6',
                     padding: '0.5rem',
                     backgroundColor: '#1a1a1a',

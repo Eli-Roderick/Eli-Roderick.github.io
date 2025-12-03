@@ -381,7 +381,16 @@ export default function SimpleAIOverview({ htmlContent, onLinkClick, fontSize = 
         <div className="ai-showmore">
           <button
             className="ai-showmore-btn"
-            onClick={() => setExpanded(true)}
+            onClick={() => {
+              setExpanded(true)
+              if (onLinkClick) {
+                onLinkClick({
+                  url: null,
+                  title: 'Show more',
+                  type: 'ai_show_more'
+                })
+              }
+            }}
           >
             <span>Show more</span>
             <span className="material-symbols-outlined text-blue-500 text-lg ml-2" aria-hidden="true">keyboard_arrow_down</span>

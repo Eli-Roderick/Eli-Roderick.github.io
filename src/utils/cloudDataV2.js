@@ -558,7 +558,7 @@ export const loadAIAssignments = async (userId = null) => {
         aiOverviewId: assignment.ai_overview_id,
         fontSize: assignment.font_size || '14',
         fontFamily: assignment.font_family || 'system',
-        fontColor: assignment.font_color || '#1f2937'
+        fontColor: assignment.font_color ?? ''
       }
     })
 

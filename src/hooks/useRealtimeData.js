@@ -322,7 +322,7 @@ export function useRealtimeData(currentUser) {
           ...prev[pageId],
           fontSize: settings.fontSize ?? prev[pageId]?.fontSize ?? '14',
           fontFamily: settings.fontFamily ?? prev[pageId]?.fontFamily ?? 'system',
-          fontColor: settings.fontColor ?? prev[pageId]?.fontColor ?? '#1f2937'
+          fontColor: settings.fontColor !== undefined ? settings.fontColor : (prev[pageId]?.fontColor ?? '')
         }
       }))
     }

@@ -693,7 +693,7 @@ export default function ParticipantSessions() {
                           // Format activity based on type
                           let description = ''
                           if (activity.activity_type === 'URL_CLICK') {
-                            description = `${details.type || 'link'}: "${details.title || details.url}"`
+                            description = `URL: "${details.title || details.url}"`
                           } else if (activity.activity_type === 'SCROLL_UP' || activity.activity_type === 'SCROLL_DOWN') {
                             description = `${details.from}px → ${details.to}px`
                           } else if (activity.activity_type === 'SESSION_START' || activity.activity_type === 'SESSION_END') {
@@ -747,7 +747,8 @@ export default function ParticipantSessions() {
                                 color: typeColors[activity.activity_type] || 'var(--text)',
                                 fontWeight: '600',
                                 flexShrink: 0,
-                                width: '100px'
+                                width: '105px',
+                                whiteSpace: 'nowrap'
                               }}>
                                 {activity.activity_type.replace('_', ' ')}
                               </span>
