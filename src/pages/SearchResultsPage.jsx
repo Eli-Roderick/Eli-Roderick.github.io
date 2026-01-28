@@ -1824,11 +1824,12 @@ function SearchResultsEditorModal({
                         width: '18px',
                         height: '18px',
                         borderRadius: '50%',
-                        backgroundColor: 'var(--border)',
-                        color: 'var(--text)',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        cursor: 'help'
+                        backgroundColor: '#1a73e8',
+                        color: 'white',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'help',
+                        border: '1px solid #1a73e8'
                       }}
                       title={`SNIPPET FORMATTING HELP
 
