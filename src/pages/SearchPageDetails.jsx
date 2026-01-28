@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import useRealtimeData from '../hooks/useRealtimeData'
 import { getCurrentUser } from '../utils/supabase'
 import { getAnyActiveSession } from '../utils/cloudDataV2'
+import { APP_NAME, APP_VERSION } from '../constants/app'
 
 // Helper to get favicon URL - use DuckDuckGo for better transparency
 const getFaviconUrl = (url) => {
@@ -11,6 +12,18 @@ const getFaviconUrl = (url) => {
     return `https://icons.duckduckgo.com/ip3/${domain}.ico`
   } catch {
     return `https://icons.duckduckgo.com/ip3/example.com.ico`
+  }
+}
+
+// Helper to generate company name from URL
+const getCompanyFromUrl = (url) => {
+  try {
+    const domain = new URL(url).hostname
+    const name = domain.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ')
+    // Capitalize first letter
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  } catch {
+    return ''
   }
 }
 
@@ -82,6 +95,7 @@ export default function SearchPageDetails() {
     removeResult,
     assignAI,
     unassignAI,
+    updateAISettings,
     getPageById
   } = useRealtimeData(currentUser)
 
@@ -111,17 +125,61 @@ export default function SearchPageDetails() {
   }, [page, resultsByPage])
 
   // Get AI assignment for this page
-  const assignedAIOverviewId = page ? aiAssignments[page.id] : null
+  const assignment = page ? aiAssignments[page.id] : null
+  const assignedAIOverviewId = assignment?.aiOverviewId || null
   const assignedAIOverview = assignedAIOverviewId 
     ? aiOverviews.find(o => o.id === assignedAIOverviewId)
     : null
+  const currentFontSize = assignment?.fontSize || '14'
+  const currentFontFamily = assignment?.fontFamily || 'system'
+  const currentFontColor = assignment?.fontColor ?? ''
+
+  // Font family CSS mapping for preview
+  const fontFamilyMap = {
+    // Sans-serif fonts
+    system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    arial: 'Arial, Helvetica, sans-serif',
+    helvetica: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    verdana: 'Verdana, Geneva, sans-serif',
+    tahoma: 'Tahoma, Geneva, sans-serif',
+    trebuchet: '"Trebuchet MS", Helvetica, sans-serif',
+    roboto: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+    opensans: '"Open Sans", "Helvetica Neue", Arial, sans-serif',
+    lato: 'Lato, "Helvetica Neue", Arial, sans-serif',
+    montserrat: 'Montserrat, "Helvetica Neue", Arial, sans-serif',
+    poppins: 'Poppins, "Helvetica Neue", Arial, sans-serif',
+    inter: 'Inter, "Helvetica Neue", Arial, sans-serif',
+    sourcesans: '"Source Sans Pro", "Helvetica Neue", Arial, sans-serif',
+    nunito: 'Nunito, "Helvetica Neue", Arial, sans-serif',
+    raleway: 'Raleway, "Helvetica Neue", Arial, sans-serif',
+    // Serif fonts
+    georgia: 'Georgia, "Times New Roman", serif',
+    times: '"Times New Roman", Times, serif',
+    palatino: '"Palatino Linotype", "Book Antiqua", Palatino, serif',
+    garamond: 'Garamond, "Times New Roman", serif',
+    bookman: '"Bookman Old Style", serif',
+    merriweather: 'Merriweather, Georgia, serif',
+    playfair: '"Playfair Display", Georgia, serif',
+    lora: 'Lora, Georgia, serif',
+    // Monospace fonts
+    courier: '"Courier New", Courier, monospace',
+    consolas: 'Consolas, Monaco, "Courier New", monospace',
+    monaco: 'Monaco, Consolas, monospace',
+    firacode: '"Fira Code", Consolas, monospace',
+    jetbrains: '"JetBrains Mono", Consolas, monospace',
+    // Display/decorative fonts
+    impact: 'Impact, Haettenschweiler, sans-serif',
+    comicsans: '"Comic Sans MS", cursive',
+    brushscript: '"Brush Script MT", cursive'
+  }
 
   // Form state for adding/editing results
   const [editingResult, setEditingResult] = useState(null)
   const [formData, setFormData] = useState({
     title: '',
     url: '',
-    snippet: ''
+    snippet: '',
+    company: ''
   })
 
   // AI assignment state
@@ -146,6 +204,7 @@ export default function SearchPageDetails() {
         title: formData.title,
         url: formData.url,
         snippet: formData.snippet,
+        company: formData.company,
         favicon: getFaviconUrl(formData.url)
       })
     } else {
@@ -154,11 +213,12 @@ export default function SearchPageDetails() {
         title: formData.title,
         url: formData.url,
         snippet: formData.snippet,
+        company: formData.company,
         favicon: getFaviconUrl(formData.url)
       })
     }
 
-    setFormData({ title: '', url: '', snippet: '' })
+    setFormData({ title: '', url: '', snippet: '', company: '' })
     setEditingResult(null)
   }
 
@@ -167,12 +227,13 @@ export default function SearchPageDetails() {
     setFormData({
       title: result.title,
       url: result.url,
-      snippet: result.snippet
+      snippet: result.snippet,
+      company: result.company || getCompanyFromUrl(result.url)
     })
   }
 
   const handleCancel = () => {
-    setFormData({ title: '', url: '', snippet: '' })
+    setFormData({ title: '', url: '', snippet: '', company: '' })
     setEditingResult(null)
   }
 
@@ -187,10 +248,25 @@ export default function SearchPageDetails() {
     setSelectedAIId(newAIId)
     
     if (newAIId) {
-      await assignAI(page.id, newAIId)
+      await assignAI(page.id, newAIId, { fontSize: currentFontSize, fontFamily: currentFontFamily })
     } else {
       await unassignAI(page.id)
     }
+  }
+
+  const handleFontSizeChange = async (e) => {
+    const newFontSize = e.target.value
+    await updateAISettings(page.id, { fontSize: newFontSize, fontFamily: currentFontFamily, fontColor: currentFontColor })
+  }
+
+  const handleFontFamilyChange = async (e) => {
+    const newFontFamily = e.target.value
+    await updateAISettings(page.id, { fontSize: currentFontSize, fontFamily: newFontFamily, fontColor: currentFontColor })
+  }
+
+  const handleFontColorChange = async (e) => {
+    const newFontColor = e.target.value
+    await updateAISettings(page.id, { fontSize: currentFontSize, fontFamily: currentFontFamily, fontColor: newFontColor })
   }
 
   // Show loading while checking auth
@@ -246,7 +322,7 @@ export default function SearchPageDetails() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
-      {/* Breadcrumb Bar */}
+      {/* Header Bar */}
       <div style={{ 
         padding: '0.75rem 2rem', 
         backgroundColor: 'var(--card-bg)',
@@ -255,25 +331,32 @@ export default function SearchPageDetails() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
-          <button
-            onClick={() => navigate('/')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--link)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              padding: 0
-            }}
-          >
-            Home
-          </button>
-          <span style={{ color: 'var(--muted)' }}>/</span>
-          <span style={{ color: 'var(--muted)' }}>Pages</span>
-          <span style={{ color: 'var(--muted)' }}>/</span>
-          <span style={{ color: 'var(--text)', fontWeight: '500' }}>{page.display_name}</span>
-        </nav>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--text)' }}>{APP_NAME}</h1>
+            <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '400' }}>v{APP_VERSION}</span>
+          </div>
+          <span style={{ color: 'var(--border)' }}>|</span>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--link)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                padding: 0
+              }}
+            >
+              Home
+            </button>
+            <span style={{ color: 'var(--muted)' }}>/</span>
+            <span style={{ color: 'var(--muted)' }}>Pages</span>
+            <span style={{ color: 'var(--muted)' }}>/</span>
+            <span style={{ color: 'var(--text)', fontWeight: '500' }}>{page.display_name}</span>
+          </nav>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {activeSession && (
             <button
@@ -345,7 +428,7 @@ export default function SearchPageDetails() {
       </div>
 
       {/* Body */}
-      <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ padding: '2rem', maxWidth: '80%', margin: '0 auto' }}>
         {/* AI Assignment Section */}
         <div style={{
           padding: '1.5rem',
@@ -358,7 +441,7 @@ export default function SearchPageDetails() {
           <h2 style={{ margin: '0 0 1rem 0', fontSize: '18px', fontWeight: '600', color: 'var(--text)' }}>
             AI Overview Assignment
           </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <select
               value={selectedAIId}
               onChange={handleAIAssignmentChange}
@@ -380,11 +463,212 @@ export default function SearchPageDetails() {
               ))}
             </select>
             {assignedAIOverview && (
-              <span style={{ fontSize: '14px', color: '#16a34a' }}>
-                ✓ Assigned
-              </span>
+              <>
+                <span style={{ fontSize: '14px', color: '#16a34a' }}>
+                  ✓ Assigned
+                </span>
+                <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border)', margin: '0 0.5rem' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '14px', color: 'var(--muted)' }}>Font Size:</label>
+                  <select
+                    value={currentFontSize}
+                    onChange={handleFontSizeChange}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--bg)',
+                      fontSize: '14px',
+                      color: 'var(--text)'
+                    }}
+                  >
+                    <option value="10">10pt</option>
+                    <option value="11">11pt</option>
+                    <option value="12">12pt</option>
+                    <option value="13">13pt</option>
+                    <option value="14">14pt</option>
+                    <option value="16">16pt</option>
+                    <option value="18">18pt</option>
+                    <option value="20">20pt</option>
+                    <option value="22">22pt</option>
+                    <option value="24">24pt</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '14px', color: 'var(--muted)' }}>Font:</label>
+                  <select
+                    value={currentFontFamily}
+                    onChange={handleFontFamilyChange}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--bg)',
+                      fontSize: '14px',
+                      color: 'var(--text)'
+                    }}
+                  >
+                    <optgroup label="Sans-serif">
+                      <option value="system">System Default</option>
+                      <option value="arial">Arial</option>
+                      <option value="helvetica">Helvetica</option>
+                      <option value="verdana">Verdana</option>
+                      <option value="tahoma">Tahoma</option>
+                      <option value="trebuchet">Trebuchet MS</option>
+                      <option value="roboto">Roboto</option>
+                      <option value="opensans">Open Sans</option>
+                      <option value="lato">Lato</option>
+                      <option value="montserrat">Montserrat</option>
+                      <option value="poppins">Poppins</option>
+                      <option value="inter">Inter</option>
+                      <option value="sourcesans">Source Sans Pro</option>
+                      <option value="nunito">Nunito</option>
+                      <option value="raleway">Raleway</option>
+                    </optgroup>
+                    <optgroup label="Serif">
+                      <option value="georgia">Georgia</option>
+                      <option value="times">Times New Roman</option>
+                      <option value="palatino">Palatino</option>
+                      <option value="garamond">Garamond</option>
+                      <option value="bookman">Bookman</option>
+                      <option value="merriweather">Merriweather</option>
+                      <option value="playfair">Playfair Display</option>
+                      <option value="lora">Lora</option>
+                    </optgroup>
+                    <optgroup label="Monospace">
+                      <option value="courier">Courier New</option>
+                      <option value="consolas">Consolas</option>
+                      <option value="monaco">Monaco</option>
+                      <option value="firacode">Fira Code</option>
+                      <option value="jetbrains">JetBrains Mono</option>
+                    </optgroup>
+                    <optgroup label="Display">
+                      <option value="impact">Impact</option>
+                      <option value="comicsans">Comic Sans</option>
+                      <option value="brushscript">Brush Script</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '14px', color: 'var(--muted)' }}>Color:</label>
+                  {currentFontColor ? (
+                    <input
+                      type="color"
+                      value={currentFontColor}
+                      onChange={handleFontColorChange}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        padding: '2px',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        backgroundColor: 'var(--bg)',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  ) : (
+                    <div 
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border)',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        display: 'flex'
+                      }}
+                      onClick={() => {
+                        // Create a hidden color input and trigger it
+                        const input = document.createElement('input')
+                        input.type = 'color'
+                        input.value = '#000000'
+                        input.onchange = (e) => handleFontColorChange(e)
+                        input.click()
+                      }}
+                      title="Click to set custom color"
+                    >
+                      <div style={{ flex: 1, backgroundColor: '#000000' }} />
+                      <div style={{ flex: 1, backgroundColor: '#ffffff' }} />
+                    </div>
+                  )}
+                  {!currentFontColor && (
+                    <span style={{ fontSize: '11px', color: 'var(--muted)' }}>(theme default)</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => updateAISettings(page.id, { fontSize: '14', fontFamily: 'system', fontColor: '' })}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    backgroundColor: 'var(--bg)',
+                    fontSize: '13px',
+                    color: 'var(--muted)',
+                    cursor: 'pointer',
+                    marginLeft: '0.5rem'
+                  }}
+                  title="Reset to defaults (14pt, System font, dark gray)"
+                >
+                  Reset
+                </button>
+              </>
             )}
           </div>
+          
+          {/* Font Preview */}
+          {assignedAIOverview && (
+            <div style={{ 
+              marginTop: '1rem',
+              padding: '1rem',
+              backgroundColor: 'var(--bg)',
+              borderRadius: '8px',
+              border: '1px solid var(--border)'
+            }}>
+              <div style={{ 
+                fontSize: '12px', 
+                color: 'var(--muted)', 
+                marginBottom: '0.5rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Preview
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {/* Light mode preview */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '10px', color: 'var(--muted)', marginBottom: '0.25rem' }}>Light</div>
+                  <div style={{
+                    fontSize: `${currentFontSize}pt`,
+                    fontFamily: fontFamilyMap[currentFontFamily] || fontFamilyMap.system,
+                    color: currentFontColor || '#000000',
+                    lineHeight: '1.6',
+                    padding: '0.5rem',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '4px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    The quick brown fox jumps over the lazy dog.
+                  </div>
+                </div>
+                {/* Dark mode preview */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '10px', color: 'var(--muted)', marginBottom: '0.25rem' }}>Dark</div>
+                  <div style={{
+                    fontSize: `${currentFontSize}pt`,
+                    fontFamily: fontFamilyMap[currentFontFamily] || fontFamilyMap.system,
+                    color: currentFontColor || '#ffffff',
+                    lineHeight: '1.6',
+                    padding: '0.5rem',
+                    backgroundColor: '#1a1a1a',
+                    borderRadius: '4px',
+                    border: '1px solid #374151'
+                  }}>
+                    The quick brown fox jumps over the lazy dog.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Add/Edit Result Form */}
@@ -430,7 +714,12 @@ export default function SearchPageDetails() {
               <input
                 type="url"
                 value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                onChange={(e) => {
+                  const newUrl = e.target.value
+                  // Auto-generate company name if company field is empty
+                  const newCompany = formData.company ? formData.company : getCompanyFromUrl(newUrl)
+                  setFormData({ ...formData, url: newUrl, company: newCompany })
+                }}
                 placeholder="https://example.com/page"
                 style={{
                   width: '100%',
@@ -442,6 +731,27 @@ export default function SearchPageDetails() {
                   color: 'var(--text)'
                 }}
                 required
+              />
+            </div>
+            
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                Site Name
+              </label>
+              <input
+                type="text"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                placeholder="Company or website name"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--bg)',
+                  color: 'var(--text)'
+                }}
               />
             </div>
             
@@ -522,74 +832,87 @@ export default function SearchPageDetails() {
               No search results yet. Add one above to get started.
             </p>
           ) : (
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              {pageResults.map(result => (
-                <div key={result.id} style={{
-                  padding: '1rem',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--bg)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                    <img 
-                      src={result.favicon || getFaviconUrl(result.url)} 
-                      alt="Favicon"
-                      style={{ 
-                        width: '20px', 
-                        height: '20px', 
-                        marginTop: '2px', 
-                        flexShrink: 0, 
-                        borderRadius: '50%', 
-                        border: '1px solid var(--border)' 
-                      }}
-                      onError={(e) => {
-                        e.target.src = `https://icons.duckduckgo.com/ip3/example.com.ico`
-                      }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: '500', color: 'var(--link)' }}>
-                        {result.title}
-                      </h4>
-                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '12px', color: '#16a34a' }}>
-                        {result.url}
-                      </p>
-                      <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)', lineHeight: '1.4' }}>
-                        {result.snippet}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                      <button
-                        onClick={() => handleEdit(result)}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          border: 'none',
-                          borderRadius: '4px',
-                          backgroundColor: '#3b82f6',
-                          color: 'white',
-                          cursor: 'pointer',
-                          fontSize: '12px'
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              {pageResults.map(result => {
+                const displayUrl = result.url.replace(/^https?:\/\//, '')
+                const companyName = result.company || getCompanyFromUrl(result.url)
+                return (
+                  <div key={result.id} style={{
+                    padding: '1rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--bg)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                      <img 
+                        src={result.favicon || getFaviconUrl(result.url)} 
+                        alt=""
+                        style={{ 
+                          width: '28px', 
+                          height: '28px', 
+                          marginTop: '2px', 
+                          flexShrink: 0, 
+                          borderRadius: '50%', 
+                          border: '1px solid var(--border)',
+                          backgroundColor: 'var(--card-bg)'
                         }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(result.id)}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          border: 'none',
-                          borderRadius: '4px',
-                          backgroundColor: '#dc2626',
-                          color: 'white',
-                          cursor: 'pointer',
-                          fontSize: '12px'
+                        onError={(e) => {
+                          e.target.src = `https://icons.duckduckgo.com/ip3/example.com.ico`
                         }}
-                      >
-                        Delete
-                      </button>
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Company name and URL - like search results */}
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                            {companyName}
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {displayUrl}
+                          </div>
+                        </div>
+                        {/* Title - like search result link */}
+                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '18px', fontWeight: '400', color: 'var(--link)' }}>
+                          {result.title}
+                        </h4>
+                        {/* Snippet */}
+                        <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)', lineHeight: '1.4' }}>
+                          {result.snippet}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                        <button
+                          onClick={() => handleEdit(result)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '4px',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(result.id)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '4px',
+                            backgroundColor: '#dc2626',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

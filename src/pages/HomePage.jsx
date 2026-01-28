@@ -4,8 +4,9 @@ import UserAuth from '../components/UserAuth'
 import RichTextEditor from '../components/RichTextEditor'
 import useRealtimeData from '../hooks/useRealtimeData'
 import { loadConfigByPath } from '../utils/config'
-import { getCurrentUser } from '../utils/supabase'
+import { getCurrentUser, supabase } from '../utils/supabase'
 import { getAnyActiveSession, createSession, endSession } from '../utils/cloudDataV2'
+import { APP_NAME, APP_VERSION } from '../constants/app'
 
 // Query to config path mapping (same as SearchResultsPage)
 const queryToConfig = {
@@ -110,6 +111,41 @@ export default function HomePage() {
     }
     loadActiveSession()
   }, [currentUser, participants])
+
+  // Subscribe to realtime session updates
+  useEffect(() => {
+    if (!currentUser) return
+
+    const channel = supabase
+      .channel('sessions_home')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sessions'
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT' && payload.new.status === 'active') {
+            setActiveSession(payload.new)
+          } else if (payload.eventType === 'UPDATE') {
+            // Session ended or status changed
+            if (payload.new.status !== 'active' && activeSession?.id === payload.new.id) {
+              setActiveSession(null)
+            } else if (payload.new.status === 'active') {
+              setActiveSession(payload.new)
+            }
+          } else if (payload.eventType === 'DELETE' && activeSession?.id === payload.old.id) {
+            setActiveSession(null)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [currentUser, activeSession])
 
   const handleStartSession = async (participantId) => {
     setSessionLoading(true)
@@ -350,7 +386,7 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
-      {/* Breadcrumb Bar */}
+      {/* Header Bar */}
       <div style={{ 
         padding: '0.75rem 2rem', 
         backgroundColor: 'var(--card-bg)',
@@ -359,9 +395,16 @@ export default function HomePage() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
-          <span style={{ color: 'var(--text)', fontWeight: '500' }}>Home</span>
-        </nav>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--text)' }}>{APP_NAME}</h1>
+            <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '400' }}>v{APP_VERSION}</span>
+          </div>
+          <span style={{ color: 'var(--border)' }}>|</span>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
+            <span style={{ color: 'var(--text)', fontWeight: '500' }}>Home</span>
+          </nav>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {activeSession && (
             <button
@@ -457,7 +500,7 @@ export default function HomePage() {
       </div>
 
       {/* Body */}
-      <div style={{ padding: '2rem', paddingTop: '2.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ padding: '2rem', paddingTop: '2.5rem', maxWidth: '80%', margin: '0 auto' }}>
         {activeTab === 'pages' && !selectedPageForResults && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -535,21 +578,63 @@ export default function HomePage() {
                           }}>
                             {page.type === 'custom' ? 'Custom' : 'Built-in'}
                           </span>
+                          {aiAssignments[page.id]?.aiOverviewId && (
+                            <span style={{ 
+                              fontSize: '12px', 
+                              fontWeight: 'normal',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '12px',
+                              backgroundColor: '#22c55e',
+                              color: 'white'
+                            }}>
+                              AI Overview Enabled
+                            </span>
+                          )}
                         </div>
                         <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
-                          {pageResults.length} custom results • {aiAssignments[page.id] ? 'AI assigned' : 'No AI assigned'}
+                          {pageResults.length} custom results • {aiAssignments[page.id]?.aiOverviewId ? 'AI assigned' : 'No AI assigned'}
                         </p>
                         {page.type === 'custom' && (
-                          <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)' }}>
-                            URL: /session?q={page.queryKey}
+                          <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>URL: /session?p={page.id}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const fullUrl = `https://eli-roderick.github.io/session?p=${page.id}`
+                                const icon = e.currentTarget.querySelector('span')
+                                navigator.clipboard.writeText(fullUrl)
+                                  .then(() => {
+                                    icon.textContent = 'check'
+                                    setTimeout(() => { icon.textContent = 'content_copy' }, 1500)
+                                  })
+                                  .catch(() => alert('Failed to copy'))
+                              }}
+                              style={{
+                                padding: '0.125rem',
+                                border: 'none',
+                                borderRadius: '3px',
+                                backgroundColor: 'transparent',
+                                color: 'var(--muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center'
+                              }}
+                              title="Copy URL"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>content_copy</span>
+                            </button>
                           </p>
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                         <button
                           onClick={() => {
-                            const query = page.type === 'custom' ? page.queryKey : page.queryKey?.replace(/\s+/g, '+')
-                            navigate(`/search?q=${encodeURIComponent(query || '')}&preview=true`)
+                            if (page.type === 'custom') {
+                              navigate(`/search?p=${page.id}&preview=true`)
+                            } else {
+                              const query = page.queryKey?.replace(/\s+/g, '+')
+                              navigate(`/search?q=${encodeURIComponent(query || '')}&preview=true`)
+                            }
                           }}
                           style={{
                             padding: '0.5rem 1rem',
@@ -581,6 +666,30 @@ export default function HomePage() {
                         >
                           Manage
                         </button>
+                        {page.type === 'custom' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (confirm(`Delete "${page.name}"? This will also delete all associated results.`)) {
+                                removePage(page.id)
+                              }
+                            }}
+                            style={{
+                              padding: '0.5rem',
+                              border: 'none',
+                              borderRadius: '4px',
+                              backgroundColor: 'transparent',
+                              color: '#dc2626',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Delete page"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

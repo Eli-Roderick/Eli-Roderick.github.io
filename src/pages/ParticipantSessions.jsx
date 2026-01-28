@@ -9,6 +9,7 @@ import {
   endSession
 } from '../utils/cloudDataV2'
 import { supabase } from '../utils/supabase'
+import { APP_NAME, APP_VERSION } from '../constants/app'
 
 export default function ParticipantSessions() {
   const navigate = useNavigate()
@@ -97,15 +98,18 @@ export default function ParticipantSessions() {
       setSessions(data)
       setLoading(false)
       
-      // Auto-expand session from URL param
+      // Auto-expand active session first, then check URL param
+      const activeSessionInList = data.find(s => s.status === 'active')
       const expandId = searchParams.get('expand')
-      if (expandId && data.some(s => s.id === expandId)) {
-        setExpandedSession(expandId)
+      const sessionToExpand = activeSessionInList?.id || (expandId && data.some(s => s.id === expandId) ? expandId : null)
+      
+      if (sessionToExpand) {
+        setExpandedSession(sessionToExpand)
         // Load activity for the expanded session
-        const activities = await loadSessionActivity(expandId)
+        const activities = await loadSessionActivity(sessionToExpand)
         setSessionActivities(prev => ({
           ...prev,
-          [expandId]: activities
+          [sessionToExpand]: activities
         }))
       }
     }
@@ -114,6 +118,42 @@ export default function ParticipantSessions() {
       loadSessions()
     }
   }, [participantId, searchParams])
+
+  // Subscribe to realtime sessions updates
+  useEffect(() => {
+    if (!participantId) return
+
+    const channel = supabase
+      .channel(`sessions_${participantId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sessions',
+          filter: `participant_id=eq.${participantId}`
+        },
+        async (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setSessions(prev => [payload.new, ...prev])
+            setActiveSession(payload.new.status === 'active' ? payload.new : activeSession)
+          } else if (payload.eventType === 'UPDATE') {
+            setSessions(prev => prev.map(s => s.id === payload.new.id ? payload.new : s))
+            // Update active session status
+            if (payload.new.status !== 'active' && activeSession?.id === payload.new.id) {
+              setActiveSession(null)
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setSessions(prev => prev.filter(s => s.id !== payload.old.id))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [participantId, activeSession])
 
   // Handle stop session
   const handleStopSession = async (sessionId) => {
@@ -220,11 +260,12 @@ export default function ParticipantSessions() {
       'Session Duration',
       'Activity Type',
       'Activity Timestamp',
-      'Time Since Session Start',
+      'Time Since Start (ms)',
+      'Page ID',
+      'Page Name',
       'URL',
       'Title',
       'Click Type',
-      'Search Query',
       'Scroll From',
       'Scroll To',
       'Details (JSON)'
@@ -245,10 +286,11 @@ export default function ParticipantSessions() {
         '""', // Activity Type
         '""', // Activity Timestamp
         '""', // Time Since Start
+        '""', // Page ID
+        '""', // Page Name
         '""', // URL
         '""', // Title
         '""', // Click Type
-        '""', // Search Query
         '""', // Scroll From
         '""', // Scroll To
         '""'  // Details
@@ -257,8 +299,9 @@ export default function ParticipantSessions() {
       // Add a row for each activity
       activities.forEach(activity => {
         const activityTime = new Date(activity.activity_ts)
-        const timeSinceStart = Math.round((activityTime - sessionStart) / 1000) // seconds
         const details = activity.details || {}
+        // Use stored time_since_start_ms, or calculate as fallback
+        const timeSinceStartMs = activity.time_since_start_ms ?? Math.round(activityTime - sessionStart)
 
         rows.push([
           `"${participant?.name || 'Unknown'}"`,
@@ -268,11 +311,12 @@ export default function ParticipantSessions() {
           `"${duration}"`,
           `"${activity.activity_type}"`,
           `"${activityTime.toISOString()}"`,
-          `"${timeSinceStart}s"`,
+          `"${timeSinceStartMs}"`,
+          `"${(activity.page_id || '').replace(/"/g, '""')}"`,
+          `"${(activity.page_name || '').replace(/"/g, '""')}"`,
           `"${(details.url || '').replace(/"/g, '""')}"`,
           `"${(details.title || '').replace(/"/g, '""')}"`,
           `"${details.type || ''}"`,
-          `"${(details.query || '').replace(/"/g, '""')}"`,
           details.from !== undefined ? `"${details.from}"` : '""',
           details.to !== undefined ? `"${details.to}"` : '""',
           `"${JSON.stringify(details).replace(/"/g, '""')}"`
@@ -352,7 +396,7 @@ export default function ParticipantSessions() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
-      {/* Breadcrumb Bar */}
+      {/* Header Bar */}
       <div style={{ 
         padding: '0.75rem 2rem', 
         backgroundColor: 'var(--card-bg)',
@@ -361,39 +405,46 @@ export default function ParticipantSessions() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
-          <button
-            onClick={() => navigate('/')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--link)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              padding: 0
-            }}
-          >
-            Home
-          </button>
-          <span style={{ color: 'var(--muted)' }}>/</span>
-          <button
-            onClick={() => navigate('/?tab=participants')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--link)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              padding: 0
-            }}
-          >
-            Participants
-          </button>
-          <span style={{ color: 'var(--muted)' }}>/</span>
-          <span style={{ color: 'var(--text)', fontWeight: '500' }}>{participant.name}</span>
-          <span style={{ color: 'var(--muted)' }}>/</span>
-          <span style={{ color: 'var(--text)', fontWeight: '500' }}>Sessions</span>
-        </nav>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--text)' }}>{APP_NAME}</h1>
+            <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '400' }}>v{APP_VERSION}</span>
+          </div>
+          <span style={{ color: 'var(--border)' }}>|</span>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '14px' }}>
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--link)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                padding: 0
+              }}
+            >
+              Home
+            </button>
+            <span style={{ color: 'var(--muted)' }}>/</span>
+            <button
+              onClick={() => navigate('/?tab=participants')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--link)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                padding: 0
+              }}
+            >
+              Participants
+            </button>
+            <span style={{ color: 'var(--muted)' }}>/</span>
+            <span style={{ color: 'var(--text)', fontWeight: '500' }}>{participant.name}</span>
+            <span style={{ color: 'var(--muted)' }}>/</span>
+            <span style={{ color: 'var(--text)', fontWeight: '500' }}>Sessions</span>
+          </nav>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {activeSession && (
             <button
@@ -650,12 +701,15 @@ export default function ParticipantSessions() {
                           // Format activity based on type
                           let description = ''
                           if (activity.activity_type === 'URL_CLICK') {
-                            description = `${details.type || 'link'}: "${details.title || details.url}"`
+                            description = `URL: "${details.title || details.url}"`
                           } else if (activity.activity_type === 'SCROLL_UP' || activity.activity_type === 'SCROLL_DOWN') {
                             description = `${details.from}px → ${details.to}px`
                           } else if (activity.activity_type === 'SESSION_START' || activity.activity_type === 'SESSION_END') {
                             description = ''
                           }
+                          
+                          // Get page name from activity
+                          const pageName = activity.page_name || ''
                           
                           // Color based on activity type
                           const typeColors = {
@@ -686,11 +740,23 @@ export default function ParticipantSessions() {
                               }}>
                                 {time}
                               </span>
+                              {pageName && (
+                                <span style={{ 
+                                  color: 'var(--text)',
+                                  fontWeight: '500',
+                                  flexShrink: 0,
+                                  fontSize: '11px',
+                                  marginRight: '0.5rem'
+                                }}>
+                                  Page: {pageName}
+                                </span>
+                              )}
                               <span style={{ 
                                 color: typeColors[activity.activity_type] || 'var(--text)',
                                 fontWeight: '600',
                                 flexShrink: 0,
-                                width: '100px'
+                                width: '105px',
+                                whiteSpace: 'nowrap'
                               }}>
                                 {activity.activity_type.replace('_', ' ')}
                               </span>

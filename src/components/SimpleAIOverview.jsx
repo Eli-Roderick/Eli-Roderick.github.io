@@ -205,7 +205,60 @@ function updateScrollIndicators(containerId) {
   }
 }
 
-export default function SimpleAIOverview({ htmlContent, onLinkClick }) {
+// Font size mapping (10pt to 24pt)
+const fontSizeMap = {
+  '10': '10pt',
+  '11': '11pt',
+  '12': '12pt',
+  '13': '13pt',
+  '14': '14pt',
+  '16': '16pt',
+  '18': '18pt',
+  '20': '20pt',
+  '22': '22pt',
+  '24': '24pt'
+}
+
+// Font family mapping
+const fontFamilyMap = {
+  // Sans-serif fonts
+  system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  arial: 'Arial, Helvetica, sans-serif',
+  helvetica: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  verdana: 'Verdana, Geneva, sans-serif',
+  tahoma: 'Tahoma, Geneva, sans-serif',
+  trebuchet: '"Trebuchet MS", Helvetica, sans-serif',
+  roboto: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+  opensans: '"Open Sans", "Helvetica Neue", Arial, sans-serif',
+  lato: 'Lato, "Helvetica Neue", Arial, sans-serif',
+  montserrat: 'Montserrat, "Helvetica Neue", Arial, sans-serif',
+  poppins: 'Poppins, "Helvetica Neue", Arial, sans-serif',
+  inter: 'Inter, "Helvetica Neue", Arial, sans-serif',
+  sourcesans: '"Source Sans Pro", "Helvetica Neue", Arial, sans-serif',
+  nunito: 'Nunito, "Helvetica Neue", Arial, sans-serif',
+  raleway: 'Raleway, "Helvetica Neue", Arial, sans-serif',
+  // Serif fonts
+  georgia: 'Georgia, "Times New Roman", serif',
+  times: '"Times New Roman", Times, serif',
+  palatino: '"Palatino Linotype", "Book Antiqua", Palatino, serif',
+  garamond: 'Garamond, "Times New Roman", serif',
+  bookman: '"Bookman Old Style", serif',
+  merriweather: 'Merriweather, Georgia, serif',
+  playfair: '"Playfair Display", Georgia, serif',
+  lora: 'Lora, Georgia, serif',
+  // Monospace fonts
+  courier: '"Courier New", Courier, monospace',
+  consolas: 'Consolas, Monaco, "Courier New", monospace',
+  monaco: 'Monaco, Consolas, monospace',
+  firacode: '"Fira Code", Consolas, monospace',
+  jetbrains: '"JetBrains Mono", Consolas, monospace',
+  // Display/decorative fonts
+  impact: 'Impact, Haettenschweiler, sans-serif',
+  comicsans: '"Comic Sans MS", cursive',
+  brushscript: '"Brush Script MT", cursive'
+}
+
+export default function SimpleAIOverview({ htmlContent, onLinkClick, fontSize = '14', fontFamily = 'system', fontColor = '' }) {
   if (!htmlContent) {
     return null
   }
@@ -291,6 +344,9 @@ export default function SimpleAIOverview({ htmlContent, onLinkClick }) {
   const handleContentClick = (e) => {
     const link = e.target.closest('a')
     if (link && link.href) {
+      e.preventDefault()
+      // Open link in new tab
+      window.open(link.href, '_blank', 'noopener,noreferrer')
       // Track the click if callback provided
       if (onLinkClick) {
         onLinkClick({
@@ -314,22 +370,38 @@ export default function SimpleAIOverview({ htmlContent, onLinkClick }) {
       
       <div
         className={`ai-body ${(!expanded && wasTruncated) ? 'ai-body--truncated' : ''}`}
+        style={{
+          fontSize: fontSizeMap[fontSize] || fontSizeMap['14'],
+          fontFamily: fontFamilyMap[fontFamily] || fontFamilyMap.system,
+          ...(fontColor && { color: fontColor })
+        }}
         dangerouslySetInnerHTML={{ __html: processedContent }}
         onClick={handleContentClick}
       />
 
-      {/* Show more control */}
-      {(!expanded && wasTruncated) ? (
+      {/* Show more/less control */}
+      {wasTruncated && (
         <div className="ai-showmore">
           <button
             className="ai-showmore-btn"
-            onClick={() => setExpanded(true)}
+            onClick={() => {
+              setExpanded(!expanded)
+              if (onLinkClick) {
+                onLinkClick({
+                  url: null,
+                  title: expanded ? 'Show less' : 'Show more',
+                  type: expanded ? 'ai_show_less' : 'ai_show_more'
+                })
+              }
+            }}
           >
-            <span>Show more</span>
-            <span className="material-symbols-outlined text-blue-500 text-lg ml-2" aria-hidden="true">keyboard_arrow_down</span>
+            <span>{expanded ? 'Show less' : 'Show more'}</span>
+            <span className="material-symbols-outlined text-blue-500 text-lg ml-2" aria-hidden="true">
+              {expanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+            </span>
           </button>
         </div>
-      ) : null}
+      )}
 
       {/* Footer: show immediately if not truncated; otherwise only when expanded */}
       {(expanded || !wasTruncated) && (

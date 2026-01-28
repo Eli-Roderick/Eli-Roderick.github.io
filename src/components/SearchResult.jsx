@@ -19,9 +19,18 @@ export default function SearchResult({
     setImageUrls(images ? images.join('\n') : '')
   }, [images])
   
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.preventDefault()
     onClick?.({ query, url, title, type: 'result' })
     window.open(url, '_blank', 'noopener,noreferrer')
+  }
+  
+  const handleAuxClick = (e) => {
+    // Middle mouse button click
+    if (e.button === 1) {
+      e.preventDefault()
+      handleClick(e)
+    }
   }
   const displayUrl = url.replace(/^https?:\/\//, '')
   const domain = (() => { try { return new URL(url).hostname } catch { return displayUrl.split('/')[0] } })()
@@ -36,7 +45,11 @@ export default function SearchResult({
   }
   
   const favicon = getFaviconUrl(domain)
-  const companyName = (company && String(company).trim()) || domain.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ')
+  const companyName = (company && String(company).trim()) || (() => {
+    const name = domain.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ')
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  })()
+  
   // Parse star rating from snippet FIRST (before truncation) - format: [[rating:4.8:Author Name]] or [[rating:4.8]]
   const parseStarRating = (text) => {
     if (!text) return { text, rating: null, author: null }
@@ -139,7 +152,7 @@ export default function SearchResult({
           </div>
           <h3 className="result-title mb-1">
             {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-            <a href="#" onClick={handleClick}>{title}</a>
+            <a href="#" onClick={handleClick} onAuxClick={handleAuxClick}>{title}</a>
           </h3>
           
           {/* Images - Mobile: between title and snippet, Desktop: on the right */}

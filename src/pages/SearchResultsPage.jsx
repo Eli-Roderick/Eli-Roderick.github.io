@@ -37,7 +37,9 @@ export default function SearchResultsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   
-  // Get search query from URL parameters
+  // Get page ID or search query from URL parameters
+  // Priority: p (pageId) > q (query text)
+  const pageIdParam = searchParams.get('p')
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
   
   // User management state - use cached user immediately, verify in background
@@ -108,6 +110,8 @@ export default function SearchResultsPage() {
   const [activeSession, setActiveSession] = useState(null)
   const lastScrollY = React.useRef(0)
   const scrollDebounceTimer = React.useRef(null)
+  const currentPageNameRef = React.useRef('')
+  const currentPageIdRef = React.useRef(null)
   
   // Load active session on mount
   useEffect(() => {
@@ -144,9 +148,8 @@ export default function SearchResultsPage() {
         scrollDebounceTimer.current = setTimeout(() => {
           addSessionActivity(activeSession.id, scrollDirection, {
             from: lastScrollY.current,
-            to: currentScrollY,
-            query: searchQuery
-          })
+            to: currentScrollY
+          }, currentPageNameRef.current, currentPageIdRef.current, activeSession.session_start)
           lastScrollY.current = currentScrollY
         }, 500)
       }
@@ -170,10 +173,9 @@ export default function SearchResultsPage() {
     await addSessionActivity(activeSession.id, 'URL_CLICK', {
       url,
       title,
-      type, // 'link', 'result', 'ad', 'ai_link', etc.
-      query: searchQuery
-    })
-  }, [activeSession, searchQuery])
+      type // 'link', 'result', 'ad', 'ai_link', etc.
+    }, currentPageNameRef.current, currentPageIdRef.current, activeSession.session_start)
+  }, [activeSession])
   
   // Convert realtime pages array to object format for backward compatibility
   const customSearchPages = useMemo(() => {
@@ -199,7 +201,8 @@ export default function SearchResultsPage() {
         title: r.title,
         url: r.url,
         snippet: r.snippet,
-        favicon: r.favicon
+        favicon: r.favicon,
+        company: r.company
       }))
     })
     return resultsObj
@@ -215,13 +218,18 @@ export default function SearchResultsPage() {
     }))
   }, [realtimeAIOverviews])
   
-  // Convert AI assignments to old format (keyed by search_key)
+  // Keep searchResultAssignments for backward compatibility with modals (keyed by search_key)
   const searchResultAssignments = useMemo(() => {
     const assignments = {}
     realtimePages.forEach(page => {
-      const aiOverviewId = aiAssignments[page.id]
-      if (aiOverviewId) {
-        assignments[page.search_key] = aiOverviewId
+      const assignment = aiAssignments[page.id]
+      if (assignment) {
+        assignments[page.search_key] = {
+          aiOverviewId: assignment.aiOverviewId,
+          fontSize: assignment.fontSize || '14',
+          fontFamily: assignment.fontFamily || 'system',
+          fontColor: assignment.fontColor ?? ''
+        }
       }
     })
     return assignments
@@ -312,6 +320,22 @@ export default function SearchResultsPage() {
   }, [searchQuery, customSearchPages, deletedBuiltinPages])
   
   const searchType = searchConfig.key
+  
+  // Get the current page object - prefer pageIdParam, fall back to search_key lookup
+  const currentPage = useMemo(() => {
+    // If page ID is provided in URL, use it directly
+    if (pageIdParam) {
+      return realtimePages.find(p => p.id === pageIdParam) || null
+    }
+    // Otherwise fall back to search_key lookup
+    return realtimePages.find(p => p.search_key === searchType) || null
+  }, [realtimePages, pageIdParam, searchType])
+  
+  // Get assignment directly by page ID (more reliable than search_key lookup)
+  const currentPageAssignment = useMemo(() => {
+    if (!currentPage) return null
+    return aiAssignments[currentPage.id] || null
+  }, [currentPage, aiAssignments])
   
   const [config, setConfig] = useState(null)
   const [configLoading, setConfigLoading] = useState(true)
@@ -422,12 +446,11 @@ export default function SearchResultsPage() {
       .finally(() => setLoading(false))
   }, [searchConfig.path, searchQuery, customSearchPages, deletedBuiltinPages])
 
-  // Load assigned AI overview for current search type
+  // Load assigned AI overview for current search type (using direct ID lookup)
   useEffect(() => {
-    if (searchType && aiOverviews.length > 0) {
-      const assignedOverviewId = searchResultAssignments[searchType]
-      if (assignedOverviewId) {
-        const assignedOverview = aiOverviews.find(overview => overview.id === assignedOverviewId)
+    if (currentPage && aiOverviews.length > 0) {
+      if (currentPageAssignment?.aiOverviewId) {
+        const assignedOverview = aiOverviews.find(overview => overview.id === currentPageAssignment.aiOverviewId)
         if (assignedOverview) {
           setSelectedAIOverviewId(assignedOverview.id)
           setUserAIText(assignedOverview.text)
@@ -437,19 +460,24 @@ export default function SearchResultsPage() {
       // Don't clear AI overview if there's no assignment - user might have manually set text
     }
     // Don't clear AI overview for pages without assignments - preserve user's manual text
-  }, [searchType, aiOverviews, searchResultAssignments])
+  }, [currentPage, currentPageAssignment, aiOverviews])
 
   // Note: Removed the useEffect that was clearing AI text for custom pages without assignments
   // This was causing user's manually set AI text to be deleted on refresh
 
-  // Get display query - use custom display name if available, otherwise use search query
+  // Get display query - use current page's display name if available
   const getDisplayQuery = () => {
-    // Check if current page has a custom display name
+    // If we have a current page (from ID or search_key lookup), use its display name
+    if (currentPage) {
+      return currentPage.display_name || currentPage.query || searchQuery.replace(/\+/g, ' ')
+    }
+    
+    // Check if current page has a custom display name (built-in pages)
     if (displayNames[searchType]) {
       return displayNames[searchType]
     }
     
-    // Check custom pages
+    // Check custom pages by search key
     const customPage = Object.values(customSearchPages).find(page => page.key === searchType)
     if (customPage) {
       return customPage.displayName
@@ -460,6 +488,12 @@ export default function SearchResultsPage() {
   }
   
   const displayQuery = getDisplayQuery()
+  
+  // Keep page name and ID refs updated for session tracking
+  useEffect(() => {
+    currentPageNameRef.current = displayQuery
+    currentPageIdRef.current = currentPage?.id || null
+  }, [displayQuery, currentPage])
 
   const handleResultClick = ({ query, url, title, type = 'result' }) => {
     // Track session activity
@@ -477,23 +511,33 @@ export default function SearchResultsPage() {
       }
     
     const defaultResults = config.results || []
-    const customResults = customSearchResults[searchType] || []
+    
+    // Get custom results - prefer currentPage.id lookup, fall back to searchType
+    const pageKey = currentPage?.search_key || searchType
+    const customResults = customSearchResults[pageKey] || []
     
     // Convert custom results to the same format as default results
     const formattedCustomResults = customResults.map(result => ({
       title: result.title,
       url: result.url,
       snippet: result.snippet,
-      favicon: result.favicon
+      favicon: result.favicon,
+      company: result.company
     }))
     
     // For custom pages, use userAIText only if there's content or an assignment
-    const isCustomPage = customSearchPages[searchQuery.toLowerCase()]
-    const hasAssignment = searchResultAssignments[searchType]
+    const isCustomPage = !!currentPage || customSearchPages[searchQuery.toLowerCase()]
+    const hasAssignment = !!currentPageAssignment
     const aiText = (isCustomPage && !hasAssignment && !userAIText.trim()) ? '' : userAIText
     
     // Check if AI Overview is enabled for this specific page
     const pageAIEnabled = pageAIOverviewSettings[searchType] !== false
+    
+    // Get font settings from assignment (using direct ID lookup)
+    const aiFontSize = currentPageAssignment?.fontSize || '14'
+    const aiFontFamily = currentPageAssignment?.fontFamily || 'system'
+    // Use nullish coalescing to preserve empty string (theme default) vs undefined
+    const aiFontColor = currentPageAssignment?.fontColor ?? ''
     
     return {
       ...config,
@@ -508,6 +552,9 @@ export default function SearchResultsPage() {
         show: pageAIEnabled, // Show AI Overview only if enabled for this page
         text: aiText 
       },
+      aiFontSize,
+      aiFontFamily,
+      aiFontColor,
     }
     } catch (error) {
       console.error('Error in effectiveConfig useMemo:', error)
@@ -517,7 +564,7 @@ export default function SearchResultsPage() {
         aiOverview: { show: false, text: '' }
       }
     }
-  }, [config, customSearchResults, searchType, userAIText, customSearchPages, searchQuery, searchResultAssignments, aiOverviewEnabled, pageAIOverviewSettings])
+  }, [config, customSearchResults, searchType, userAIText, customSearchPages, searchQuery, currentPage, currentPageAssignment, aiOverviewEnabled, pageAIOverviewSettings])
 
   const handlePaste = (e) => {
     // ...
@@ -603,7 +650,7 @@ export default function SearchResultsPage() {
       // Remove any assignments to this overview
       const updatedAssignments = { ...searchResultAssignments }
       Object.keys(updatedAssignments).forEach(searchType => {
-        if (updatedAssignments[searchType] === overviewId) {
+        if (updatedAssignments[searchType]?.aiOverviewId === overviewId) {
           delete updatedAssignments[searchType]
         }
       })
@@ -1030,6 +1077,7 @@ export default function SearchResultsPage() {
         {error && <div className="text-red-600">{error}</div>}
         {!error && effectiveConfig && (
           <SearchPage 
+            key={`${searchType}-${effectiveConfig?.aiFontSize}-${effectiveConfig?.aiFontFamily}`}
             config={effectiveConfig} 
             onResultClick={handleResultClick}
             resultImages={resultImages}
@@ -1038,6 +1086,9 @@ export default function SearchResultsPage() {
             onCloseImageEditor={() => setSelectedResultForImages(null)}
             userAIText={userAIText}
             aiOverviewEnabled={aiOverviewEnabled}
+            aiFontSize={effectiveConfig?.aiFontSize}
+            aiFontFamily={effectiveConfig?.aiFontFamily}
+            aiFontColor={effectiveConfig?.aiFontColor}
           />
         )}
       </main>
@@ -1053,9 +1104,13 @@ export default function SearchResultsPage() {
           customSearchResults={customSearchResults}
           searchResultAssignments={searchResultAssignments}
           aiOverviews={aiOverviews}
-          onNavigate={(queryKey) => {
+          onNavigate={(page) => {
             setShowSearchManagement(false)
-            navigateWithAdmin(`/search?q=${queryKey}&oq=${queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
+            if (page.id && page.type === 'custom') {
+              navigateWithAdmin(`/search?p=${page.id}`)
+            } else {
+              navigateWithAdmin(`/search?q=${page.queryKey}&oq=${page.queryKey}&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8`)
+            }
           }}
           onAssignAI={assignAIOverviewToSearch}
           onRemoveAI={removeAIOverviewFromSearch}
@@ -2416,17 +2471,17 @@ function EnhancedSearchManagementModal({
                             </span>
                           </div>
                           <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
-                            {pageResults.length} custom results • {searchResultAssignments[page.key] ? 'AI assigned' : 'No AI assigned'}
+                            {pageResults.length} custom results • {searchResultAssignments[page.key]?.aiOverviewId ? 'AI assigned' : 'No AI assigned'}
                           </p>
                           {page.type === 'custom' && (
                             <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)' }}>
-                              URL: /search?q={page.queryKey}
+                              URL: /search?p={page.id}
                             </p>
                           )}
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={() => onNavigate(page.queryKey)}
+                            onClick={() => onNavigate(page)}
                             style={{
                               padding: '0.5rem 1rem',
                               border: 'none',
@@ -2533,7 +2588,7 @@ function EnhancedSearchManagementModal({
                           </span>
                         </h4>
                         <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
-                          {searchResultAssignments[page.key] ? 'AI Overview assigned' : 'No AI Overview assigned'}
+                          {searchResultAssignments[page.key]?.aiOverviewId ? 'AI Overview assigned' : 'No AI Overview assigned'}
                         </p>
                       </div>
                       
@@ -2615,7 +2670,7 @@ function EnhancedSearchManagementModal({
                           color: 'var(--text)',
                           fontSize: '14px'
                         }}
-                        value={searchResultAssignments[page.key] || ''}
+                        value={searchResultAssignments[page.key]?.aiOverviewId || ''}
                         onChange={(e) => {
                           if (e.target.value) {
                             onAssignAI(page.key, e.target.value)
@@ -2631,7 +2686,7 @@ function EnhancedSearchManagementModal({
                           </option>
                         ))}
                       </select>
-                      {searchResultAssignments[page.key] && (
+                      {searchResultAssignments[page.key]?.aiOverviewId && (
                         <button
                           style={{
                             padding: '0.75rem',

@@ -215,6 +215,7 @@ export const createSearchResult = async (pageId, resultData) => {
         url: resultData.url,
         snippet: resultData.snippet || '',
         favicon: resultData.favicon || '',
+        company: resultData.company || '',
         display_order: nextOrder
       })
       .select()
@@ -473,7 +474,7 @@ export const loadAIOverviews = async (userId = null) => {
 // AI ASSIGNMENTS (links pages to AI overviews)
 // ============================================================================
 
-export const assignAIToPage = async (pageId, aiOverviewId) => {
+export const assignAIToPage = async (pageId, aiOverviewId, options = {}) => {
   const userId = await getCurrentUserId()
   if (!userId) return false
 
@@ -484,6 +485,8 @@ export const assignAIToPage = async (pageId, aiOverviewId) => {
       .upsert({
         page_id: pageId,
         ai_overview_id: aiOverviewId,
+        font_size: options.fontSize || 'medium',
+        font_family: options.fontFamily || 'system',
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'page_id'
@@ -537,6 +540,9 @@ export const loadAIAssignments = async (userId = null) => {
         id,
         page_id,
         ai_overview_id,
+        font_size,
+        font_family,
+        font_color,
         custom_search_pages!inner(user_id)
       `)
       .eq('custom_search_pages.user_id', uid)
@@ -546,10 +552,15 @@ export const loadAIAssignments = async (userId = null) => {
       return {}
     }
 
-    // Convert to map: pageId -> aiOverviewId
+    // Convert to map: pageId -> assignment object
     const assignments = {}
     data.forEach(assignment => {
-      assignments[assignment.page_id] = assignment.ai_overview_id
+      assignments[assignment.page_id] = {
+        aiOverviewId: assignment.ai_overview_id,
+        fontSize: assignment.font_size || '14',
+        fontFamily: assignment.font_family || 'system',
+        fontColor: assignment.font_color ?? ''
+      }
     })
 
     return assignments
@@ -563,7 +574,7 @@ export const getAIAssignmentForPage = async (pageId) => {
   try {
     const { data, error } = await supabase
       .from('ai_assignments')
-      .select('ai_overview_id')
+      .select('ai_overview_id, font_size, font_family')
       .eq('page_id', pageId)
       .single()
 
@@ -571,10 +582,45 @@ export const getAIAssignmentForPage = async (pageId) => {
       console.error('Error getting AI assignment:', error)
     }
 
-    return data?.ai_overview_id || null
+    if (!data) return null
+    
+    return {
+      aiOverviewId: data.ai_overview_id,
+      fontSize: data.font_size || 'medium',
+      fontFamily: data.font_family || 'system'
+    }
   } catch (error) {
     console.error('Error in getAIAssignmentForPage:', error)
     return null
+  }
+}
+
+export const updateAIAssignmentSettings = async (pageId, settings) => {
+  const userId = await getCurrentUserId()
+  if (!userId) return false
+
+  try {
+    const updateData = {
+      updated_at: new Date().toISOString()
+    }
+    if (settings.fontSize !== undefined) updateData.font_size = settings.fontSize
+    if (settings.fontFamily !== undefined) updateData.font_family = settings.fontFamily
+    if (settings.fontColor !== undefined) updateData.font_color = settings.fontColor
+
+    const { error } = await supabase
+      .from('ai_assignments')
+      .update(updateData)
+      .eq('page_id', pageId)
+
+    if (error) {
+      console.error('Error updating AI assignment settings:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in updateAIAssignmentSettings:', error)
+    return false
   }
 }
 
@@ -832,15 +878,21 @@ export const loadParticipants = async (userId = null) => {
 // SESSION ACTIVITY (defined before SESSIONS to avoid circular dependency)
 // ============================================================================
 
-export const addSessionActivity = async (sessionId, activityType, details = null) => {
+export const addSessionActivity = async (sessionId, activityType, details = null, pageName = null, pageId = null, sessionStartTime = null) => {
   try {
+    const now = new Date()
+    const timeSinceStartMs = sessionStartTime ? now.getTime() - new Date(sessionStartTime).getTime() : null
+    
     const { data, error } = await supabase
       .from('session_activity')
       .insert({
         session_id: sessionId,
         activity_type: activityType,
-        activity_ts: new Date().toISOString(),
-        details: details
+        activity_ts: now.toISOString(),
+        details: details,
+        page_name: pageName,
+        page_id: pageId,
+        time_since_start_ms: timeSinceStartMs
       })
       .select()
       .single()
