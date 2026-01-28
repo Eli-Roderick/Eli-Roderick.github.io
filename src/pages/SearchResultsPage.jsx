@@ -1811,9 +1811,51 @@ function SearchResultsEditorModal({
               </div>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
-                  Snippet *
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
+                    Snippet *
+                  </label>
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <span 
+                      style={{ 
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--border)',
+                        color: 'var(--text)',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'help'
+                      }}
+                      title={`SNIPPET FORMATTING HELP
+
+You can add special formatting to your snippets:
+
+📝 RATING STARS (use the fields below, or manually):
+   [[rating:4.8]]
+   [[rating:4.8:price:US$88.00]]
+   [[rating:4.8:reviews:45]]
+   [[rating:4.8:price:US$88.00:reviews:45]]
+
+💡 EXAMPLE SNIPPET:
+"Constructed with premium waterproof nubuck leather and nylon uppers, these boots are lightweight, flexible, and built to keep your feet comfortable without..."
+
+With rating fields filled:
+• Rating: 4.9
+• Price: US$88.00
+• Reviews: 45
+
+Result displays as:
+"Constructed with premium waterproof..."
+US$88.00 · 4.9 ★★★★★ (45)`}
+                    >
+                      ?
+                    </span>
+                  </div>
+                </div>
                 <textarea
                   value={formData.snippet}
                   onChange={(e) => setFormData({ ...formData, snippet: e.target.value })}
