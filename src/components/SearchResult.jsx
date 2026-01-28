@@ -37,7 +37,51 @@ export default function SearchResult({
   
   const favicon = getFaviconUrl(domain)
   const companyName = (company && String(company).trim()) || domain.replace(/^www\./, '').split('.')[0].replace(/[-_]/g, ' ')
-  const snippet150 = snippet && snippet.length > 150 ? `${snippet.slice(0, 150)}…` : snippet
+  // Parse star rating from snippet FIRST (before truncation) - format: [[rating:4.8:Author Name]] or [[rating:4.8]]
+  const parseStarRating = (text) => {
+    if (!text) return { text, rating: null, author: null }
+    
+    const ratingMatch = text.match(/\[\[rating:([\d.]+)(?::([^\]]+))?\]\]/)
+    if (!ratingMatch) return { text, rating: null, author: null }
+    
+    const rating = parseFloat(ratingMatch[1])
+    const author = ratingMatch[2] || null
+    const cleanText = text.replace(/\[\[rating:[^\]]+\]\]/, '').trim()
+    
+    return { text: cleanText, rating, author }
+  }
+  
+  // Extract rating from full snippet first
+  const { text: cleanSnippet, rating: starRating, author: ratingAuthor } = parseStarRating(snippet)
+  
+  // Then truncate only the text portion (rating is rendered separately)
+  const snippetText = cleanSnippet && cleanSnippet.length > 150 ? `${cleanSnippet.slice(0, 150)}…` : cleanSnippet
+  
+  // Render star rating component
+  const renderStarRating = (rating, author) => {
+    if (rating === null) return null
+    
+    const fullStars = Math.floor(rating)
+    const hasHalfStar = rating % 1 >= 0.5
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
+    
+    return (
+      <div className="star-rating-line">
+        <span className="star-rating-value">{rating}</span>
+        <span className="star-rating-stars">
+          {'★'.repeat(fullStars)}
+          {hasHalfStar && '★'}
+          {'☆'.repeat(emptyStars)}
+        </span>
+        {author && (
+          <>
+            <span className="star-rating-separator">·</span>
+            <span className="star-rating-author">Review by {author}</span>
+          </>
+        )}
+      </div>
+    )
+  }
   
   // Process images (limit to 3)
   const resultImages = images ? images.slice(0, 3) : []
@@ -154,7 +198,10 @@ export default function SearchResult({
             </div>
           )}
           
-          <div className="result-snippet mb-6">{snippet150}</div>
+          <div className="result-snippet mb-6">
+            {snippetText}
+            {renderStarRating(starRating, ratingAuthor)}
+          </div>
         </div>
         
         {/* Right side - Images (Desktop only) */}
