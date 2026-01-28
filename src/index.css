@@ -94,8 +94,9 @@
 
 .star-rating-stars {
   color: #f5c518; /* Gold/yellow color matching Google */
-  font-size: 14px;
+  font-size: 15px;
   letter-spacing: -1px;
+  line-height: 1;
 }
 
 .star-rating-separator {
@@ -105,6 +106,16 @@
 
 .star-rating-author {
   color: var(--muted);
+}
+
+.star-rating-price {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.star-rating-reviews {
+  color: var(--muted);
+  margin-left: 2px;
 }
 /* Link-length separator */
 .link-with-sep { display: inline-block; }

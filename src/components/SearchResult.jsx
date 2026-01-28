@@ -50,46 +50,65 @@ export default function SearchResult({
     return name.charAt(0).toUpperCase() + name.slice(1)
   })()
   
-  // Parse star rating from snippet FIRST (before truncation) - format: [[rating:4.8:Author Name]] or [[rating:4.8]]
+  // Parse star rating from snippet FIRST (before truncation)
+  // Format: [[rating:4.8]] or [[rating:4.8:price:US$88.00]] or [[rating:4.8:reviews:45]] or [[rating:4.8:price:US$88.00:reviews:45]]
   const parseStarRating = (text) => {
-    if (!text) return { text, rating: null, author: null }
+    if (!text) return { text, rating: null, ratingStr: null, price: null, reviews: null }
     
-    const ratingMatch = text.match(/\[\[rating:([\d.]+)(?::([^\]]+))?\]\]/)
-    if (!ratingMatch) return { text, rating: null, author: null }
+    const ratingMatch = text.match(/\[\[rating:([^\]]+)\]\]/)
+    if (!ratingMatch) return { text, rating: null, ratingStr: null, price: null, reviews: null }
     
-    const rating = parseFloat(ratingMatch[1])
-    const author = ratingMatch[2] || null
+    const params = ratingMatch[1].split(':')
+    const ratingStr = params[0] // Keep as string to preserve decimals like "4.0"
+    const rating = parseFloat(ratingStr)
+    
+    let price = null
+    let reviews = null
+    
+    // Parse optional parameters
+    for (let i = 1; i < params.length; i += 2) {
+      const key = params[i]
+      const value = params[i + 1]
+      if (key === 'price' && value) price = value
+      if (key === 'reviews' && value) reviews = value
+    }
+    
     const cleanText = text.replace(/\[\[rating:[^\]]+\]\]/, '').trim()
     
-    return { text: cleanText, rating, author }
+    return { text: cleanText, rating, ratingStr, price, reviews }
   }
   
   // Extract rating from full snippet first
-  const { text: cleanSnippet, rating: starRating, author: ratingAuthor } = parseStarRating(snippet)
+  const { text: cleanSnippet, rating: starRating, ratingStr, price: ratingPrice, reviews: ratingReviews } = parseStarRating(snippet)
   
   // Then truncate only the text portion (rating is rendered separately)
   const snippetText = cleanSnippet && cleanSnippet.length > 150 ? `${cleanSnippet.slice(0, 150)}…` : cleanSnippet
   
   // Render star rating component
-  const renderStarRating = (rating, author) => {
+  const renderStarRating = (rating, ratingStr, price, reviews) => {
     if (rating === null) return null
     
     const fullStars = Math.floor(rating)
-    const hasHalfStar = rating % 1 >= 0.5
+    const hasHalfStar = rating % 1 >= 0.3
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
     
     return (
       <div className="star-rating-line">
-        <span className="star-rating-value">{rating}</span>
+        {price && (
+          <>
+            <span className="star-rating-price">{price}</span>
+            <span className="star-rating-separator">·</span>
+          </>
+        )}
+        <span className="star-rating-value">{ratingStr || rating}</span>
         <span className="star-rating-stars">
           {'★'.repeat(fullStars)}
           {hasHalfStar && '★'}
-          {'☆'.repeat(emptyStars)}
+          {'☆'.repeat(Math.max(0, emptyStars))}
         </span>
-        {author && (
+        {reviews && (
           <>
-            <span className="star-rating-separator">·</span>
-            <span className="star-rating-author">Review by {author}</span>
+            <span className="star-rating-reviews">({reviews})</span>
           </>
         )}
       </div>
@@ -213,7 +232,7 @@ export default function SearchResult({
           
           <div className="result-snippet mb-6">
             {snippetText}
-            {renderStarRating(starRating, ratingAuthor)}
+            {renderStarRating(starRating, ratingStr, ratingPrice, ratingReviews)}
           </div>
         </div>
         

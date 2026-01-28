@@ -1615,8 +1615,44 @@ function SearchResultsEditorModal({
   const [formData, setFormData] = useState({
     title: '',
     url: '',
-    snippet: ''
+    snippet: '',
+    rating: '',
+    price: '',
+    reviews: ''
   })
+
+  // Parse existing rating data from snippet
+  const parseRatingFromSnippet = (snippet) => {
+    if (!snippet) return { cleanSnippet: snippet, rating: '', price: '', reviews: '' }
+    const match = snippet.match(/\[\[rating:([^\]]+)\]\]/)
+    if (!match) return { cleanSnippet: snippet, rating: '', price: '', reviews: '' }
+    
+    const params = match[1].split(':')
+    const rating = params[0] || ''
+    let price = ''
+    let reviews = ''
+    
+    for (let i = 1; i < params.length; i += 2) {
+      if (params[i] === 'price') price = params[i + 1] || ''
+      if (params[i] === 'reviews') reviews = params[i + 1] || ''
+    }
+    
+    const cleanSnippet = snippet.replace(/\[\[rating:[^\]]+\]\]/, '').trim()
+    return { cleanSnippet, rating, price, reviews }
+  }
+
+  // Build snippet with rating tag
+  const buildSnippetWithRating = (snippet, rating, price, reviews) => {
+    let result = snippet.trim()
+    if (rating) {
+      let ratingTag = `[[rating:${rating}`
+      if (price) ratingTag += `:price:${price}`
+      if (reviews) ratingTag += `:reviews:${reviews}`
+      ratingTag += ']]'
+      result = result + ' ' + ratingTag
+    }
+    return result
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -1625,27 +1661,34 @@ function SearchResultsEditorModal({
       return
     }
 
+    const finalSnippet = buildSnippetWithRating(formData.snippet, formData.rating, formData.price, formData.reviews)
+    const submitData = { ...formData, snippet: finalSnippet }
+
     if (editingResult) {
-      onUpdateResult(editingResult.id, formData)
+      onUpdateResult(editingResult.id, submitData)
     } else {
-      onAddResult(formData)
+      onAddResult(submitData)
     }
 
-    setFormData({ title: '', url: '', snippet: '' })
+    setFormData({ title: '', url: '', snippet: '', rating: '', price: '', reviews: '' })
     setEditingResult(null)
   }
 
   const handleEdit = (result) => {
     setEditingResult(result)
+    const { cleanSnippet, rating, price, reviews } = parseRatingFromSnippet(result.snippet)
     setFormData({
       title: result.title,
       url: result.url,
-      snippet: result.snippet
+      snippet: cleanSnippet,
+      rating,
+      price,
+      reviews
     })
   }
 
   const handleCancel = () => {
-    setFormData({ title: '', url: '', snippet: '' })
+    setFormData({ title: '', url: '', snippet: '', rating: '', price: '', reviews: '' })
     setEditingResult(null)
   }
 
@@ -1788,6 +1831,85 @@ function SearchResultsEditorModal({
                   }}
                   required
                 />
+              </div>
+
+              {/* Rating Section */}
+              <div style={{ 
+                padding: '1rem', 
+                border: '1px solid var(--border)', 
+                borderRadius: '8px',
+                backgroundColor: 'color-mix(in srgb, var(--card-bg) 95%, var(--text) 5%)'
+              }}>
+                <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '14px', fontWeight: '600', color: 'var(--text)' }}>
+                  ⭐ Review Rating (Optional)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '12px', color: 'var(--muted)' }}>
+                      Rating (e.g., 4.8)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.rating}
+                      onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
+                      placeholder="4.8"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '4px',
+                        backgroundColor: 'var(--card-bg)',
+                        color: 'var(--text)',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '12px', color: 'var(--muted)' }}>
+                      Price (e.g., US$88.00)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      placeholder="US$88.00"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '4px',
+                        backgroundColor: 'var(--card-bg)',
+                        color: 'var(--text)',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '12px', color: 'var(--muted)' }}>
+                      Review Count
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.reviews}
+                      onChange={(e) => setFormData({ ...formData, reviews: e.target.value })}
+                      placeholder="45"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '4px',
+                        backgroundColor: 'var(--card-bg)',
+                        color: 'var(--text)',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                </div>
+                {formData.rating && (
+                  <div style={{ marginTop: '0.75rem', fontSize: '13px', color: 'var(--muted)' }}>
+                    Preview: {formData.price && <span>{formData.price} · </span>}{formData.rating} <span style={{ color: '#f5c518' }}>★★★★★</span>{formData.reviews && <span> ({formData.reviews})</span>}
+                  </div>
+                )}
               </div>
               
               <div style={{ display: 'flex', gap: '0.5rem' }}>
