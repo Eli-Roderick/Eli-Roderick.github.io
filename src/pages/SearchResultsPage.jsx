@@ -28,7 +28,7 @@ function shuffle(arr) {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
+      ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
 }
@@ -36,12 +36,12 @@ function shuffle(arr) {
 export default function SearchResultsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  
+
   // Get page ID or search query from URL parameters
   // Priority: p (pageId) > q (query text)
   const pageIdParam = searchParams.get('p')
   const searchQuery = searchParams.get('q') || 'best+hiking+boots'
-  
+
   // User management state - use cached user immediately, verify in background
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -51,17 +51,17 @@ export default function SearchResultsPage() {
     }
   })
   const [authChecked, setAuthChecked] = useState(!!localStorage.getItem('current_user'))
-  
+
   // Verify Supabase session in background
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const user = await getCurrentUser()
         if (user) {
-          const username = user.user_metadata?.username || 
-                          user.user_metadata?.display_name || 
-                          user.email?.split('@')[0] || 
-                          'user'
+          const username = user.user_metadata?.username ||
+            user.user_metadata?.display_name ||
+            user.email?.split('@')[0] ||
+            'user'
           setCurrentUser(username)
           localStorage.setItem('current_user', username)
         } else {
@@ -78,7 +78,7 @@ export default function SearchResultsPage() {
     }
     checkAuth()
   }, [])
-  
+
   // Use realtime data hook for live sync
   const {
     pages: realtimePages,
@@ -105,14 +105,17 @@ export default function SearchResultsPage() {
     getAIOverviewForPage,
     refresh: refreshRealtimeData
   } = useRealtimeData(currentUser)
-  
+
   // Active session tracking
   const [activeSession, setActiveSession] = useState(null)
   const lastScrollY = React.useRef(0)
   const scrollDebounceTimer = React.useRef(null)
   const currentPageNameRef = React.useRef('')
   const currentPageIdRef = React.useRef(null)
-  
+  const lastMouseX = React.useRef(0)
+  const lastMouseY = React.useRef(0)
+  const mouseMoveDebounceTimer = React.useRef(null)
+
   // Load active session on mount
   useEffect(() => {
     const loadActiveSession = async () => {
@@ -124,59 +127,199 @@ export default function SearchResultsPage() {
       setActiveSession(session)
     }
     loadActiveSession()
-    
+
     // Poll for session changes every 5 seconds (in case session started/ended elsewhere)
     const interval = setInterval(loadActiveSession, 5000)
     return () => clearInterval(interval)
   }, [currentUser])
-  
-  // Track scroll activity
+
+  // Track mouse wheel events (captures scroll with delta)
   useEffect(() => {
     if (!activeSession) return
-    
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      const scrollDirection = currentScrollY > lastScrollY.current ? 'SCROLL_DOWN' : 'SCROLL_UP'
-      
-      // Only track if scrolled more than 10px
-      if (Math.abs(currentScrollY - lastScrollY.current) > 10) {
-        // Debounce scroll events
-        if (scrollDebounceTimer.current) {
-          clearTimeout(scrollDebounceTimer.current)
-        }
-        
-        scrollDebounceTimer.current = setTimeout(() => {
-          addSessionActivity(activeSession.id, scrollDirection, {
-            from: lastScrollY.current,
-            to: currentScrollY
-          }, currentPageNameRef.current, currentPageIdRef.current, activeSession.session_start)
-          lastScrollY.current = currentScrollY
-        }, 500)
+
+    const handleWheel = (e) => {
+      const scrollStartY = window.scrollY
+
+      const mouseData = {
+        x: Math.round(e.clientX),
+        y: Math.round(e.clientY),
+        event: 'WM_MOUSEWHEEL',
+        scrollDelta: Math.round(e.deltaY),
+        movementDeltaX: Math.round(e.clientX - lastMouseX.current),
+        movementDeltaY: Math.round(e.clientY - lastMouseY.current)
       }
+
+      const scrollDirection = e.deltaY > 0 ? 'SCROLL_DOWN' : 'SCROLL_UP'
+
+      // Wait for scroll animation to complete to get end position
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const scrollEndY = window.scrollY
+
+          addSessionActivity(
+            activeSession.id,
+            scrollDirection,
+            {
+              scrollStartY: Math.round(scrollStartY),
+              scrollEndY: Math.round(scrollEndY)
+            },
+            currentPageNameRef.current,
+            currentPageIdRef.current,
+            activeSession.session_start,
+            mouseData
+          )
+        })
+      })
+
+      lastMouseX.current = e.clientX
+      lastMouseY.current = e.clientY
     }
-    
-    lastScrollY.current = window.scrollY
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    
+
+    window.addEventListener('wheel', handleWheel, { passive: true })
+
     return () => {
-      window.removeEventListener('scroll', handleScroll)
-      if (scrollDebounceTimer.current) {
-        clearTimeout(scrollDebounceTimer.current)
+      window.removeEventListener('wheel', handleWheel)
+    }
+  }, [activeSession, searchQuery])
+
+  // Track mouse movement
+  useEffect(() => {
+    if (!activeSession) return
+
+    const handleMouseMove = (e) => {
+      const currentX = e.clientX
+      const currentY = e.clientY
+
+      // Debounce mouse move events (track every 100ms max)
+      if (mouseMoveDebounceTimer.current) {
+        clearTimeout(mouseMoveDebounceTimer.current)
+      }
+
+      mouseMoveDebounceTimer.current = setTimeout(() => {
+        const mouseData = {
+          x: Math.round(currentX),
+          y: Math.round(currentY),
+          event: 'WM_MOUSEMOVE',
+          movementDeltaX: Math.round(currentX - lastMouseX.current),
+          movementDeltaY: Math.round(currentY - lastMouseY.current)
+        }
+
+        addSessionActivity(
+          activeSession.id,
+          'MOUSE_MOVE',
+          null,
+          currentPageNameRef.current,
+          currentPageIdRef.current,
+          activeSession.session_start,
+          mouseData
+        )
+
+        lastMouseX.current = currentX
+        lastMouseY.current = currentY
+      }, 100)
+    }
+
+    lastMouseX.current = 0
+    lastMouseY.current = 0
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      if (mouseMoveDebounceTimer.current) {
+        clearTimeout(mouseMoveDebounceTimer.current)
       }
     }
   }, [activeSession, searchQuery])
-  
-  // Function to track URL clicks
-  const trackUrlClick = useCallback(async (url, title, type = 'link') => {
+
+  // Track mouse clicks
+  useEffect(() => {
     if (!activeSession) return
-    
-    await addSessionActivity(activeSession.id, 'URL_CLICK', {
-      url,
-      title,
-      type // 'link', 'result', 'ad', 'ai_link', etc.
-    }, currentPageNameRef.current, currentPageIdRef.current, activeSession.session_start)
+
+    const handleClick = (e) => {
+      const mouseData = {
+        x: Math.round(e.clientX),
+        y: Math.round(e.clientY),
+        event: e.button === 0 ? 'WM_LBUTTONDOWN' : e.button === 2 ? 'WM_RBUTTONDOWN' : 'WM_MBUTTONDOWN',
+        movementDeltaX: Math.round(e.clientX - lastMouseX.current),
+        movementDeltaY: Math.round(e.clientY - lastMouseY.current)
+      }
+
+      addSessionActivity(
+        activeSession.id,
+        'MOUSE_CLICK',
+        { button: e.button, target: e.target.tagName },
+        currentPageNameRef.current,
+        currentPageIdRef.current,
+        activeSession.session_start,
+        mouseData
+      )
+
+      lastMouseX.current = e.clientX
+      lastMouseY.current = e.clientY
+    }
+
+    window.addEventListener('mousedown', handleClick)
+
+    return () => {
+      window.removeEventListener('mousedown', handleClick)
+    }
+  }, [activeSession, searchQuery])
+
+  // Track page visibility (tab switches)
+  useEffect(() => {
+    if (!activeSession) return
+
+    const handleVisibilityChange = () => {
+      const activityType = document.hidden ? 'TAB_HIDDEN' : 'TAB_VISIBLE'
+
+      addSessionActivity(
+        activeSession.id,
+        activityType,
+        {
+          hidden: document.hidden,
+          visibilityState: document.visibilityState
+        },
+        currentPageNameRef.current,
+        currentPageIdRef.current,
+        activeSession.session_start
+      )
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [activeSession, searchQuery])
+
+  // Function to track URL clicks
+  const trackUrlClick = useCallback(async (url, title, type = 'link', event = null) => {
+    if (!activeSession) return
+
+    const mouseData = event ? {
+      x: Math.round(event.clientX),
+      y: Math.round(event.clientY),
+      event: 'WM_LBUTTONDOWN',
+      movementDeltaX: Math.round(event.clientX - lastMouseX.current),
+      movementDeltaY: Math.round(event.clientY - lastMouseY.current)
+    } : null
+
+    await addSessionActivity(
+      activeSession.id,
+      'URL_CLICK',
+      { url, title, type },
+      currentPageNameRef.current,
+      currentPageIdRef.current,
+      activeSession.session_start,
+      mouseData
+    )
+
+    if (event) {
+      lastMouseX.current = event.clientX
+      lastMouseY.current = event.clientY
+    }
   }, [activeSession])
-  
+
   // Convert realtime pages array to object format for backward compatibility
   const customSearchPages = useMemo(() => {
     const pagesObj = {}
@@ -190,7 +333,7 @@ export default function SearchResultsPage() {
     })
     return pagesObj
   }, [realtimePages])
-  
+
   // Convert resultsByPage to old format (keyed by search_key instead of page_id)
   const customSearchResults = useMemo(() => {
     const resultsObj = {}
@@ -207,7 +350,7 @@ export default function SearchResultsPage() {
     })
     return resultsObj
   }, [realtimePages, resultsByPage])
-  
+
   // Convert AI overviews to old format
   const aiOverviews = useMemo(() => {
     return realtimeAIOverviews.map(o => ({
@@ -217,7 +360,7 @@ export default function SearchResultsPage() {
       createdAt: o.created_at
     }))
   }, [realtimeAIOverviews])
-  
+
   // Keep searchResultAssignments for backward compatibility with modals (keyed by search_key)
   const searchResultAssignments = useMemo(() => {
     const assignments = {}
@@ -234,16 +377,16 @@ export default function SearchResultsPage() {
     })
     return assignments
   }, [realtimePages, aiAssignments])
-  
+
   const [loading, setLoading] = useState(true)
   const [deletedBuiltinPages, setDeletedBuiltinPages] = useState([])
   const [resultImages, setResultImages] = useState({})
-  
+
   // Sync loading state with realtime hook
   useEffect(() => {
     setLoading(realtimeLoading)
   }, [realtimeLoading])
-  
+
   // Load cached settings from localStorage (for settings not yet in realtime)
   useEffect(() => {
     if (!currentUser) {
@@ -259,7 +402,7 @@ export default function SearchResultsPage() {
       setUserAIText(getUserData('ai_overview_text', ''))
       setAIOverviewEnabled(getUserData('ai_overview_enabled', true))
       setPageAIOverviewSettings(getUserData('page_ai_overview_settings', {}))
-      
+
       const savedImages = localStorage.getItem('result_images')
       if (savedImages) setResultImages(JSON.parse(savedImages))
     } catch (error) {
@@ -278,22 +421,22 @@ export default function SearchResultsPage() {
   const checkIfUserHasCloudData = async (username) => {
     return realtimePages.length > 0
   }
-  
+
   // Find matching config - use useMemo to recalculate when customSearchPages changes
   const searchConfig = useMemo(() => {
-    
+
     // Try built-in first
     let config = queryToConfig[searchQuery.toLowerCase()]
     if (!config) {
       // Try without URL encoding
       const decodedQuery = searchQuery.replace(/\+/g, ' ').toLowerCase()
-      config = Object.values(queryToConfig).find(c => 
-        Object.keys(queryToConfig).some(key => 
+      config = Object.values(queryToConfig).find(c =>
+        Object.keys(queryToConfig).some(key =>
           key.toLowerCase() === decodedQuery && queryToConfig[key] === c
         )
       )
     }
-    
+
     // Check custom pages
     if (!config && customSearchPages[searchQuery.toLowerCase()]) {
       const customPage = customSearchPages[searchQuery.toLowerCase()]
@@ -302,12 +445,12 @@ export default function SearchResultsPage() {
         key: customPage.key
       }
     }
-    
+
     // Check if this is a deleted built-in page
     if (config && deletedBuiltinPages.includes(config.key)) {
       config = null // Treat as if it doesn't exist
     }
-    
+
     if (!config) {
       // For unknown queries, create an empty config instead of falling back to hiking boots
       config = {
@@ -315,12 +458,12 @@ export default function SearchResultsPage() {
         key: searchQuery.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
       }
     }
-    
+
     return config
   }, [searchQuery, customSearchPages, deletedBuiltinPages])
-  
+
   const searchType = searchConfig.key
-  
+
   // Get the current page object - prefer pageIdParam, fall back to search_key lookup
   const currentPage = useMemo(() => {
     // If page ID is provided in URL, use it directly
@@ -330,13 +473,13 @@ export default function SearchResultsPage() {
     // Otherwise fall back to search_key lookup
     return realtimePages.find(p => p.search_key === searchType) || null
   }, [realtimePages, pageIdParam, searchType])
-  
+
   // Get assignment directly by page ID (more reliable than search_key lookup)
   const currentPageAssignment = useMemo(() => {
     if (!currentPage) return null
     return aiAssignments[currentPage.id] || null
   }, [currentPage, aiAssignments])
-  
+
   const [config, setConfig] = useState(null)
   const [configLoading, setConfigLoading] = useState(true)
   const [error, setError] = useState('')
@@ -371,7 +514,7 @@ export default function SearchResultsPage() {
 
   const handleUserLogout = async () => {
     console.log(`🔐 User logged out: ${currentUser}`)
-    
+
     // Sign out from Supabase
     try {
       const { signOut } = await import('../utils/supabase')
@@ -379,14 +522,14 @@ export default function SearchResultsPage() {
     } catch (error) {
       console.warn('Supabase signOut error:', error)
     }
-    
+
     setCurrentUser(null)
     try {
       localStorage.removeItem('current_user')
     } catch (error) {
       console.warn('Failed to remove user from localStorage:', error)
     }
-    
+
     // Clear local-only state (realtime hook clears its own data)
     setDeletedBuiltinPages([])
     setResultImages({})
@@ -407,7 +550,7 @@ export default function SearchResultsPage() {
   // Load config based on search query
   useEffect(() => {
     const configPath = searchConfig.path
-    
+
     // Handle custom pages (no config file)
     if (!configPath && customSearchPages[searchQuery.toLowerCase()]) {
       const customPage = customSearchPages[searchQuery.toLowerCase()]
@@ -420,7 +563,7 @@ export default function SearchResultsPage() {
       setLoading(false)
       return
     }
-    
+
     // Handle unknown queries (no config file, not a saved custom page)
     if (!configPath) {
       const config = {
@@ -471,24 +614,24 @@ export default function SearchResultsPage() {
     if (currentPage) {
       return currentPage.display_name || currentPage.query || searchQuery.replace(/\+/g, ' ')
     }
-    
+
     // Check if current page has a custom display name (built-in pages)
     if (displayNames[searchType]) {
       return displayNames[searchType]
     }
-    
+
     // Check custom pages by search key
     const customPage = Object.values(customSearchPages).find(page => page.key === searchType)
     if (customPage) {
       return customPage.displayName
     }
-    
+
     // Fallback to search query
     return searchQuery.replace(/\+/g, ' ')
   }
-  
+
   const displayQuery = getDisplayQuery()
-  
+
   // Keep page name and ID refs updated for session tracking
   useEffect(() => {
     currentPageNameRef.current = displayQuery
@@ -509,53 +652,53 @@ export default function SearchResultsPage() {
           aiOverview: { show: false, text: '' }
         }
       }
-    
-    const defaultResults = config.results || []
-    
-    // Get custom results - prefer currentPage.id lookup, fall back to searchType
-    const pageKey = currentPage?.search_key || searchType
-    const customResults = customSearchResults[pageKey] || []
-    
-    // Convert custom results to the same format as default results
-    const formattedCustomResults = customResults.map(result => ({
-      title: result.title,
-      url: result.url,
-      snippet: result.snippet,
-      favicon: result.favicon,
-      company: result.company
-    }))
-    
-    // For custom pages, use userAIText only if there's content or an assignment
-    const isCustomPage = !!currentPage || customSearchPages[searchQuery.toLowerCase()]
-    const hasAssignment = !!currentPageAssignment
-    const aiText = (isCustomPage && !hasAssignment && !userAIText.trim()) ? '' : userAIText
-    
-    // Check if AI Overview is enabled for this specific page
-    const pageAIEnabled = pageAIOverviewSettings[searchType] !== false
-    
-    // Get font settings from assignment (using direct ID lookup)
-    const aiFontSize = currentPageAssignment?.fontSize || '14'
-    const aiFontFamily = currentPageAssignment?.fontFamily || 'system'
-    // Use nullish coalescing to preserve empty string (theme default) vs undefined
-    const aiFontColor = currentPageAssignment?.fontColor ?? ''
-    
-    return {
-      ...config,
-      // If there are custom results for this search type, use ONLY those in the
-      // exact order configured in "Manage Search Results > View Results".
-      // Otherwise, fall back to the built-in config results.
-      results: formattedCustomResults.length > 0
-        ? formattedCustomResults
-        : defaultResults,
-      aiOverview: { 
-        ...(config.aiOverview || {}), 
-        show: pageAIEnabled, // Show AI Overview only if enabled for this page
-        text: aiText 
-      },
-      aiFontSize,
-      aiFontFamily,
-      aiFontColor,
-    }
+
+      const defaultResults = config.results || []
+
+      // Get custom results - prefer currentPage.id lookup, fall back to searchType
+      const pageKey = currentPage?.search_key || searchType
+      const customResults = customSearchResults[pageKey] || []
+
+      // Convert custom results to the same format as default results
+      const formattedCustomResults = customResults.map(result => ({
+        title: result.title,
+        url: result.url,
+        snippet: result.snippet,
+        favicon: result.favicon,
+        company: result.company
+      }))
+
+      // For custom pages, use userAIText only if there's content or an assignment
+      const isCustomPage = !!currentPage || customSearchPages[searchQuery.toLowerCase()]
+      const hasAssignment = !!currentPageAssignment
+      const aiText = (isCustomPage && !hasAssignment && !userAIText.trim()) ? '' : userAIText
+
+      // Check if AI Overview is enabled for this specific page
+      const pageAIEnabled = pageAIOverviewSettings[searchType] !== false
+
+      // Get font settings from assignment (using direct ID lookup)
+      const aiFontSize = currentPageAssignment?.fontSize || '14'
+      const aiFontFamily = currentPageAssignment?.fontFamily || 'system'
+      // Use nullish coalescing to preserve empty string (theme default) vs undefined
+      const aiFontColor = currentPageAssignment?.fontColor ?? ''
+
+      return {
+        ...config,
+        // If there are custom results for this search type, use ONLY those in the
+        // exact order configured in "Manage Search Results > View Results".
+        // Otherwise, fall back to the built-in config results.
+        results: formattedCustomResults.length > 0
+          ? formattedCustomResults
+          : defaultResults,
+        aiOverview: {
+          ...(config.aiOverview || {}),
+          show: pageAIEnabled, // Show AI Overview only if enabled for this page
+          text: aiText
+        },
+        aiFontSize,
+        aiFontFamily,
+        aiFontColor,
+      }
     } catch (error) {
       console.error('Error in effectiveConfig useMemo:', error)
       // Return safe fallback config
@@ -637,16 +780,16 @@ export default function SearchResultsPage() {
       // Remove from aiOverviews array
       const updatedOverviews = aiOverviews.filter(overview => overview.id !== overviewId)
       setAIOverviews(updatedOverviews)
-      
+
       // REMOVED auto-save - now manual save only
-      
+
       // If this was the selected overview, clear it
       if (selectedAIOverviewId === overviewId) {
         setSelectedAIOverviewId(null)
         setUserAIText('')
         // REMOVED auto-save - now manual save only
       }
-      
+
       // Remove any assignments to this overview
       const updatedAssignments = { ...searchResultAssignments }
       Object.keys(updatedAssignments).forEach(searchType => {
@@ -664,11 +807,11 @@ export default function SearchResultsPage() {
       ...resultImages,
       [resultUrl]: images
     }
-    
+
     if (images.length === 0) {
       delete newResultImages[resultUrl]
     }
-    
+
     setResultImages(newResultImages)
   }
 
@@ -715,7 +858,7 @@ export default function SearchResultsPage() {
 
   const deleteAIOverviewHandler = async (id) => {
     await removeAIOverview(id)
-    
+
     if (selectedAIOverviewId === id) {
       setSelectedAIOverviewId(null)
       setUserAIText('')
@@ -733,17 +876,17 @@ export default function SearchResultsPage() {
   const generateShareableURL = (overviewId = null) => {
     const targetId = overviewId || selectedAIOverviewId
     if (!targetId) return window.location.origin + window.location.pathname
-    
+
     const overview = aiOverviews.find(o => o.id === targetId)
     if (!overview) return window.location.origin + window.location.pathname
-    
+
     // Create URL-friendly slug from title
     const slug = overview.title.toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim('-')
-    
+
     const baseUrl = `${window.location.origin}/search/${searchType}`
     return `${baseUrl}?ai=${slug}`
   }
@@ -755,7 +898,7 @@ export default function SearchResultsPage() {
     if (page) {
       await assignAI(page.id, overviewId)
     }
-    
+
     // If we're assigning to the current search type, update immediately
     if (searchResultType === searchType) {
       const overview = aiOverviews.find(o => o.id === overviewId)
@@ -772,7 +915,7 @@ export default function SearchResultsPage() {
     if (page) {
       await unassignAI(page.id)
     }
-    
+
     // If we're removing from current search type, clear immediately
     if (searchResultType === searchType) {
       setSelectedAIOverviewId(null)
@@ -787,14 +930,14 @@ export default function SearchResultsPage() {
         console.warn('togglePageAIOverview: Invalid pageKey', { pageKey, enabled })
         return
       }
-      
+
       const currentSettings = pageAIOverviewSettings || {}
       const newSettings = {
         ...currentSettings,
         [pageKey]: Boolean(enabled)
       }
       setPageAIOverviewSettings(newSettings)
-      
+
       // REMOVED auto-save - now manual save only
     } catch (error) {
       console.error('Error in togglePageAIOverview:', error)
@@ -839,7 +982,7 @@ export default function SearchResultsPage() {
       console.warn('Cannot add result: page not found for', searchResultType)
       return
     }
-    
+
     await addResult(page.id, {
       searchType: searchResultType,
       title: result.title,
@@ -853,7 +996,7 @@ export default function SearchResultsPage() {
   const updateCustomSearchResult = async (searchResultType, resultId, updatedResult) => {
     const page = realtimePages.find(p => p.search_key === searchResultType)
     if (!page) return
-    
+
     await editResult(resultId, page.id, {
       title: updatedResult.title,
       url: updatedResult.url,
@@ -866,7 +1009,7 @@ export default function SearchResultsPage() {
   const removeCustomSearchResult = async (searchResultType, resultId) => {
     const page = realtimePages.find(p => p.search_key === searchResultType)
     if (!page) return
-    
+
     await removeResult(resultId, page.id)
   }
 
@@ -874,14 +1017,14 @@ export default function SearchResultsPage() {
   const addCustomSearchPage = async (pageData) => {
     const queryKey = pageData.query.toLowerCase().replace(/\s+/g, '+')
     const searchKey = pageData.query.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    
+
     const newPage = await addPage({
       queryKey,
       searchKey,
       query: pageData.query,
       displayName: pageData.displayName || pageData.query
     })
-    
+
     return newPage ? queryKey : null
   }
 
@@ -915,12 +1058,12 @@ export default function SearchResultsPage() {
   const reorderSearchResultsHandler = async (searchType, fromIndex, toIndex) => {
     const page = realtimePages.find(p => p.search_key === searchType)
     if (!page) return
-    
+
     const results = resultsByPage[page.id] || []
     const reorderedIds = [...results.map(r => r.id)]
     const [movedId] = reorderedIds.splice(fromIndex, 1)
     reorderedIds.splice(toIndex, 0, movedId)
-    
+
     await reorderResults(page.id, reorderedIds)
   }
 
@@ -948,8 +1091,8 @@ export default function SearchResultsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">Error: {error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="text-blue-600 hover:underline"
           >
             ← Reload Page
@@ -964,8 +1107,8 @@ export default function SearchResultsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Search query "{searchQuery}" not found</p>
-          <button 
-            onClick={() => navigateWithAdmin('/search?q=best+hiking+boots&oq=best+hiking+boots&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8')} 
+          <button
+            onClick={() => navigateWithAdmin('/search?q=best+hiking+boots&oq=best+hiking+boots&gs_lcrp=EgZjaHJvbWU&sourceid=chrome&ie=UTF-8')}
             className="text-blue-600 hover:underline"
           >
             ← Go to Hiking Boots Search
@@ -996,7 +1139,7 @@ export default function SearchResultsPage() {
             </div>
           </div>
         </div>
-        
+
         {/* Top row: search bar + controls */}
         <div className="px-4 md:pl-48 md:pr-6 pt-2 md:pt-6 pb-1 md:pb-3 flex items-center gap-2 md:gap-4">
 
@@ -1058,7 +1201,7 @@ export default function SearchResultsPage() {
         {/* Tabs row */}
         <div className="px-4 md:pl-52 md:pr-6 mt-0 md:mt-2">
           <nav className="tabs flex gap-6 md:gap-8 text-sm overflow-x-auto">
-            {['All','Images','Videos','Shopping','News','More'].map((tab) => (
+            {['All', 'Images', 'Videos', 'Shopping', 'News', 'More'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1076,9 +1219,9 @@ export default function SearchResultsPage() {
       <main className="px-4 md:pl-52 md:pr-6 py-1 md:py-6">
         {error && <div className="text-red-600">{error}</div>}
         {!error && effectiveConfig && (
-          <SearchPage 
+          <SearchPage
             key={`${searchType}-${effectiveConfig?.aiFontSize}-${effectiveConfig?.aiFontFamily}`}
-            config={effectiveConfig} 
+            config={effectiveConfig}
             onResultClick={handleResultClick}
             resultImages={resultImages}
             onImagesUpdate={handleImagesUpdate}
@@ -1197,11 +1340,11 @@ export default function SearchResultsPage() {
             display: 'flex',
             flexDirection: 'column'
           }} onClick={(e) => e.stopPropagation()}>
-            
+
             {/* Header */}
-            <div style={{ 
-              padding: '1rem', 
-              borderBottom: '1px solid var(--border)', 
+            <div style={{
+              padding: '1rem',
+              borderBottom: '1px solid var(--border)',
               backgroundColor: 'var(--card-bg)',
               display: 'flex',
               justifyContent: 'space-between',
@@ -1210,10 +1353,10 @@ export default function SearchResultsPage() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 {modalView === 'editor' && (aiOverviews.length > 0 || selectedAIOverviewId) && (
-                  <button 
-                    style={{ 
-                      background: 'none', 
-                      border: 'none', 
+                  <button
+                    style={{
+                      background: 'none',
+                      border: 'none',
                       padding: '0.5rem',
                       borderRadius: '4px',
                       cursor: 'pointer',
@@ -1221,7 +1364,7 @@ export default function SearchResultsPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center'
-                    }} 
+                    }}
                     onClick={handleBackToList}
                   >
                     ←
@@ -1233,9 +1376,9 @@ export default function SearchResultsPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 {/* AI Overview Toggle */}
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: '0.75rem',
                   padding: '0.5rem 0.75rem',
                   backgroundColor: 'var(--bg)',
@@ -1276,22 +1419,22 @@ export default function SearchResultsPage() {
                       }}></span>
                     </span>
                   </label>
-                  <span style={{ 
-                    fontSize: '12px', 
+                  <span style={{
+                    fontSize: '12px',
                     color: aiOverviewEnabled ? '#007bff' : 'var(--muted)',
                     fontWeight: '500'
                   }}>
                     {aiOverviewEnabled ? 'ON' : 'OFF'}
                   </span>
                 </div>
-                <button 
-                  style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    fontSize: '20px', 
+                <button
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '20px',
                     cursor: 'pointer',
                     color: 'var(--muted)'
-                  }} 
+                  }}
                   onClick={() => {
                     if (modalView === 'editor') {
                       savePasteModal()
@@ -1308,8 +1451,8 @@ export default function SearchResultsPage() {
             </div>
 
             {/* Body */}
-            <div style={{ 
-              padding: '1rem', 
+            <div style={{
+              padding: '1rem',
               backgroundColor: 'var(--card-bg)',
               flex: 1,
               overflow: 'auto'
@@ -1345,7 +1488,7 @@ export default function SearchResultsPage() {
                     <p style={{ margin: '0 0 4px 0' }}><strong>Examples:</strong></p>
                     <p style={{ margin: '0 0 4px 0' }}>• Single image: [https://example.com/image.jpg]</p>
                     <p style={{ margin: '0 0 4px 0' }}>• Horizontal row: {'{[image1.jpg][image2.jpg][image3.jpg]}'}</p>
-                    <p style={{ margin: '0' }}>• Use curly braces {} to group images into scrollable rows</p>
+                    <p style={{ margin: '0' }}>• Use curly braces { } to group images into scrollable rows</p>
                   </div>
                   <RichTextEditor
                     value={draftAIText}
@@ -1356,7 +1499,7 @@ export default function SearchResultsPage() {
               ) : (
                 <>
                   {/* Create New Button */}
-                  <button 
+                  <button
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -1389,8 +1532,8 @@ export default function SearchResultsPage() {
                       </div>
                     ) : (
                       aiOverviews.map(overview => (
-                        <div 
-                          key={overview.id} 
+                        <div
+                          key={overview.id}
                           style={{
                             display: 'flex',
                             alignItems: 'flex-start',
@@ -1444,8 +1587,8 @@ export default function SearchResultsPage() {
                               </div>
                             </div>
                             <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.4', color: 'var(--text-secondary)' }}>
-                              {overview.text.length > 150 
-                                ? overview.text.substring(0, 150) + '...' 
+                              {overview.text.length > 150
+                                ? overview.text.substring(0, 150) + '...'
                                 : overview.text}
                             </p>
                           </div>
@@ -1459,50 +1602,50 @@ export default function SearchResultsPage() {
 
             {/* Footer */}
             {modalView === 'editor' && (
-              <div style={{ 
-                padding: '1rem', 
-                borderTop: '1px solid var(--border)', 
+              <div style={{
+                padding: '1rem',
+                borderTop: '1px solid var(--border)',
                 backgroundColor: 'var(--card-bg)',
                 display: 'flex',
                 justifyContent: 'flex-end',
                 gap: '8px',
                 flexShrink: 0
               }}>
-                <button 
-                  style={{ 
-                    padding: '8px 16px', 
+                <button
+                  style={{
+                    padding: '8px 16px',
                     border: '1px solid var(--border)',
                     borderRadius: '4px',
                     backgroundColor: 'var(--card-bg)',
                     color: 'var(--text)',
                     cursor: 'pointer'
-                  }} 
+                  }}
                   onClick={clearAIOverview}
                 >
                   Clear
                 </button>
-                <button 
-                  style={{ 
-                    padding: '8px 16px', 
+                <button
+                  style={{
+                    padding: '8px 16px',
                     border: '1px solid var(--border)',
                     borderRadius: '4px',
                     backgroundColor: 'var(--card-bg)',
                     color: 'var(--text)',
                     cursor: 'pointer'
-                  }} 
+                  }}
                   onClick={() => setShowPasteModal(false)}
                 >
                   Cancel
                 </button>
-                <button 
-                  style={{ 
-                    padding: '8px 16px', 
+                <button
+                  style={{
+                    padding: '8px 16px',
                     border: 'none',
                     borderRadius: '4px',
                     backgroundColor: '#007bff',
                     color: 'white',
                     cursor: 'pointer'
-                  }} 
+                  }}
                   onClick={savePasteModal}
                 >
                   Save
@@ -1601,15 +1744,15 @@ export default function SearchResultsPage() {
 }
 
 // Search Results Editor Modal Component
-function SearchResultsEditorModal({ 
-  isOpen, 
-  onClose, 
-  searchType, 
-  searchTypeName, 
-  customResults, 
-  onAddResult, 
-  onUpdateResult, 
-  onRemoveResult 
+function SearchResultsEditorModal({
+  isOpen,
+  onClose,
+  searchType,
+  searchTypeName,
+  customResults,
+  onAddResult,
+  onUpdateResult,
+  onRemoveResult
 }) {
   const [editingResult, setEditingResult] = useState(null)
   const [formData, setFormData] = useState({
@@ -1626,17 +1769,17 @@ function SearchResultsEditorModal({
     if (!snippet) return { cleanSnippet: snippet, rating: '', price: '', reviews: '' }
     const match = snippet.match(/\[\[rating:([^\]]+)\]\]/)
     if (!match) return { cleanSnippet: snippet, rating: '', price: '', reviews: '' }
-    
+
     const params = match[1].split(':')
     const rating = params[0] || ''
     let price = ''
     let reviews = ''
-    
+
     for (let i = 1; i < params.length; i += 2) {
       if (params[i] === 'price') price = params[i + 1] || ''
       if (params[i] === 'reviews') reviews = params[i + 1] || ''
     }
-    
+
     const cleanSnippet = snippet.replace(/\[\[rating:[^\]]+\]\]/, '').trim()
     return { cleanSnippet, rating, price, reviews }
   }
@@ -1723,11 +1866,11 @@ function SearchResultsEditorModal({
         display: 'flex',
         flexDirection: 'column'
       }} onClick={(e) => e.stopPropagation()}>
-        
+
         {/* Header */}
-        <div style={{ 
-          padding: '1rem', 
-          borderBottom: '1px solid var(--border)', 
+        <div style={{
+          padding: '1rem',
+          borderBottom: '1px solid var(--border)',
           backgroundColor: '#16a34a',
           color: 'white',
           display: 'flex',
@@ -1738,14 +1881,14 @@ function SearchResultsEditorModal({
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
             Edit Search Results - {searchTypeName}
           </h2>
-          <button 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              fontSize: '20px', 
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
               cursor: 'pointer',
               color: 'white'
-            }} 
+            }}
             onClick={onClose}
           >
             ✕
@@ -1753,8 +1896,8 @@ function SearchResultsEditorModal({
         </div>
 
         {/* Body */}
-        <div style={{ 
-          padding: '1rem', 
+        <div style={{
+          padding: '1rem',
           backgroundColor: 'var(--card-bg)',
           flex: 1,
           overflow: 'auto'
@@ -1764,7 +1907,7 @@ function SearchResultsEditorModal({
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
               {editingResult ? 'Edit Search Result' : 'Add New Search Result'}
             </h3>
-            
+
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
@@ -1787,7 +1930,7 @@ function SearchResultsEditorModal({
                   required
                 />
               </div>
-              
+
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
                   URL *
@@ -1809,15 +1952,15 @@ function SearchResultsEditorModal({
                   required
                 />
               </div>
-              
+
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <label style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
                     Snippet *
                   </label>
                   <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <span 
-                      style={{ 
+                    <span
+                      style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1877,9 +2020,9 @@ US$88.00 · 4.9 ★★★★★ (45)`}
               </div>
 
               {/* Rating Section */}
-              <div style={{ 
-                padding: '1rem', 
-                border: '1px solid var(--border)', 
+              <div style={{
+                padding: '1rem',
+                border: '1px solid var(--border)',
                 borderRadius: '8px',
                 backgroundColor: 'color-mix(in srgb, var(--card-bg) 95%, var(--text) 5%)'
               }}>
@@ -1954,7 +2097,7 @@ US$88.00 · 4.9 ★★★★★ (45)`}
                   </div>
                 )}
               </div>
-              
+
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   type="submit"
@@ -1997,7 +2140,7 @@ US$88.00 · 4.9 ★★★★★ (45)`}
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
               Custom Search Results ({customResults.length})
             </h3>
-            
+
             {customResults.length === 0 ? (
               <p style={{ color: 'var(--muted)', fontStyle: 'italic' }}>
                 No custom search results yet. Add one above to get started.
@@ -2012,8 +2155,8 @@ US$88.00 · 4.9 ★★★★★ (45)`}
                     backgroundColor: 'var(--card-bg)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                      <img 
-                        src={result.favicon} 
+                      <img
+                        src={result.favicon}
                         alt="Favicon"
                         style={{ width: '20px', height: '20px', marginTop: '2px', flexShrink: 0, borderRadius: '50%', border: '1px solid var(--border)' }}
                         onError={(e) => {
@@ -2136,11 +2279,11 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
         display: 'flex',
         flexDirection: 'column'
       }} onClick={(e) => e.stopPropagation()}>
-        
+
         {/* Header */}
-        <div style={{ 
-          padding: '1rem', 
-          borderBottom: '1px solid var(--border)', 
+        <div style={{
+          padding: '1rem',
+          borderBottom: '1px solid var(--border)',
           backgroundColor: '#2563eb',
           color: 'white',
           display: 'flex',
@@ -2151,14 +2294,14 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
             Create New Search Page
           </h2>
-          <button 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              fontSize: '20px', 
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
               cursor: 'pointer',
               color: 'white'
-            }} 
+            }}
             onClick={onClose}
           >
             ✕
@@ -2166,8 +2309,8 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
         </div>
 
         {/* Body */}
-        <div style={{ 
-          padding: '2rem', 
+        <div style={{
+          padding: '2rem',
           backgroundColor: 'var(--card-bg)',
           flex: 1,
           overflow: 'auto'
@@ -2177,7 +2320,7 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
               Create a completely new search page with its own URL. After creating the page, you can add custom search results to it using the management system.
             </p>
           </div>
-          
+
           <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
@@ -2203,7 +2346,7 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
                 This will be the search query that appears in the URL and search bar
               </p>
             </div>
-            
+
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500', color: 'var(--text)' }}>
                 Display Name *
@@ -2248,7 +2391,7 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
                 </p>
               </div>
             )}
-            
+
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
               <button
                 type="button"
@@ -2289,9 +2432,9 @@ function NewPageEditorModal({ isOpen, onClose, onCreatePage }) {
 }
 
 // FIXED Search Management Modal - ONLY 2 TABS
-function EnhancedSearchManagementModal({ 
-  isOpen, 
-  onClose, 
+function EnhancedSearchManagementModal({
+  isOpen,
+  onClose,
   currentSearchType,
   displayNames,
   customSearchPages,
@@ -2324,308 +2467,425 @@ function EnhancedSearchManagementModal({
 
   try {
     // Combine built-in and custom pages for unified view, excluding deleted built-in pages
-  const allPages = [
-    ...Object.entries(displayNames)
-      .filter(([key]) => !deletedBuiltinPages.includes(key))
-      .map(([key, name]) => ({
-        key,
-        name,
-        type: 'built-in',
-        queryKey: Object.keys(queryToConfig).find(q => queryToConfig[q].key === key),
-        customResultCount: customSearchResults[key]?.length || 0
-      })),
-    ...Object.entries(customSearchPages).map(([queryKey, page]) => ({
-      key: page.key,
-      name: page.displayName,
-      type: 'custom',
-      queryKey,
-      customResultCount: customSearchResults[page.key]?.length || 0
-    }))
-  ]
+    const allPages = [
+      ...Object.entries(displayNames)
+        .filter(([key]) => !deletedBuiltinPages.includes(key))
+        .map(([key, name]) => ({
+          key,
+          name,
+          type: 'built-in',
+          queryKey: Object.keys(queryToConfig).find(q => queryToConfig[q].key === key),
+          customResultCount: customSearchResults[key]?.length || 0
+        })),
+      ...Object.entries(customSearchPages).map(([queryKey, page]) => ({
+        key: page.key,
+        name: page.displayName,
+        type: 'custom',
+        queryKey,
+        customResultCount: customSearchResults[page.key]?.length || 0
+      }))
+    ]
 
-  // Load default (code-defined) results for built-in pages so they can be viewed in the
-  // "View Results" screen even before any custom results are added.
-  useEffect(() => {
-    if (!isOpen) return
+    // Load default (code-defined) results for built-in pages so they can be viewed in the
+    // "View Results" screen even before any custom results are added.
+    useEffect(() => {
+      if (!isOpen) return
 
-    const loadBuiltinResults = async () => {
-      const resultsMap = {}
+      const loadBuiltinResults = async () => {
+        const resultsMap = {}
 
-      const builtinPages = allPages.filter((page) => page.type === 'built-in')
+        const builtinPages = allPages.filter((page) => page.type === 'built-in')
 
-      await Promise.all(
-        builtinPages.map(async (page) => {
-          const configEntry = Object.entries(queryToConfig).find(
-            ([, cfg]) => cfg.key === page.key
-          )
-          const configPath = configEntry && configEntry[1] && configEntry[1].path
-          if (!configPath) return
+        await Promise.all(
+          builtinPages.map(async (page) => {
+            const configEntry = Object.entries(queryToConfig).find(
+              ([, cfg]) => cfg.key === page.key
+            )
+            const configPath = configEntry && configEntry[1] && configEntry[1].path
+            if (!configPath) return
 
-          try {
-            const cfg = await loadConfigByPath(configPath)
-            resultsMap[page.key] = cfg.results || []
-          } catch (error) {
-            console.warn('Failed to load built-in results for page', page.key, error)
-          }
-        })
-      )
+            try {
+              const cfg = await loadConfigByPath(configPath)
+              resultsMap[page.key] = cfg.results || []
+            } catch (error) {
+              console.warn('Failed to load built-in results for page', page.key, error)
+            }
+          })
+        )
 
-      setBuiltinResults(resultsMap)
+        setBuiltinResults(resultsMap)
+      }
+
+      loadBuiltinResults()
+    }, [isOpen, queryToConfig, displayNames, customSearchPages])
+
+    // Note: Seeding is now handled by the realtime data layer
+    // Built-in results are displayed from config, custom results from database
+
+    // Filter pages based on search query
+    const filteredPages = allPages.filter(page =>
+      page.name.toLowerCase().includes(pageSearchQuery.toLowerCase()) ||
+      (page.queryKey && page.queryKey.toLowerCase().includes(pageSearchQuery.toLowerCase()))
+    )
+
+    // Helper functions for editing page names
+    const startEditingPageName = (page) => {
+      setEditingPageName(page.key)
+      setEditingDisplayName(page.name)
     }
 
-    loadBuiltinResults()
-  }, [isOpen, queryToConfig, displayNames, customSearchPages])
-
-  // Note: Seeding is now handled by the realtime data layer
-  // Built-in results are displayed from config, custom results from database
-
-  // Filter pages based on search query
-  const filteredPages = allPages.filter(page => 
-    page.name.toLowerCase().includes(pageSearchQuery.toLowerCase()) ||
-    (page.queryKey && page.queryKey.toLowerCase().includes(pageSearchQuery.toLowerCase()))
-  )
-
-  // Helper functions for editing page names
-  const startEditingPageName = (page) => {
-    setEditingPageName(page.key)
-    setEditingDisplayName(page.name)
-  }
-
-  const savePageNameEdit = (page) => {
-    if (editingDisplayName.trim()) {
-      updatePageDisplayName(page.key, page.type, editingDisplayName.trim())
+    const savePageNameEdit = (page) => {
+      if (editingDisplayName.trim()) {
+        updatePageDisplayName(page.key, page.type, editingDisplayName.trim())
+      }
+      setEditingPageName(null)
+      setEditingDisplayName('')
     }
-    setEditingPageName(null)
-    setEditingDisplayName('')
-  }
 
-  const cancelPageNameEdit = () => {
-    setEditingPageName(null)
-    setEditingDisplayName('')
-  }
+    const cancelPageNameEdit = () => {
+      setEditingPageName(null)
+      setEditingDisplayName('')
+    }
 
-  // ONLY TWO TABS - NO OVERVIEW TAB
-  const TABS_ONLY_TWO = [
-    { id: 'pages', label: 'Pages & Results', icon: '📄' },
-    { id: 'ai-assignments', label: 'AI Assignments', icon: '🤖' }
-  ]
+    // ONLY TWO TABS - NO OVERVIEW TAB
+    const TABS_ONLY_TWO = [
+      { id: 'pages', label: 'Pages & Results', icon: '📄' },
+      { id: 'ai-assignments', label: 'AI Assignments', icon: '🤖' }
+    ]
 
-  return (
-    <div style={{
-      position: 'fixed',
-      top: '0px',
-      left: '0px',
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      zIndex: 999999,
-      pointerEvents: 'all'
-    }} onClick={onClose}>
+    return (
       <div style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '95%',
-        maxWidth: '1400px',
-        backgroundColor: 'var(--card-bg)',
-        border: '1px solid var(--border)',
-        borderRadius: '12px',
-        zIndex: 1000000,
-        pointerEvents: 'all',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        maxHeight: '90vh',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column'
-      }} onClick={(e) => e.stopPropagation()}>
-        
-        {/* Header */}
-        <div style={{ 
-          padding: '1.5rem', 
-          borderBottom: '1px solid var(--border)', 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexShrink: 0
-        }}>
-          <div>
-            <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '24px', fontWeight: '700' }}>
-              Manage Search Results
-            </h2>
-            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>
-              Manage pages, results, and AI assignments
-            </p>
-          </div>
-          <button 
-            style={{ 
-              background: 'rgba(255,255,255,0.2)', 
-              border: 'none', 
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              fontSize: '18px', 
-              cursor: 'pointer',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }} 
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* ONLY 2 TABS - Navigation */}
-        <div style={{ 
-          padding: '0 1.5rem',
-          borderBottom: '1px solid var(--border)',
+        position: 'fixed',
+        top: '0px',
+        left: '0px',
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 999999,
+        pointerEvents: 'all'
+      }} onClick={onClose}>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '95%',
+          maxWidth: '1400px',
           backgroundColor: 'var(--card-bg)',
+          border: '1px solid var(--border)',
+          borderRadius: '12px',
+          zIndex: 1000000,
+          pointerEvents: 'all',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          maxHeight: '90vh',
+          overflow: 'hidden',
           display: 'flex',
-          gap: '0.5rem'
-        }}>
-          {TABS_ONLY_TWO.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '1rem 1.5rem',
-                border: 'none',
-                borderBottom: activeTab === tab.id ? '3px solid #667eea' : '3px solid transparent',
-                backgroundColor: activeTab === tab.id ? 'rgba(102, 126, 234, 0.1)' : 'transparent',
-                color: activeTab === tab.id ? '#667eea' : 'var(--text)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: activeTab === tab.id ? '600' : '500',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </div>
+          flexDirection: 'column'
+        }} onClick={(e) => e.stopPropagation()}>
 
-        {/* Body */}
-        <div style={{ 
-          padding: '1.5rem', 
-          backgroundColor: 'var(--card-bg)',
-          flex: 1,
-          overflow: 'auto'
-        }}>
-          {activeTab === 'pages' && !selectedPageForResults && (
+          {/* Header */}
+          <div style={{
+            padding: '1.5rem',
+            borderBottom: '1px solid var(--border)',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexShrink: 0
+          }}>
             <div>
-              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
-                📄 All Search Pages
-              </h3>
-              
-              {/* Search input */}
-              <div style={{ marginBottom: '1.5rem' }}>
-                <input
-                  type="text"
-                  placeholder="Search pages..."
-                  value={pageSearchQuery}
-                  onChange={(e) => setPageSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    maxWidth: '400px',
-                    padding: '0.75rem',
-                    border: '1px solid var(--border)',
-                    borderRadius: '6px',
-                    backgroundColor: 'var(--card-bg)',
-                    color: 'var(--text)',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-              
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                {filteredPages.map(page => {
-                  const pageResults = customSearchResults[page.key] || []
-                  return (
-                    <div key={page.key} style={{
-                      padding: '1.5rem',
-                      border: `2px solid ${currentSearchType === page.key ? '#667eea' : 'var(--border)'}`,
-                      borderRadius: '8px',
-                      backgroundColor: currentSearchType === page.key ? 'rgba(102, 126, 234, 0.05)' : 'var(--card-bg)',
-                      transition: 'all 0.2s ease'
+              <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '24px', fontWeight: '700' }}>
+                Manage Search Results
+              </h2>
+              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>
+                Manage pages, results, and AI assignments
+              </p>
+            </div>
+            <button
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                fontSize: '18px',
+                cursor: 'pointer',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onClick={onClose}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* ONLY 2 TABS - Navigation */}
+          <div style={{
+            padding: '0 1.5rem',
+            borderBottom: '1px solid var(--border)',
+            backgroundColor: 'var(--card-bg)',
+            display: 'flex',
+            gap: '0.5rem'
+          }}>
+            {TABS_ONLY_TWO.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  padding: '1rem 1.5rem',
+                  border: 'none',
+                  borderBottom: activeTab === tab.id ? '3px solid #667eea' : '3px solid transparent',
+                  backgroundColor: activeTab === tab.id ? 'rgba(102, 126, 234, 0.1)' : 'transparent',
+                  color: activeTab === tab.id ? '#667eea' : 'var(--text)',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: activeTab === tab.id ? '600' : '500',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Body */}
+          <div style={{
+            padding: '1.5rem',
+            backgroundColor: 'var(--card-bg)',
+            flex: 1,
+            overflow: 'auto'
+          }}>
+            {activeTab === 'pages' && !selectedPageForResults && (
+              <div>
+                <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
+                  📄 All Search Pages
+                </h3>
+
+                {/* Search input */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Search pages..."
+                    value={pageSearchQuery}
+                    onChange={(e) => setPageSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      maxWidth: '400px',
+                      padding: '0.75rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--card-bg)',
+                      color: 'var(--text)',
+                      fontSize: '14px',
+                      outline: 'none'
                     }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                            {editingPageName === page.key ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
-                                <input
-                                  type="text"
-                                  value={editingDisplayName}
-                                  onChange={(e) => setEditingDisplayName(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') savePageNameEdit(page)
-                                    if (e.key === 'Escape') cancelPageNameEdit()
-                                  }}
-                                  style={{
-                                    flex: 1,
-                                    padding: '0.5rem',
-                                    border: '1px solid #667eea',
-                                    borderRadius: '4px',
-                                    fontSize: '16px',
-                                    fontWeight: '600',
-                                    backgroundColor: 'var(--card-bg)',
-                                    color: 'var(--text)'
-                                  }}
-                                  autoFocus
-                                />
-                                <button
-                                  onClick={() => savePageNameEdit(page)}
-                                  style={{
-                                    padding: '0.25rem 0.5rem',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    backgroundColor: '#16a34a',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    fontSize: '12px'
-                                  }}
-                                >
-                                  ✓
-                                </button>
-                                <button
-                                  onClick={cancelPageNameEdit}
-                                  style={{
-                                    padding: '0.25rem 0.5rem',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    backgroundColor: '#dc2626',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    fontSize: '12px'
-                                  }}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ) : (
-                              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: 'var(--text)', cursor: 'pointer' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {filteredPages.map(page => {
+                    const pageResults = customSearchResults[page.key] || []
+                    return (
+                      <div key={page.key} style={{
+                        padding: '1.5rem',
+                        border: `2px solid ${currentSearchType === page.key ? '#667eea' : 'var(--border)'}`,
+                        borderRadius: '8px',
+                        backgroundColor: currentSearchType === page.key ? 'rgba(102, 126, 234, 0.05)' : 'var(--card-bg)',
+                        transition: 'all 0.2s ease'
+                      }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                              {editingPageName === page.key ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                                  <input
+                                    type="text"
+                                    value={editingDisplayName}
+                                    onChange={(e) => setEditingDisplayName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') savePageNameEdit(page)
+                                      if (e.key === 'Escape') cancelPageNameEdit()
+                                    }}
+                                    style={{
+                                      flex: 1,
+                                      padding: '0.5rem',
+                                      border: '1px solid #667eea',
+                                      borderRadius: '4px',
+                                      fontSize: '16px',
+                                      fontWeight: '600',
+                                      backgroundColor: 'var(--card-bg)',
+                                      color: 'var(--text)'
+                                    }}
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => savePageNameEdit(page)}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      backgroundColor: '#16a34a',
+                                      color: 'white',
+                                      cursor: 'pointer',
+                                      fontSize: '12px'
+                                    }}
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    onClick={cancelPageNameEdit}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      backgroundColor: '#dc2626',
+                                      color: 'white',
+                                      cursor: 'pointer',
+                                      fontSize: '12px'
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: 'var(--text)', cursor: 'pointer' }}
                                   onClick={() => startEditingPageName(page)}
                                   title="Click to edit search bar text">
-                                {page.name}
-                                <span style={{ 
-                                  marginLeft: '0.5rem', 
-                                  fontSize: '11px', 
-                                  color: 'var(--muted)',
-                                  fontWeight: 'normal'
-                                }}>
-                                  ✏️
-                                </span>
-                              </h4>
+                                  {page.name}
+                                  <span style={{
+                                    marginLeft: '0.5rem',
+                                    fontSize: '11px',
+                                    color: 'var(--muted)',
+                                    fontWeight: 'normal'
+                                  }}>
+                                    ✏️
+                                  </span>
+                                </h4>
+                              )}
+                              {currentSearchType === page.key && <span style={{ color: '#667eea', fontSize: '14px', fontWeight: '500' }}>(Current)</span>}
+                              <span style={{
+                                fontSize: '12px',
+                                fontWeight: 'normal',
+                                padding: '0.25rem 0.5rem',
+                                borderRadius: '12px',
+                                backgroundColor: page.type === 'custom' ? '#3b82f6' : '#8b5cf6',
+                                color: 'white'
+                              }}>
+                                {page.type === 'custom' ? 'Custom' : 'Built-in'}
+                              </span>
+                            </div>
+                            <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
+                              {pageResults.length} custom results • {searchResultAssignments[page.key]?.aiOverviewId ? 'AI assigned' : 'No AI assigned'}
+                            </p>
+                            {page.type === 'custom' && (
+                              <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)' }}>
+                                URL: /search?p={page.id}
+                              </p>
                             )}
-                            {currentSearchType === page.key && <span style={{ color: '#667eea', fontSize: '14px', fontWeight: '500' }}>(Current)</span>}
-                            <span style={{ 
-                              fontSize: '12px', 
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => onNavigate(page)}
+                              style={{
+                                padding: '0.5rem 1rem',
+                                border: 'none',
+                                borderRadius: '4px',
+                                backgroundColor: '#667eea',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                              }}
+                            >
+                              Visit Page
+                            </button>
+                            <button
+                              onClick={() => setSelectedPageForResults(page)}
+                              style={{
+                                padding: '0.5rem 1rem',
+                                border: '1px solid #16a34a',
+                                borderRadius: '4px',
+                                backgroundColor: '#16a34a',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                              }}
+                            >
+                              View Results
+                            </button>
+                            <button
+                              onClick={() => {
+                                const confirmMessage = page.type === 'custom'
+                                  ? `Delete "${page.name}" page and all its search results?`
+                                  : `Delete "${page.name}" built-in page? This will remove it from the interface but can be restored by refreshing the page data.`
+                                if (confirm(confirmMessage)) {
+                                  if (page.type === 'custom') {
+                                    onDeletePage(page.queryKey)
+                                  } else {
+                                    onDeleteBuiltinPage(page.key)
+                                  }
+                                }
+                              }}
+                              style={{
+                                padding: '0.5rem 1rem',
+                                border: '1px solid #dc2626',
+                                borderRadius: '4px',
+                                backgroundColor: '#dc2626',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'pages' && selectedPageForResults && (
+              <PageResultsView
+                page={selectedPageForResults}
+                pageResults={customSearchResults[selectedPageForResults.key] || []}
+                onBack={() => setSelectedPageForResults(null)}
+                onEditResult={() => onEditResults(selectedPageForResults.key)}
+                onAddResult={() => onEditResults(selectedPageForResults.key)}
+                onDeleteResult={(resultId) => {
+                  removeCustomSearchResult(selectedPageForResults.key, resultId)
+                  setSelectedPageForResults({ ...selectedPageForResults })
+                }}
+                onReorderResults={(fromIndex, toIndex) => onReorderResults(selectedPageForResults.key, fromIndex, toIndex)}
+              />
+            )}
+
+            {activeTab === 'ai-assignments' && (
+              <div>
+                <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
+                  🤖 AI Overview Assignments
+                </h3>
+
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {allPages.map(page => (
+                    <div key={page.key} style={{
+                      padding: '1.5rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--card-bg)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
+                            {page.name}
+                            <span style={{
+                              marginLeft: '0.5rem',
+                              fontSize: '12px',
                               fontWeight: 'normal',
                               padding: '0.25rem 0.5rem',
                               borderRadius: '12px',
@@ -2634,250 +2894,133 @@ function EnhancedSearchManagementModal({
                             }}>
                               {page.type === 'custom' ? 'Custom' : 'Built-in'}
                             </span>
-                          </div>
-                          <p style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: 'var(--muted)' }}>
-                            {pageResults.length} custom results • {searchResultAssignments[page.key]?.aiOverviewId ? 'AI assigned' : 'No AI assigned'}
+                          </h4>
+                          <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
+                            {searchResultAssignments[page.key]?.aiOverviewId ? 'AI Overview assigned' : 'No AI Overview assigned'}
                           </p>
-                          {page.type === 'custom' && (
-                            <p style={{ margin: 0, fontSize: '12px', color: 'var(--muted)' }}>
-                              URL: /search?p={page.id}
-                            </p>
-                          )}
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => onNavigate(page)}
-                            style={{
-                              padding: '0.5rem 1rem',
-                              border: 'none',
-                              borderRadius: '4px',
-                              backgroundColor: '#667eea',
-                              color: 'white',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                          >
-                            Visit Page
-                          </button>
-                          <button
-                            onClick={() => setSelectedPageForResults(page)}
-                            style={{
-                              padding: '0.5rem 1rem',
-                              border: '1px solid #16a34a',
-                              borderRadius: '4px',
-                              backgroundColor: '#16a34a',
-                              color: 'white',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                          >
-                            View Results
-                          </button>
-                          <button
-                            onClick={() => {
-                              const confirmMessage = page.type === 'custom' 
-                                ? `Delete "${page.name}" page and all its search results?`
-                                : `Delete "${page.name}" built-in page? This will remove it from the interface but can be restored by refreshing the page data.`
-                              if (confirm(confirmMessage)) {
-                                if (page.type === 'custom') {
-                                  onDeletePage(page.queryKey)
-                                } else {
-                                  onDeleteBuiltinPage(page.key)
-                                }
-                              }
-                            }}
-                            style={{
-                              padding: '0.5rem 1rem',
-                              border: '1px solid #dc2626',
-                              borderRadius: '4px',
-                              backgroundColor: '#dc2626',
-                              color: 'white',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
 
-          {activeTab === 'pages' && selectedPageForResults && (
-            <PageResultsView 
-              page={selectedPageForResults}
-              pageResults={customSearchResults[selectedPageForResults.key] || []}
-              onBack={() => setSelectedPageForResults(null)}
-              onEditResult={() => onEditResults(selectedPageForResults.key)}
-              onAddResult={() => onEditResults(selectedPageForResults.key)}
-              onDeleteResult={(resultId) => {
-                removeCustomSearchResult(selectedPageForResults.key, resultId)
-                setSelectedPageForResults({ ...selectedPageForResults })
-              }}
-              onReorderResults={(fromIndex, toIndex) => onReorderResults(selectedPageForResults.key, fromIndex, toIndex)}
-            />
-          )}
-          
-          {activeTab === 'ai-assignments' && (
-            <div>
-              <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
-                🤖 AI Overview Assignments
-              </h3>
-              
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                {allPages.map(page => (
-                  <div key={page.key} style={{
-                    padding: '1.5rem',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    backgroundColor: 'var(--card-bg)'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '16px', fontWeight: '600', color: 'var(--text)' }}>
-                          {page.name}
-                          <span style={{ 
-                            marginLeft: '0.5rem', 
-                            fontSize: '12px', 
-                            fontWeight: 'normal',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '12px',
-                            backgroundColor: page.type === 'custom' ? '#3b82f6' : '#8b5cf6',
-                            color: 'white'
-                          }}>
-                            {page.type === 'custom' ? 'Custom' : 'Built-in'}
-                          </span>
-                        </h4>
-                        <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)' }}>
-                          {searchResultAssignments[page.key]?.aiOverviewId ? 'AI Overview assigned' : 'No AI Overview assigned'}
-                        </p>
-                      </div>
-                      
-                      {/* AI Overview Toggle Switch */}
-                      {(() => {
-                        // Compute the enabled state once to avoid multiple function calls
-                        const pageAIEnabled = pageAIOverviewSettings ? pageAIOverviewSettings[page.key] !== false : true
-                        
-                        return (
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.75rem',
-                            padding: '0.5rem 0.75rem',
-                            backgroundColor: 'var(--bg)',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border)',
-                            flexShrink: 0
-                          }}>
-                            <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: '500' }}>AI Overview</span>
-                            <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                              <input
-                                type="checkbox"
-                                checked={pageAIEnabled}
-                                onChange={(e) => {
-                                  if (togglePageAIOverview) {
-                                    togglePageAIOverview(page.key, e.target.checked)
-                                  }
-                                }}
-                                style={{ opacity: 0, width: 0, height: 0 }}
-                              />
-                              <span style={{
-                                position: 'absolute',
-                                cursor: 'pointer',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                backgroundColor: pageAIEnabled ? '#007bff' : '#ccc',
-                                transition: '0.3s',
-                                borderRadius: '24px',
-                                boxShadow: pageAIEnabled ? '0 0 0 2px rgba(0, 123, 255, 0.25)' : 'none'
-                              }}>
+                        {/* AI Overview Toggle Switch */}
+                        {(() => {
+                          // Compute the enabled state once to avoid multiple function calls
+                          const pageAIEnabled = pageAIOverviewSettings ? pageAIOverviewSettings[page.key] !== false : true
+
+                          return (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.75rem',
+                              padding: '0.5rem 0.75rem',
+                              backgroundColor: 'var(--bg)',
+                              borderRadius: '6px',
+                              border: '1px solid var(--border)',
+                              flexShrink: 0
+                            }}>
+                              <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: '500' }}>AI Overview</span>
+                              <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={pageAIEnabled}
+                                  onChange={(e) => {
+                                    if (togglePageAIOverview) {
+                                      togglePageAIOverview(page.key, e.target.checked)
+                                    }
+                                  }}
+                                  style={{ opacity: 0, width: 0, height: 0 }}
+                                />
                                 <span style={{
                                   position: 'absolute',
-                                  content: '""',
-                                  height: '18px',
-                                  width: '18px',
-                                  left: pageAIEnabled ? '23px' : '3px',
-                                  bottom: '3px',
-                                  backgroundColor: 'white',
+                                  cursor: 'pointer',
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  backgroundColor: pageAIEnabled ? '#007bff' : '#ccc',
                                   transition: '0.3s',
-                                  borderRadius: '50%',
-                                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-                                }}></span>
+                                  borderRadius: '24px',
+                                  boxShadow: pageAIEnabled ? '0 0 0 2px rgba(0, 123, 255, 0.25)' : 'none'
+                                }}>
+                                  <span style={{
+                                    position: 'absolute',
+                                    content: '""',
+                                    height: '18px',
+                                    width: '18px',
+                                    left: pageAIEnabled ? '23px' : '3px',
+                                    bottom: '3px',
+                                    backgroundColor: 'white',
+                                    transition: '0.3s',
+                                    borderRadius: '50%',
+                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                                  }}></span>
+                                </span>
+                              </label>
+                              <span style={{
+                                fontSize: '12px',
+                                color: pageAIEnabled ? '#007bff' : 'var(--muted)',
+                                fontWeight: '500',
+                                minWidth: '24px'
+                              }}>
+                                {pageAIEnabled ? 'ON' : 'OFF'}
                               </span>
-                            </label>
-                            <span style={{ 
-                              fontSize: '12px', 
-                              color: pageAIEnabled ? '#007bff' : 'var(--muted)',
-                              fontWeight: '500',
-                              minWidth: '24px'
-                            }}>
-                              {pageAIEnabled ? 'ON' : 'OFF'}
-                            </span>
-                          </div>
-                        )
-                      })()}
-                    </div>
-                    
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <select
-                        style={{
-                          flex: 1,
-                          padding: '0.75rem',
-                          border: '1px solid var(--border)',
-                          borderRadius: '4px',
-                          backgroundColor: 'var(--card-bg)',
-                          color: 'var(--text)',
-                          fontSize: '14px'
-                        }}
-                        value={searchResultAssignments[page.key]?.aiOverviewId || ''}
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            onAssignAI(page.key, e.target.value)
-                          } else {
-                            onRemoveAI(page.key)
-                          }
-                        }}
-                      >
-                        <option value="">No AI Overview</option>
-                        {aiOverviews.map(overview => (
-                          <option key={overview.id} value={overview.id}>
-                            {overview.title}
-                          </option>
-                        ))}
-                      </select>
-                      {searchResultAssignments[page.key]?.aiOverviewId && (
-                        <button
+                            </div>
+                          )
+                        })()}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <select
                           style={{
+                            flex: 1,
                             padding: '0.75rem',
-                            border: '1px solid #dc3545',
+                            border: '1px solid var(--border)',
                             borderRadius: '4px',
-                            backgroundColor: '#dc3545',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontSize: '12px'
+                            backgroundColor: 'var(--card-bg)',
+                            color: 'var(--text)',
+                            fontSize: '14px'
                           }}
-                          onClick={() => onRemoveAI(page.key)}
-                          title="Remove assignment"
+                          value={searchResultAssignments[page.key]?.aiOverviewId || ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              onAssignAI(page.key, e.target.value)
+                            } else {
+                              onRemoveAI(page.key)
+                            }
+                          }}
                         >
-                          Remove
-                        </button>
-                      )}
+                          <option value="">No AI Overview</option>
+                          {aiOverviews.map(overview => (
+                            <option key={overview.id} value={overview.id}>
+                              {overview.title}
+                            </option>
+                          ))}
+                        </select>
+                        {searchResultAssignments[page.key]?.aiOverviewId && (
+                          <button
+                            style={{
+                              padding: '0.75rem',
+                              border: '1px solid #dc3545',
+                              borderRadius: '4px',
+                              backgroundColor: '#dc3545',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '12px'
+                            }}
+                            onClick={() => onRemoveAI(page.key)}
+                            title="Remove assignment"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
   } catch (error) {
     // Log the error and return a safe fallback
     console.error('Error in EnhancedSearchManagementModal:', error)
@@ -2925,7 +3068,7 @@ function EnhancedSearchManagementModal({
 // Page Results View Component
 function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult, onDeleteResult, onReorderResults }) {
   const totalResults = pageResults?.length || 0
-  
+
   return (
     <div>
       {/* Header with back button */}
@@ -2950,9 +3093,9 @@ function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult,
         <div>
           <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '20px', fontWeight: '600', color: 'var(--text)' }}>
             {page.name} - Search Results
-            <span style={{ 
-              marginLeft: '0.5rem', 
-              fontSize: '12px', 
+            <span style={{
+              marginLeft: '0.5rem',
+              fontSize: '12px',
               fontWeight: 'normal',
               padding: '0.25rem 0.5rem',
               borderRadius: '12px',
@@ -2994,8 +3137,8 @@ function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult,
       {totalResults > 0 ? (
         <div style={{ display: 'grid', gap: '1rem' }}>
           {pageResults.map((result, index) => (
-            <div 
-              key={result.id} 
+            <div
+              key={result.id}
               draggable={true}
               style={{
                 padding: '1.5rem',
@@ -3008,8 +3151,8 @@ function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginLeft: '20px' }}>
-                <img 
-                  src={result.favicon} 
+                <img
+                  src={result.favicon}
                   alt="Favicon"
                   style={{ width: '20px', height: '20px', marginTop: '2px', flexShrink: 0, borderRadius: '50%', border: '1px solid var(--border)' }}
                 />
@@ -3066,10 +3209,10 @@ function PageResultsView({ page, pageResults, onBack, onEditResult, onAddResult,
           ))}
         </div>
       ) : (
-        <div style={{ 
-          padding: '3rem', 
-          textAlign: 'center', 
-          border: '2px dashed var(--border)', 
+        <div style={{
+          padding: '3rem',
+          textAlign: 'center',
+          border: '2px dashed var(--border)',
           borderRadius: '8px',
           backgroundColor: 'rgba(0,0,0,0.02)'
         }}>

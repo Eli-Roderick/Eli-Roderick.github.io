@@ -21,10 +21,10 @@ let userIdPromise = null
 export const getCurrentUserId = async () => {
   // Return cached value if available
   if (cachedUserId) return cachedUserId
-  
+
   // If already fetching, wait for that promise
   if (userIdPromise) return userIdPromise
-  
+
   userIdPromise = (async () => {
     try {
       const user = await getCurrentUser()
@@ -32,7 +32,7 @@ export const getCurrentUserId = async () => {
         cachedUserId = null
         return null
       }
-      
+
       // Skip ensureUserProfile for reads - it's only needed for writes
       // The profile will be created on first write if needed
       cachedUserId = user.id
@@ -45,7 +45,7 @@ export const getCurrentUserId = async () => {
       userIdPromise = null
     }
   })()
-  
+
   return userIdPromise
 }
 
@@ -347,7 +347,7 @@ export const reorderSearchResults = async (pageId, resultIds) => {
 
   try {
     // Update each result with its new display_order
-    const updates = resultIds.map((id, index) => 
+    const updates = resultIds.map((id, index) =>
       supabase
         .from('custom_search_results')
         .update({ display_order: index })
@@ -583,7 +583,7 @@ export const getAIAssignmentForPage = async (pageId) => {
     }
 
     if (!data) return null
-    
+
     return {
       aiOverviewId: data.ai_overview_id,
       fontSize: data.font_size || 'medium',
@@ -878,22 +878,44 @@ export const loadParticipants = async (userId = null) => {
 // SESSION ACTIVITY (defined before SESSIONS to avoid circular dependency)
 // ============================================================================
 
-export const addSessionActivity = async (sessionId, activityType, details = null, pageName = null, pageId = null, sessionStartTime = null) => {
+export const addSessionActivity = async (
+  sessionId,
+  activityType,
+  details = null,
+  pageName = null,
+  pageId = null,
+  sessionStartTime = null,
+  mouseData = null
+) => {
   try {
     const now = new Date()
     const timeSinceStartMs = sessionStartTime ? now.getTime() - new Date(sessionStartTime).getTime() : null
-    
+    const monotonicTimestamp = performance.now()
+
+    const activityRecord = {
+      session_id: sessionId,
+      activity_type: activityType,
+      activity_ts: now.toISOString(),
+      details: details,
+      page_name: pageName,
+      page_id: pageId,
+      time_since_start_ms: timeSinceStartMs,
+      monotonic_timestamp: Math.round(monotonicTimestamp)
+    }
+
+    // Add mouse tracking data if provided
+    if (mouseData) {
+      if (mouseData.x !== undefined) activityRecord.mouse_x = mouseData.x
+      if (mouseData.y !== undefined) activityRecord.mouse_y = mouseData.y
+      if (mouseData.event) activityRecord.mouse_event = mouseData.event
+      if (mouseData.scrollDelta !== undefined) activityRecord.scroll_delta = mouseData.scrollDelta
+      if (mouseData.movementDeltaX !== undefined) activityRecord.movement_delta_x = mouseData.movementDeltaX
+      if (mouseData.movementDeltaY !== undefined) activityRecord.movement_delta_y = mouseData.movementDeltaY
+    }
+
     const { data, error } = await supabase
       .from('session_activity')
-      .insert({
-        session_id: sessionId,
-        activity_type: activityType,
-        activity_ts: now.toISOString(),
-        details: details,
-        page_name: pageName,
-        page_id: pageId,
-        time_since_start_ms: timeSinceStartMs
-      })
+      .insert(activityRecord)
       .select()
       .single()
 

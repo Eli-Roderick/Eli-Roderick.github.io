@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getCurrentUser } from '../utils/supabase'
-import { 
-  loadSessionsForParticipant, 
+import {
+  loadSessionsForParticipant,
   loadSessionActivity,
   deleteSession,
   getAnyActiveSession,
@@ -15,7 +15,7 @@ export default function ParticipantSessions() {
   const navigate = useNavigate()
   const { participantId } = useParams()
   const [searchParams] = useSearchParams()
-  
+
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       return localStorage.getItem('current_user') || null
@@ -24,7 +24,7 @@ export default function ParticipantSessions() {
     }
   })
   const [authChecked, setAuthChecked] = useState(!!localStorage.getItem('current_user'))
-  
+
   const [participant, setParticipant] = useState(null)
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -38,10 +38,10 @@ export default function ParticipantSessions() {
       try {
         const user = await getCurrentUser()
         if (user) {
-          const username = user.user_metadata?.username || 
-                          user.user_metadata?.display_name || 
-                          user.email?.split('@')[0] || 
-                          'user'
+          const username = user.user_metadata?.username ||
+            user.user_metadata?.display_name ||
+            user.email?.split('@')[0] ||
+            'user'
           setCurrentUser(username)
           localStorage.setItem('current_user', username)
         } else {
@@ -79,12 +79,12 @@ export default function ParticipantSessions() {
         .select('*')
         .eq('id', participantId)
         .single()
-      
+
       if (!error && data) {
         setParticipant(data)
       }
     }
-    
+
     if (participantId) {
       loadParticipant()
     }
@@ -97,12 +97,12 @@ export default function ParticipantSessions() {
       const data = await loadSessionsForParticipant(participantId)
       setSessions(data)
       setLoading(false)
-      
+
       // Auto-expand active session first, then check URL param
       const activeSessionInList = data.find(s => s.status === 'active')
       const expandId = searchParams.get('expand')
       const sessionToExpand = activeSessionInList?.id || (expandId && data.some(s => s.id === expandId) ? expandId : null)
-      
+
       if (sessionToExpand) {
         setExpandedSession(sessionToExpand)
         // Load activity for the expanded session
@@ -113,7 +113,7 @@ export default function ParticipantSessions() {
         }))
       }
     }
-    
+
     if (participantId) {
       loadSessions()
     }
@@ -200,9 +200,9 @@ export default function ParticipantSessions() {
       setExpandedSession(null)
       return
     }
-    
+
     setExpandedSession(sessionId)
-    
+
     if (!sessionActivities[sessionId]) {
       const activities = await loadSessionActivity(sessionId)
       setSessionActivities(prev => ({
@@ -227,7 +227,7 @@ export default function ParticipantSessions() {
     const seconds = Math.floor(ms / 1000)
     const minutes = Math.floor(seconds / 60)
     const hours = Math.floor(minutes / 60)
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes % 60}m`
     } else if (minutes > 0) {
@@ -250,7 +250,7 @@ export default function ParticipantSessions() {
 
     // Build CSV content
     const rows = []
-    
+
     // Header row
     rows.push([
       'Participant',
@@ -261,13 +261,20 @@ export default function ParticipantSessions() {
       'Activity Type',
       'Activity Timestamp',
       'Time Since Start (ms)',
+      'Monotonic Timestamp',
       'Page ID',
       'Page Name',
+      'Mouse X',
+      'Mouse Y',
+      'Mouse Event',
+      'Scroll Delta',
+      'Movement Delta X',
+      'Movement Delta Y',
+      'Scroll Start Y',
+      'Scroll End Y',
       'URL',
       'Title',
       'Click Type',
-      'Scroll From',
-      'Scroll To',
       'Details (JSON)'
     ].join(','))
 
@@ -286,13 +293,20 @@ export default function ParticipantSessions() {
         '""', // Activity Type
         '""', // Activity Timestamp
         '""', // Time Since Start
+        '""', // Monotonic Timestamp
         '""', // Page ID
         '""', // Page Name
+        '""', // Mouse X
+        '""', // Mouse Y
+        '""', // Mouse Event
+        '""', // Scroll Delta
+        '""', // Movement Delta X
+        '""', // Movement Delta Y
+        '""', // Scroll Start Y
+        '""', // Scroll End Y
         '""', // URL
         '""', // Title
         '""', // Click Type
-        '""', // Scroll From
-        '""', // Scroll To
         '""'  // Details
       ].join(','))
     } else {
@@ -312,13 +326,20 @@ export default function ParticipantSessions() {
           `"${activity.activity_type}"`,
           `"${activityTime.toISOString()}"`,
           `"${timeSinceStartMs}"`,
+          activity.monotonic_timestamp !== undefined && activity.monotonic_timestamp !== null ? `"${activity.monotonic_timestamp}"` : '""',
           `"${(activity.page_id || '').replace(/"/g, '""')}"`,
           `"${(activity.page_name || '').replace(/"/g, '""')}"`,
+          activity.mouse_x !== undefined && activity.mouse_x !== null ? `"${activity.mouse_x}"` : '""',
+          activity.mouse_y !== undefined && activity.mouse_y !== null ? `"${activity.mouse_y}"` : '""',
+          activity.mouse_event ? `"${activity.mouse_event}"` : '""',
+          activity.scroll_delta !== undefined && activity.scroll_delta !== null ? `"${activity.scroll_delta}"` : '""',
+          activity.movement_delta_x !== undefined && activity.movement_delta_x !== null ? `"${activity.movement_delta_x}"` : '""',
+          activity.movement_delta_y !== undefined && activity.movement_delta_y !== null ? `"${activity.movement_delta_y}"` : '""',
+          details.scrollStartY !== undefined ? `"${details.scrollStartY}"` : '""',
+          details.scrollEndY !== undefined ? `"${details.scrollEndY}"` : '""',
           `"${(details.url || '').replace(/"/g, '""')}"`,
           `"${(details.title || '').replace(/"/g, '""')}"`,
           `"${details.type || ''}"`,
-          details.from !== undefined ? `"${details.from}"` : '""',
-          details.to !== undefined ? `"${details.to}"` : '""',
           `"${JSON.stringify(details).replace(/"/g, '""')}"`
         ].join(','))
       })
@@ -329,13 +350,13 @@ export default function ParticipantSessions() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    
+
     // Generate filename
     const dateStr = sessionStart.toISOString().split('T')[0]
     const timeStr = sessionStart.toTimeString().split(' ')[0].replace(/:/g, '-')
     const participantName = (participant?.name || 'unknown').replace(/[^a-zA-Z0-9]/g, '_')
     const filename = `session_${participantName}_${dateStr}_${timeStr}.csv`
-    
+
     link.setAttribute('href', url)
     link.setAttribute('download', filename)
     link.style.visibility = 'hidden'
@@ -397,8 +418,8 @@ export default function ParticipantSessions() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
       {/* Header Bar */}
-      <div style={{ 
-        padding: '0.75rem 2rem', 
+      <div style={{
+        padding: '0.75rem 2rem',
         backgroundColor: 'var(--card-bg)',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
@@ -466,10 +487,10 @@ export default function ParticipantSessions() {
                 cursor: 'pointer'
               }}
             >
-              <span style={{ 
-                width: '6px', 
-                height: '6px', 
-                backgroundColor: 'white', 
+              <span style={{
+                width: '6px',
+                height: '6px',
+                backgroundColor: 'white',
                 borderRadius: '50%'
               }} />
               Session Active
@@ -505,8 +526,8 @@ export default function ParticipantSessions() {
       </div>
 
       {/* Header */}
-      <div style={{ 
-        padding: '1.5rem 2rem', 
+      <div style={{
+        padding: '1.5rem 2rem',
         backgroundColor: 'var(--card-bg)',
         borderBottom: '2px solid var(--border)'
       }}>
@@ -553,233 +574,233 @@ export default function ParticipantSessions() {
           ) : (
             <div style={{ display: 'grid', gap: '0.75rem' }}>
               {sessions.map(session => (
-              <div 
-                key={session.id}
-                style={{
-                  backgroundColor: 'var(--bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '6px',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Session Header */}
-                <div 
+                <div
+                  key={session.id}
                   style={{
-                    padding: '1rem 1.5rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    cursor: 'pointer'
+                    backgroundColor: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    overflow: 'hidden'
                   }}
-                  onClick={() => toggleSessionExpand(session.id)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      backgroundColor: session.status === 'active' ? '#22c55e' : '#6b7280'
-                    }} />
-                    <div>
-                      <p style={{ margin: 0, fontSize: '16px', fontWeight: '500', color: 'var(--text)' }}>
-                        {new Date(session.session_start).toLocaleDateString()} at {new Date(session.session_start).toLocaleTimeString()}
-                      </p>
-                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '13px', color: 'var(--muted)' }}>
-                        Duration: {formatDuration(session.session_start, session.session_end)}
-                        {session.status === 'active' && (
-                          <span style={{ marginLeft: '0.5rem', color: '#22c55e', fontWeight: '500' }}>● Active</span>
-                        )}
-                      </p>
+                  {/* Session Header */}
+                  <div
+                    style={{
+                      padding: '1rem 1.5rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => toggleSessionExpand(session.id)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        backgroundColor: session.status === 'active' ? '#22c55e' : '#6b7280'
+                      }} />
+                      <div>
+                        <p style={{ margin: 0, fontSize: '16px', fontWeight: '500', color: 'var(--text)' }}>
+                          {new Date(session.session_start).toLocaleDateString()} at {new Date(session.session_start).toLocaleTimeString()}
+                        </p>
+                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '13px', color: 'var(--muted)' }}>
+                          Duration: {formatDuration(session.session_start, session.session_end)}
+                          {session.status === 'active' && (
+                            <span style={{ marginLeft: '0.5rem', color: '#22c55e', fontWeight: '500' }}>● Active</span>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {session.status === 'active' && (
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {session.status === 'active' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleStopSession(session.id)
+                          }}
+                          style={{
+                            backgroundColor: '#dc2626',
+                            border: 'none',
+                            color: 'white',
+                            cursor: 'pointer',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}
+                          title="Stop session"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>stop</span>
+                          Stop
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleStopSession(session.id)
+                          handleExportCSV(session)
                         }}
                         style={{
-                          backgroundColor: '#dc2626',
+                          background: 'none',
                           border: 'none',
-                          color: 'white',
+                          color: '#2563eb',
                           cursor: 'pointer',
-                          padding: '0.35rem 0.75rem',
+                          padding: '0.5rem',
                           borderRadius: '4px',
                           display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          fontSize: '12px',
-                          fontWeight: '500'
+                          alignItems: 'center'
                         }}
-                        title="Stop session"
+                        title="Export to CSV"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>stop</span>
-                        Stop
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>download</span>
                       </button>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleExportCSV(session)
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#2563eb',
-                        cursor: 'pointer',
-                        padding: '0.5rem',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}
-                      title="Export to CSV"
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>download</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteSession(session.id)
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#dc2626',
-                        cursor: 'pointer',
-                        padding: '0.5rem',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}
-                      title="Delete session"
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
-                    </button>
-                    <span 
-                      className="material-symbols-outlined" 
-                      style={{ 
-                        fontSize: '24px', 
-                        color: 'var(--muted)',
-                        transform: expandedSession === session.id ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s'
-                      }}
-                    >
-                      expand_more
-                    </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteSession(session.id)
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          padding: '0.5rem',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                        title="Delete session"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
+                      </button>
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: '24px',
+                          color: 'var(--muted)',
+                          transform: expandedSession === session.id ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s'
+                        }}
+                      >
+                        expand_more
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Expanded Activity */}
-                {expandedSession === session.id && (
-                  <div style={{
-                    borderTop: '1px solid var(--border)',
-                    padding: '1rem 1.5rem',
-                    backgroundColor: 'var(--bg)'
-                  }}>
-                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '14px', fontWeight: '600', color: 'var(--text)' }}>
-                      Session Activity
-                    </h4>
-                    
-                    {!sessionActivities[session.id] ? (
-                      <p style={{ color: 'var(--muted)', fontSize: '14px' }}>Loading activity...</p>
-                    ) : sessionActivities[session.id].length === 0 ? (
-                      <p style={{ color: 'var(--muted)', fontSize: '14px' }}>No activity recorded for this session.</p>
-                    ) : (
-                      <div style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column',
-                        gap: '2px',
-                        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
-                        fontSize: '12px'
-                      }}>
-                        {[...sessionActivities[session.id]].reverse().map(activity => {
-                          const details = activity.details || {}
-                          const time = new Date(activity.activity_ts).toLocaleTimeString()
-                          
-                          // Format activity based on type
-                          let description = ''
-                          if (activity.activity_type === 'URL_CLICK') {
-                            description = `URL: "${details.title || details.url}"`
-                          } else if (activity.activity_type === 'SCROLL_UP' || activity.activity_type === 'SCROLL_DOWN') {
-                            description = `${details.from}px → ${details.to}px`
-                          } else if (activity.activity_type === 'SESSION_START' || activity.activity_type === 'SESSION_END') {
-                            description = ''
-                          }
-                          
-                          // Get page name from activity
-                          const pageName = activity.page_name || ''
-                          
-                          // Color based on activity type
-                          const typeColors = {
-                            'URL_CLICK': '#2563eb',
-                            'SCROLL_UP': '#8b5cf6',
-                            'SCROLL_DOWN': '#8b5cf6',
-                            'SESSION_START': '#22c55e',
-                            'SESSION_END': '#ef4444'
-                          }
-                          
-                          return (
-                            <div 
-                              key={activity.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                padding: '0.4rem 0.75rem',
-                                backgroundColor: 'var(--card-bg)',
-                                borderRadius: '3px',
-                                borderLeft: `3px solid ${typeColors[activity.activity_type] || '#6b7280'}`
-                              }}
-                            >
-                              <span style={{ 
-                                color: 'var(--muted)', 
-                                flexShrink: 0,
-                                width: '85px'
-                              }}>
-                                {time}
-                              </span>
-                              {pageName && (
-                                <span style={{ 
-                                  color: 'var(--text)',
-                                  fontWeight: '500',
+                  {/* Expanded Activity */}
+                  {expandedSession === session.id && (
+                    <div style={{
+                      borderTop: '1px solid var(--border)',
+                      padding: '1rem 1.5rem',
+                      backgroundColor: 'var(--bg)'
+                    }}>
+                      <h4 style={{ margin: '0 0 1rem 0', fontSize: '14px', fontWeight: '600', color: 'var(--text)' }}>
+                        Session Activity
+                      </h4>
+
+                      {!sessionActivities[session.id] ? (
+                        <p style={{ color: 'var(--muted)', fontSize: '14px' }}>Loading activity...</p>
+                      ) : sessionActivities[session.id].length === 0 ? (
+                        <p style={{ color: 'var(--muted)', fontSize: '14px' }}>No activity recorded for this session.</p>
+                      ) : (
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '2px',
+                          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
+                          fontSize: '12px'
+                        }}>
+                          {[...sessionActivities[session.id]].reverse().map(activity => {
+                            const details = activity.details || {}
+                            const time = new Date(activity.activity_ts).toLocaleTimeString()
+
+                            // Format activity based on type
+                            let description = ''
+                            if (activity.activity_type === 'URL_CLICK') {
+                              description = `URL: "${details.title || details.url}"`
+                            } else if (activity.activity_type === 'SCROLL_UP' || activity.activity_type === 'SCROLL_DOWN') {
+                              description = `${details.scrollStartY}px → ${details.scrollEndY}px`
+                            } else if (activity.activity_type === 'SESSION_START' || activity.activity_type === 'SESSION_END') {
+                              description = ''
+                            }
+
+                            // Get page name from activity
+                            const pageName = activity.page_name || ''
+
+                            // Color based on activity type
+                            const typeColors = {
+                              'URL_CLICK': '#2563eb',
+                              'SCROLL_UP': '#8b5cf6',
+                              'SCROLL_DOWN': '#8b5cf6',
+                              'SESSION_START': '#22c55e',
+                              'SESSION_END': '#ef4444'
+                            }
+
+                            return (
+                              <div
+                                key={activity.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.75rem',
+                                  padding: '0.4rem 0.75rem',
+                                  backgroundColor: 'var(--card-bg)',
+                                  borderRadius: '3px',
+                                  borderLeft: `3px solid ${typeColors[activity.activity_type] || '#6b7280'}`
+                                }}
+                              >
+                                <span style={{
+                                  color: 'var(--muted)',
                                   flexShrink: 0,
-                                  fontSize: '11px',
-                                  marginRight: '0.5rem'
+                                  width: '85px'
                                 }}>
-                                  Page: {pageName}
+                                  {time}
                                 </span>
-                              )}
-                              <span style={{ 
-                                color: typeColors[activity.activity_type] || 'var(--text)',
-                                fontWeight: '600',
-                                flexShrink: 0,
-                                width: '105px',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                {activity.activity_type.replace('_', ' ')}
-                              </span>
-                              <span style={{ 
-                                color: 'var(--text)',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                flex: 1
-                              }}>
-                                {description}
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                                {pageName && (
+                                  <span style={{
+                                    color: 'var(--text)',
+                                    fontWeight: '500',
+                                    flexShrink: 0,
+                                    fontSize: '11px',
+                                    marginRight: '0.5rem'
+                                  }}>
+                                    Page: {pageName}
+                                  </span>
+                                )}
+                                <span style={{
+                                  color: typeColors[activity.activity_type] || 'var(--text)',
+                                  fontWeight: '600',
+                                  flexShrink: 0,
+                                  width: '105px',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {activity.activity_type.replace('_', ' ')}
+                                </span>
+                                <span style={{
+                                  color: 'var(--text)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  flex: 1
+                                }}>
+                                  {description}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
