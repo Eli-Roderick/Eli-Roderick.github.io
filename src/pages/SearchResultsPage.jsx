@@ -2824,30 +2824,35 @@ function EnhancedSearchManagementModal({
                             >
                               View Results
                             </button>
-                            {page.type === 'custom' && (
-                              <button
-                                onClick={() => {
-                                  if (confirm(`Duplicate "${page.name}" page with all its search results and AI assignment?`)) {
-                                    // Find the page ID from customSearchPages
+                            <button
+                              onClick={() => {
+                                if (confirm(`Duplicate "${page.name}" page with all its search results and AI assignment?`)) {
+                                  if (page.type === 'custom') {
+                                    // For custom pages, get ID from customSearchPages
                                     const pageData = customSearchPages[page.queryKey]
                                     if (pageData && pageData.id) {
                                       onDuplicatePage(pageData.id)
                                     }
+                                  } else {
+                                    // For built-in pages, we can't duplicate them directly
+                                    alert('Built-in pages cannot be duplicated. You can create a new custom page instead.')
                                   }
-                                }}
-                                style={{
-                                  padding: '0.5rem 1rem',
-                                  border: '1px solid #f59e0b',
-                                  borderRadius: '4px',
-                                  backgroundColor: '#f59e0b',
-                                  color: 'white',
-                                  cursor: 'pointer',
-                                  fontSize: '12px'
-                                }}
-                              >
-                                Duplicate
-                              </button>
-                            )}
+                                }
+                              }}
+                              style={{
+                                padding: '0.5rem 1rem',
+                                border: '1px solid #f59e0b',
+                                borderRadius: '4px',
+                                backgroundColor: page.type === 'custom' ? '#f59e0b' : '#9ca3af',
+                                color: 'white',
+                                cursor: page.type === 'custom' ? 'pointer' : 'not-allowed',
+                                fontSize: '12px'
+                              }}
+                              disabled={page.type !== 'custom'}
+                              title={page.type === 'custom' ? 'Duplicate this page' : 'Only custom pages can be duplicated'}
+                            >
+                              Duplicate
+                            </button>
                             <button
                               onClick={() => {
                                 const confirmMessage = page.type === 'custom'
