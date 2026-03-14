@@ -1260,10 +1260,12 @@ export default function SearchResultsPage() {
           onRemoveAI={removeAIOverviewFromSearch}
           onDeletePage={removeCustomSearchPage}
           onDeleteBuiltinPage={deleteBuiltinPage}
-          onDuplicatePage={async (pageId) => {
-            const newPage = await duplicatePage(pageId)
+          onDuplicatePage={async (pageId, customName = null) => {
+            const newPage = await duplicatePage(pageId, customName)
             if (newPage) {
-              alert(`Page duplicated successfully! New page: "${newPage.display_name}"`)
+              alert(`Page duplicated successfully!\n\nNew page: "${newPage.display_name}"`)
+            } else {
+              alert('Failed to duplicate page. Please try again.')
             }
           }}
           onEditResults={(searchType) => {
@@ -2866,13 +2868,30 @@ function EnhancedSearchManagementModal({
                               >
                                 {page.type === 'custom' && (
                                   <button
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                       e.currentTarget.parentElement.style.display = 'none'
-                                      if (confirm(`Duplicate "${page.name}" page with all its search results and AI assignment?`)) {
-                                        const pageData = customSearchPages[page.queryKey]
-                                        if (pageData && pageData.id) {
-                                          onDuplicatePage(pageData.id)
-                                        }
+                                      
+                                      // Validate page data exists
+                                      const pageData = customSearchPages[page.queryKey]
+                                      if (!pageData || !pageData.id) {
+                                        alert('Error: Cannot duplicate this page. Page data is invalid.')
+                                        return
+                                      }
+                                      
+                                      // Prompt for new page name with default
+                                      const defaultName = `${page.name} (Copy)`
+                                      const newName = prompt('Enter a name for the duplicated page:', defaultName)
+                                      
+                                      // User cancelled the prompt
+                                      if (newName === null) {
+                                        return
+                                      }
+                                      
+                                      try {
+                                        await onDuplicatePage(pageData.id, newName)
+                                      } catch (error) {
+                                        console.error('Error duplicating page:', error)
+                                        alert('An error occurred while duplicating the page. Please try again.')
                                       }
                                     }}
                                     style={{

@@ -70,6 +70,7 @@ export default function HomePage() {
     addPage,
     editPage,
     removePage,
+    duplicatePage,
     addAIOverview,
     editAIOverview,
     removeAIOverview,
@@ -667,28 +668,118 @@ export default function HomePage() {
                           Manage
                         </button>
                         {page.type === 'custom' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              if (confirm(`Delete "${page.name}"? This will also delete all associated results.`)) {
-                                removePage(page.id)
-                              }
-                            }}
-                            style={{
-                              padding: '0.5rem',
-                              border: 'none',
-                              borderRadius: '4px',
-                              backgroundColor: 'transparent',
-                              color: '#dc2626',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            title="Delete page"
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
-                          </button>
+                          <div style={{ position: 'relative' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const menu = e.currentTarget.nextElementSibling
+                                menu.style.display = menu.style.display === 'block' ? 'none' : 'block'
+                              }}
+                              style={{
+                                padding: '0.5rem',
+                                border: 'none',
+                                borderRadius: '4px',
+                                backgroundColor: 'transparent',
+                                color: 'var(--text)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              title="More options"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>more_vert</span>
+                            </button>
+                            <div
+                              style={{
+                                display: 'none',
+                                position: 'absolute',
+                                top: '100%',
+                                right: 0,
+                                marginTop: '4px',
+                                backgroundColor: 'var(--card-bg)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '6px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                zIndex: 100,
+                                minWidth: '140px',
+                                overflow: 'hidden'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseLeave={(e) => { e.currentTarget.style.display = 'none' }}
+                            >
+                              <button
+                                onClick={async (e) => {
+                                  e.currentTarget.parentElement.style.display = 'none'
+                                  
+                                  // Validate page exists and has an ID
+                                  if (!page || !page.id) {
+                                    alert('Error: Cannot duplicate this page. Page data is invalid.')
+                                    return
+                                  }
+                                  
+                                  // Prompt for new page name with default
+                                  const defaultName = `${page.name} (Copy)`
+                                  const newName = prompt('Enter a name for the duplicated page:', defaultName)
+                                  
+                                  // User cancelled the prompt
+                                  if (newName === null) {
+                                    return
+                                  }
+                                  
+                                  try {
+                                    const newPage = await duplicatePage(page.id, newName)
+                                    if (newPage) {
+                                      alert(`Page duplicated successfully!\n\nNew page: "${newPage.display_name}"`)
+                                    } else {
+                                      alert('Failed to duplicate page. Please try again.')
+                                    }
+                                  } catch (error) {
+                                    console.error('Error duplicating page:', error)
+                                    alert('An error occurred while duplicating the page. Please try again.')
+                                  }
+                                }}
+                                style={{
+                                  display: 'block',
+                                  width: '100%',
+                                  padding: '0.75rem 1rem',
+                                  border: 'none',
+                                  backgroundColor: 'transparent',
+                                  color: 'var(--text)',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  textAlign: 'left'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border)' }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                              >
+                                📋 Duplicate
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.currentTarget.parentElement.style.display = 'none'
+                                  if (confirm(`Delete "${page.name}"? This will also delete all associated results.`)) {
+                                    removePage(page.id)
+                                  }
+                                }}
+                                style={{
+                                  display: 'block',
+                                  width: '100%',
+                                  padding: '0.75rem 1rem',
+                                  border: 'none',
+                                  backgroundColor: 'transparent',
+                                  color: '#dc2626',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  textAlign: 'left'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border)' }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>

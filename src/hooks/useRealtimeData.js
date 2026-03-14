@@ -176,8 +176,8 @@ export function useRealtimeData(currentUser) {
     return success
   }, [])
 
-  const duplicatePage = useCallback(async (pageId) => {
-    const newPage = await duplicateSearchPage(pageId)
+  const duplicatePage = useCallback(async (pageId, customName = null) => {
+    const newPage = await duplicateSearchPage(pageId, customName)
     if (newPage) {
       // Reload all data to get the duplicated page with its results and assignments
       const data = await loadAllUserData()
