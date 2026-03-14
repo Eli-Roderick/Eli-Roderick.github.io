@@ -2824,60 +2824,106 @@ function EnhancedSearchManagementModal({
                             >
                               View Results
                             </button>
-                            <button
-                              onClick={() => {
-                                if (confirm(`Duplicate "${page.name}" page with all its search results and AI assignment?`)) {
-                                  if (page.type === 'custom') {
-                                    // For custom pages, get ID from customSearchPages
-                                    const pageData = customSearchPages[page.queryKey]
-                                    if (pageData && pageData.id) {
-                                      onDuplicatePage(pageData.id)
+                            {/* Three-dot menu for Duplicate and Delete */}
+                            <div style={{ position: 'relative' }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  const menu = e.currentTarget.nextElementSibling
+                                  menu.style.display = menu.style.display === 'block' ? 'none' : 'block'
+                                }}
+                                style={{
+                                  padding: '0.5rem 0.75rem',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '4px',
+                                  backgroundColor: 'var(--card-bg)',
+                                  color: 'var(--text)',
+                                  cursor: 'pointer',
+                                  fontSize: '16px',
+                                  lineHeight: 1
+                                }}
+                                title="More options"
+                              >
+                                ⋮
+                              </button>
+                              <div
+                                style={{
+                                  display: 'none',
+                                  position: 'absolute',
+                                  top: '100%',
+                                  right: 0,
+                                  marginTop: '4px',
+                                  backgroundColor: 'var(--card-bg)',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '6px',
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                  zIndex: 100,
+                                  minWidth: '140px',
+                                  overflow: 'hidden'
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseLeave={(e) => { e.currentTarget.style.display = 'none' }}
+                              >
+                                {page.type === 'custom' && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.currentTarget.parentElement.style.display = 'none'
+                                      if (confirm(`Duplicate "${page.name}" page with all its search results and AI assignment?`)) {
+                                        const pageData = customSearchPages[page.queryKey]
+                                        if (pageData && pageData.id) {
+                                          onDuplicatePage(pageData.id)
+                                        }
+                                      }
+                                    }}
+                                    style={{
+                                      display: 'block',
+                                      width: '100%',
+                                      padding: '0.75rem 1rem',
+                                      border: 'none',
+                                      backgroundColor: 'transparent',
+                                      color: 'var(--text)',
+                                      cursor: 'pointer',
+                                      fontSize: '14px',
+                                      textAlign: 'left'
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border)' }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                                  >
+                                    📋 Duplicate
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.currentTarget.parentElement.style.display = 'none'
+                                    const confirmMessage = page.type === 'custom'
+                                      ? `Delete "${page.name}" page and all its search results?`
+                                      : `Delete "${page.name}" built-in page? This will remove it from the interface but can be restored by refreshing the page data.`
+                                    if (confirm(confirmMessage)) {
+                                      if (page.type === 'custom') {
+                                        onDeletePage(page.queryKey)
+                                      } else {
+                                        onDeleteBuiltinPage(page.key)
+                                      }
                                     }
-                                  } else {
-                                    // For built-in pages, we can't duplicate them directly
-                                    alert('Built-in pages cannot be duplicated. You can create a new custom page instead.')
-                                  }
-                                }
-                              }}
-                              style={{
-                                padding: '0.5rem 1rem',
-                                border: '1px solid #f59e0b',
-                                borderRadius: '4px',
-                                backgroundColor: page.type === 'custom' ? '#f59e0b' : '#9ca3af',
-                                color: 'white',
-                                cursor: page.type === 'custom' ? 'pointer' : 'not-allowed',
-                                fontSize: '12px'
-                              }}
-                              disabled={page.type !== 'custom'}
-                              title={page.type === 'custom' ? 'Duplicate this page' : 'Only custom pages can be duplicated'}
-                            >
-                              Duplicate
-                            </button>
-                            <button
-                              onClick={() => {
-                                const confirmMessage = page.type === 'custom'
-                                  ? `Delete "${page.name}" page and all its search results?`
-                                  : `Delete "${page.name}" built-in page? This will remove it from the interface but can be restored by refreshing the page data.`
-                                if (confirm(confirmMessage)) {
-                                  if (page.type === 'custom') {
-                                    onDeletePage(page.queryKey)
-                                  } else {
-                                    onDeleteBuiltinPage(page.key)
-                                  }
-                                }
-                              }}
-                              style={{
-                                padding: '0.5rem 1rem',
-                                border: '1px solid #dc2626',
-                                borderRadius: '4px',
-                                backgroundColor: '#dc2626',
-                                color: 'white',
-                                cursor: 'pointer',
-                                fontSize: '12px'
-                              }}
-                            >
-                              Delete
-                            </button>
+                                  }}
+                                  style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    padding: '0.75rem 1rem',
+                                    border: 'none',
+                                    backgroundColor: 'transparent',
+                                    color: '#dc2626',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    textAlign: 'left'
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border)' }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                                >
+                                  🗑️ Delete
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
