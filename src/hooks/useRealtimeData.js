@@ -12,6 +12,7 @@ import {
   createSearchPage,
   updateSearchPage,
   deleteSearchPage,
+  duplicateSearchPage,
   createSearchResult,
   updateSearchResult,
   deleteSearchResult,
@@ -173,6 +174,18 @@ export function useRealtimeData(currentUser) {
       })
     }
     return success
+  }, [])
+
+  const duplicatePage = useCallback(async (pageId) => {
+    const newPage = await duplicateSearchPage(pageId)
+    if (newPage) {
+      // Reload all data to get the duplicated page with its results and assignments
+      const data = await loadAllUserData()
+      setPages(data.pages)
+      setResultsByPage(data.resultsByPage)
+      setAIAssignments(data.aiAssignments)
+    }
+    return newPage
   }, [])
 
   // ============================================================================
@@ -426,6 +439,7 @@ export function useRealtimeData(currentUser) {
     addPage,
     editPage,
     removePage,
+    duplicatePage,
     
     // Result operations
     addResult,

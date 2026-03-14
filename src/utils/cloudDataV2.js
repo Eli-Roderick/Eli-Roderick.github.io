@@ -140,6 +140,118 @@ export const deleteSearchPage = async (pageId) => {
   }
 }
 
+export const duplicateSearchPage = async (pageId) => {
+  const userId = await getCurrentUserId()
+  if (!userId) return null
+
+  try {
+    // 1. Get the original page
+    const { data: originalPage, error: pageError } = await supabase
+      .from('custom_search_pages')
+      .select('*')
+      .eq('id', pageId)
+      .eq('user_id', userId)
+      .single()
+
+    if (pageError || !originalPage) {
+      console.error('Error getting original page:', pageError)
+      return null
+    }
+
+    // 2. Create a new page with "(Copy)" suffix
+    const timestamp = Date.now()
+    const newQueryKey = `${originalPage.query_key}-copy-${timestamp}`
+    const newSearchKey = `${originalPage.search_key}-copy-${timestamp}`
+    const newDisplayName = `${originalPage.display_name} (Copy)`
+
+    const { data: newPage, error: createError } = await supabase
+      .from('custom_search_pages')
+      .insert({
+        user_id: userId,
+        query_key: newQueryKey,
+        search_key: newSearchKey,
+        query: originalPage.query,
+        display_name: newDisplayName
+      })
+      .select()
+      .single()
+
+    if (createError || !newPage) {
+      console.error('Error creating duplicate page:', createError)
+      return null
+    }
+
+    // 3. Get all results from the original page
+    const { data: originalResults, error: resultsError } = await supabase
+      .from('custom_search_results')
+      .select('*')
+      .eq('page_id', pageId)
+      .order('display_order', { ascending: true })
+
+    if (resultsError) {
+      console.error('Error getting original results:', resultsError)
+      // Continue anyway - page was created
+    }
+
+    // 4. Copy all results to the new page
+    if (originalResults && originalResults.length > 0) {
+      const newResults = originalResults.map((result, index) => ({
+        user_id: userId,
+        page_id: newPage.id,
+        search_type: newSearchKey,
+        title: result.title,
+        url: result.url,
+        snippet: result.snippet || '',
+        favicon: result.favicon || '',
+        company: result.company || '',
+        display_order: index
+      }))
+
+      const { error: insertResultsError } = await supabase
+        .from('custom_search_results')
+        .insert(newResults)
+
+      if (insertResultsError) {
+        console.error('Error copying results:', insertResultsError)
+      } else {
+        console.log(`✅ Copied ${newResults.length} results to new page`)
+      }
+    }
+
+    // 5. Get AI assignment from original page
+    const { data: originalAssignment, error: assignmentError } = await supabase
+      .from('ai_assignments')
+      .select('*')
+      .eq('page_id', pageId)
+      .single()
+
+    // 6. Copy AI assignment if it exists
+    if (!assignmentError && originalAssignment) {
+      const { error: insertAssignmentError } = await supabase
+        .from('ai_assignments')
+        .insert({
+          page_id: newPage.id,
+          ai_overview_id: originalAssignment.ai_overview_id,
+          font_size: originalAssignment.font_size,
+          font_family: originalAssignment.font_family,
+          font_color: originalAssignment.font_color
+        })
+
+      if (insertAssignmentError) {
+        console.error('Error copying AI assignment:', insertAssignmentError)
+      } else {
+        console.log(`✅ Copied AI assignment to new page`)
+      }
+    }
+
+    console.log(`✅ Duplicated search page: ${originalPage.display_name} -> ${newDisplayName}`)
+    return newPage
+  } catch (error) {
+    console.error('Error in duplicateSearchPage:', error)
+    return null
+  }
+}
+
 export const loadSearchPages = async (userId = null) => {
   const uid = userId || await getCurrentUserId()
   if (!uid) return []

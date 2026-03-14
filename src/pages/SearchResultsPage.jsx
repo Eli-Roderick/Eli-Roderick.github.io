@@ -99,6 +99,7 @@ export default function SearchResultsPage() {
     removeAIOverview,
     assignAI,
     unassignAI,
+    duplicatePage,
     getPageById,
     getPageByQueryKey,
     getResultsForPage,
@@ -1259,6 +1260,12 @@ export default function SearchResultsPage() {
           onRemoveAI={removeAIOverviewFromSearch}
           onDeletePage={removeCustomSearchPage}
           onDeleteBuiltinPage={deleteBuiltinPage}
+          onDuplicatePage={async (pageId) => {
+            const newPage = await duplicatePage(pageId)
+            if (newPage) {
+              alert(`Page duplicated successfully! New page: "${newPage.display_name}"`)
+            }
+          }}
           onEditResults={(searchType) => {
             setShowSearchManagement(false)
             setShowSearchResultsEditor(true)
@@ -2446,6 +2453,7 @@ function EnhancedSearchManagementModal({
   onRemoveAI,
   onDeletePage,
   onDeleteBuiltinPage,
+  onDuplicatePage,
   onEditResults,
   onReorderResults,
   removeCustomSearchResult,
@@ -2816,6 +2824,30 @@ function EnhancedSearchManagementModal({
                             >
                               View Results
                             </button>
+                            {page.type === 'custom' && (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Duplicate "${page.name}" page with all its search results and AI assignment?`)) {
+                                    // Find the page ID from customSearchPages
+                                    const pageData = customSearchPages[page.queryKey]
+                                    if (pageData && pageData.id) {
+                                      onDuplicatePage(pageData.id)
+                                    }
+                                  }
+                                }}
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  border: '1px solid #f59e0b',
+                                  borderRadius: '4px',
+                                  backgroundColor: '#f59e0b',
+                                  color: 'white',
+                                  cursor: 'pointer',
+                                  fontSize: '12px'
+                                }}
+                              >
+                                Duplicate
+                              </button>
+                            )}
                             <button
                               onClick={() => {
                                 const confirmMessage = page.type === 'custom'
